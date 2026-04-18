@@ -7,7 +7,7 @@ namespace GodotTopDownTemplate.Projectiles;
 /// Static helper for breaker bullet detonation logic (Issue #678).
 /// Shared by Bullet.cs and ShotgunPellet.cs to avoid code duplication.
 ///
-/// Breaker bullets detonate 60px before hitting a wall or alive enemy,
+/// Breaker bullets detonate 95px before hitting a wall or alive enemy,
 /// dealing 1 damage in a 15px radius and spawning shrapnel in a forward cone.
 /// </summary>
 public static class BreakerDetonation
@@ -15,7 +15,7 @@ public static class BreakerDetonation
     /// <summary>
     /// Distance in pixels ahead of the bullet at which to trigger breaker detonation.
     /// </summary>
-    public const float DetonationDistance = 60.0f;
+    public const float DetonationDistance = 95.0f;
 
     /// <summary>
     /// Explosion damage radius for breaker bullet detonation (in pixels).
@@ -29,8 +29,17 @@ public static class BreakerDetonation
 
     /// <summary>
     /// Half-angle of the shrapnel cone in degrees.
+    /// Widened to 45° (Issue #1634) so the proximity fuse triggers over a broader arc,
+    /// giving shrapnel a better chance to hit targets that are slightly off-axis.
     /// </summary>
-    public const float ShrapnelHalfAngle = 30.0f;
+    public const float ShrapnelHalfAngle = 45.0f;
+
+    /// <summary>
+    /// Minimum travel distance (pixels) before the enemy-cone proximity fuse can trigger (Issue #1634).
+    /// Prevents immediate detonation when enemies are within the cone at the moment of firing.
+    /// The wall check is still active from spawn — only the enemy cone is gated.
+    /// </summary>
+    public const float ArmingDistance = 40.0f;
 
     /// <summary>
     /// Damage per breaker shrapnel piece.
@@ -80,8 +89,9 @@ public static class BreakerDetonation
     }
 
     /// <summary>
-    /// Checks if a wall or alive enemy is within detonation distance ahead of the projectile.
-    /// If so, triggers detonation and returns true.
+    /// Checks if a wall is within detonation distance ahead (straight raycast), or if an alive
+    /// enemy is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
+    /// when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
     /// </summary>
     /// <param name="projectile">The bullet/pellet Area2D node.</param>
     /// <param name="direction">Normalized direction of travel.</param>
@@ -89,6 +99,7 @@ public static class BreakerDetonation
     /// <param name="damageMultiplier">Damage multiplier (e.g., from ricochets).</param>
     /// <param name="shooterId">Instance ID of the shooter (to prevent self-damage).</param>
     /// <param name="isPenetrating">Whether the bullet is currently penetrating a wall.</param>
+    /// <param name="distanceTraveled">Distance the bullet has traveled since spawn (for arming).</param>
     /// <returns>True if detonation occurred, false otherwise.</returns>
     public static bool CheckAndDetonate(
         Area2D projectile,
@@ -96,7 +107,8 @@ public static class BreakerDetonation
         float damage,
         float damageMultiplier,
         ulong shooterId,
-        bool isPenetrating)
+        bool isPenetrating,
+        float distanceTraveled = 0.0f)
     {
         // Don't detonate while penetrating a wall
         if (isPenetrating)
@@ -110,41 +122,80 @@ public static class BreakerDetonation
             return false;
         }
 
-        // Raycast forward from projectile position
+        // 1. Raycast forward for wall detection (straight ahead only).
         var rayStart = projectile.GlobalPosition;
         var rayEnd = projectile.GlobalPosition + direction * DetonationDistance;
 
-        var query = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
-        query.CollisionMask = projectile.CollisionMask;
-        query.Exclude = new Godot.Collections.Array<Rid> { projectile.GetRid() };
+        var wallQuery = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
+        wallQuery.CollisionMask = projectile.CollisionMask;
+        wallQuery.Exclude = new Godot.Collections.Array<Rid> { projectile.GetRid() };
 
-        var result = spaceState.IntersectRay(query);
+        var wallResult = spaceState.IntersectRay(wallQuery);
 
-        if (result.Count == 0)
+        if (wallResult.Count > 0)
         {
-            return false; // Nothing ahead within detonation distance
-        }
-
-        var collider = (Node2D)result["collider"];
-
-        // Wall detected — trigger detonation
-        if (collider is StaticBody2D || collider is TileMap)
-        {
-            Detonate(projectile, direction, damage, damageMultiplier, shooterId);
-            return true;
-        }
-
-        // Alive enemy detected — trigger detonation
-        if (collider is CharacterBody2D)
-        {
-            if (collider.HasMethod("is_alive"))
+            var collider = (Node2D)wallResult["collider"];
+            if (collider is StaticBody2D || collider is TileMap)
             {
-                bool isAlive = collider.Call("is_alive").AsBool();
-                if (isAlive)
-                {
-                    Detonate(projectile, direction, damage, damageMultiplier, shooterId);
-                    return true;
-                }
+                Detonate(projectile, direction, damage, damageMultiplier, shooterId);
+                return true;
+            }
+        }
+
+        // 2. Cone sector check for enemies (Issue #1634).
+        // Gated by arming distance: the enemy-cone fuse only activates after ArmingDistance pixels,
+        // preventing immediate detonation when enemies are close to the player at fire time.
+        if (distanceTraveled >= ArmingDistance)
+        {
+            if (CheckEnemyInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true (and triggers detonation) if any alive enemy is within the shrapnel cone sector
+    /// AND has clear line of sight from the projectile (no wall in between).
+    /// The cone is defined by DetonationDistance (radius) and ShrapnelHalfAngle (half-angle from
+    /// the projectile's travel direction).
+    /// LOS check prevents premature detonation against enemies through walls (Issue #1634).
+    /// </summary>
+    private static bool CheckEnemyInShrapnelCone(
+        Area2D projectile,
+        Vector2 direction,
+        float damage,
+        float damageMultiplier,
+        ulong shooterId)
+    {
+        var tree = projectile.GetTree();
+        if (tree == null) return false;
+
+        float cosHalfAngle = Mathf.Cos(Mathf.DegToRad(ShrapnelHalfAngle));
+        var enemies = tree.GetNodesInGroup("enemies");
+
+        foreach (var enemy in enemies)
+        {
+            if (enemy is not Node2D enemyNode) continue;
+            if (!enemyNode.HasMethod("is_alive") || !enemyNode.Call("is_alive").AsBool()) continue;
+
+            var toEnemy = enemyNode.GlobalPosition - projectile.GlobalPosition;
+            float dist = toEnemy.Length();
+            if (dist > DetonationDistance) continue;
+
+            // Dot product of normalized vectors equals cos(angle_between).
+            // Enemy is in cone if cos(angle) >= cos(half_angle).
+            if (dist > 0f && (toEnemy / dist).Dot(direction) >= cosHalfAngle)
+            {
+                // Only detonate if there is no wall between the bullet and the enemy.
+                // Without this check, bullets detonate against enemies through walls.
+                if (!HasLineOfSight(projectile, projectile.GlobalPosition, enemyNode.GlobalPosition))
+                    continue;
+
+                Detonate(projectile, direction, damage, damageMultiplier, shooterId);
+                return true;
             }
         }
 
@@ -333,14 +384,16 @@ public static class BreakerDetonation
         float damageMultiplier,
         ulong shooterId)
     {
-        var shrapnelScene = GetShrapnelScene();
-        if (shrapnelScene == null)
+        var tree = projectile.GetTree();
+        if (tree == null)
         {
             return;
         }
 
-        var tree = projectile.GetTree();
-        if (tree == null)
+        var poolManager = projectile.GetNodeOrNull("/root/ProjectilePoolManager");
+        bool canUsePool = poolManager != null && poolManager.HasMethod("get_breaker_shrapnel");
+        var shrapnelScene = GetShrapnelScene();
+        if (shrapnelScene == null && !canUsePool)
         {
             return;
         }
@@ -374,17 +427,36 @@ public static class BreakerDetonation
             float randomAngle = (float)GD.RandRange(-halfAngleRad, halfAngleRad);
             var shrapnelDirection = direction.Rotated(randomAngle);
 
-            var shrapnel = shrapnelScene.Instantiate<Node2D>();
+            var spawnPosition = center + shrapnelDirection * 5.0f;
+            var shrapnelSpeed = (float)GD.RandRange(1400.0, 2200.0);
+
+            if (canUsePool)
+            {
+                var pooledVariant = poolManager!.Call("get_breaker_shrapnel");
+                if (pooledVariant.Obj is Node pooledShrapnel && pooledShrapnel.HasMethod("pool_activate"))
+                {
+                    pooledShrapnel.Call("pool_activate", spawnPosition, shrapnelDirection, (int)shooterId, ShrapnelDamage, shrapnelSpeed);
+                    continue;
+                }
+            }
+
+            var fallbackScene = shrapnelScene ?? GetShrapnelScene();
+            if (fallbackScene == null)
+            {
+                continue;
+            }
+
+            var shrapnel = fallbackScene.Instantiate<Node2D>();
             if (shrapnel == null)
             {
                 continue;
             }
 
-            shrapnel.GlobalPosition = center + shrapnelDirection * 5.0f;
+            shrapnel.GlobalPosition = spawnPosition;
             shrapnel.Set("direction", shrapnelDirection);
             shrapnel.Set("source_id", (int)shooterId);
             shrapnel.Set("damage", ShrapnelDamage);
-            shrapnel.Set("speed", (float)GD.RandRange(1400.0, 2200.0));
+            shrapnel.Set("speed", shrapnelSpeed);
 
             // Use call_deferred for performance (batch scene tree changes)
             scene.CallDeferred("add_child", shrapnel);

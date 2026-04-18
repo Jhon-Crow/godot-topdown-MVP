@@ -418,12 +418,13 @@ func _scatter_casings() -> void:
 	for casing in casings:
 		if not is_instance_valid(casing) or not casing is RigidBody2D:
 			continue
-		var distance := global_position.distance_to(casing.global_position)
+		var casing_body := casing as RigidBody2D
+		var distance: float = global_position.distance_to(casing_body.global_position)
 		if distance > explosion_radius * 1.5:
 			continue
-		if not _has_line_of_sight(space_state, casing.global_position):
+		if not _has_line_of_sight(space_state, casing_body.global_position):
 			continue
-		var dir := (casing.global_position - global_position).normalized().rotated(randf_range(-0.2, 0.2))
+		var dir: Vector2 = (casing_body.global_position - global_position).normalized().rotated(randf_range(-0.2, 0.2))
 		var impulse_strength := 1500.0 * (1.0 - distance / (explosion_radius * 1.5))
-		if casing.has_method("receive_kick"):
-			casing.receive_kick(dir * impulse_strength)
+		if casing_body.has_method("receive_kick"):
+			casing_body.receive_kick(dir * impulse_strength)

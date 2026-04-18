@@ -259,6 +259,13 @@ public partial class Bullet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Distance traveled since spawn for breaker bullet arming (Issue #1634).
+    /// The enemy-cone fuse only activates after BreakerDetonation.ArmingDistance pixels,
+    /// preventing immediate detonation when enemies are close to the player.
+    /// </summary>
+    private float _breakerDistanceTraveled = 0.0f;
+
+    /// <summary>
     /// Whether this bullet ignores walls (Issue #751).
     /// When true, the bullet passes through walls with full damage and no ricochet.
     /// Set via Node.Set("is_drilling_bullet", true) by BaseWeapon.SpawnBullet().
@@ -481,10 +488,15 @@ public partial class Bullet : Area2D
             }
         }
 
-        // Check for breaker detonation (Issue #678)
+        // Check for breaker detonation (Issue #678, #1634)
         if (IsBreakerBullet)
         {
-            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, _isPenetrating))
+            // Track distance for arming: cone fuse activates after ArmingDistance pixels
+            if (!_isPenetrating)
+            {
+                _breakerDistanceTraveled += movement.Length();
+            }
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, _isPenetrating, _breakerDistanceTraveled))
             {
                 return; // Bullet detonated and was freed
             }

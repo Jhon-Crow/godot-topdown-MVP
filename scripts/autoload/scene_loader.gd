@@ -79,7 +79,7 @@ func load_level(level_path: String) -> void:
 		_log("Already loading a level, ignoring request for: %s" % level_path)
 		return
 
-	if not ResourceLoader.exists(level_path):
+	if not ResourceLoader.exists(level_path, "PackedScene"):
 		_log("ERROR: Level path does not exist: %s" % level_path)
 		return
 
@@ -99,8 +99,11 @@ func load_level(level_path: String) -> void:
 
 ## Start the background loading after fade in
 func _start_background_load() -> void:
+	if not _is_loading or _current_load_path == "":
+		return
+
 	# Request background loading
-	var error := ResourceLoader.load_threaded_request(_current_load_path, "", true)
+	var error := ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)
 	if error != OK:
 		_log("ERROR: Failed to start threaded load, falling back to sync: %s" % _current_load_path)
 		_fallback_sync_load()
@@ -172,6 +175,7 @@ func _on_load_complete() -> void:
 
 ## Hide loading screen and reset state
 func _hide_loading_screen() -> void:
+	set_process(false)
 	_loading_overlay.visible = false
 	_is_loading = false
 	_current_load_path = ""
@@ -179,17 +183,18 @@ func _hide_loading_screen() -> void:
 
 ## Fallback to synchronous loading if threaded loading fails
 func _fallback_sync_load() -> void:
+	var path := _current_load_path
 	_log("Using synchronous load fallback")
-	var loaded_scene := load(_current_load_path) as PackedScene
-	if loaded_scene == null:
-		_log("ERROR: Synchronous fallback could not load scene: %s" % _current_load_path)
+	var loaded_scene := ResourceLoader.load(path, "PackedScene") as PackedScene
+	if loaded_scene:
+		get_tree().paused = false
+		var error := get_tree().change_scene_to_packed(loaded_scene)
+		if error != OK:
+			_log("ERROR: Failed to change scene in sync fallback: %s" % error)
+			return
+		else:
+			_log("Sync fallback scene changed successfully: %s" % path)
+	else:
+		_log("ERROR: Sync fallback could not load scene: %s" % path)
 		return
-
-	get_tree().paused = false
-	var error := get_tree().change_scene_to_packed(loaded_scene)
-	if error != OK:
-		_log("ERROR: Synchronous fallback failed to change scene: %s" % error)
-		return
-
-	_log("Synchronous fallback scene changed successfully")
 	_hide_loading_screen()

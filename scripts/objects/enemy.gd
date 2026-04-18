@@ -3882,7 +3882,10 @@ func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene == null: return
 	var sid := get_instance_id(); var pm: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pm and pm.has_method("get_bullet"):
+	var can_use_generic_bullet_pool := false
+	if bullet_scene and bullet_scene.resource_path == "res://scenes/projectiles/Bullet.tscn":
+		can_use_generic_bullet_pool = true
+	if can_use_generic_bullet_pool and pm and pm.has_method("get_bullet"):
 		var p = pm.get_bullet()
 		if p and p.has_method("pool_activate"): p.pool_activate(pos, dir, sid, null); if p.get("shooter_position") != null: p.shooter_position = pos; return
 	var p := bullet_scene.instantiate(); p.global_position = pos; current_scene.add_child(p)

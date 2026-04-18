@@ -793,7 +793,10 @@ func _shoot() -> void:
 			if _homing_active and bullet.has_method("enable_homing"):
 				bullet.enable_homing()
 			if _breaker_bullets_active:
-				bullet.is_breaker_bullet = true
+				# Use setter so pooled bullets reload the shrapnel scene (Issue #1634).
+				# Direct property assignment bypasses set_is_breaker_bullet() which
+				# re-loads _breaker_shrapnel_scene cleared by pool_activate/_reset_state().
+				bullet.call("set_is_breaker_bullet", true)
 
 	# Fallback to instantiation if pool not available or failed
 	if bullet == null:
@@ -3693,7 +3696,7 @@ func _init_breaker_bullets() -> void:
 		return
 
 	_breaker_bullets_active = true
-	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)")
 
 # Force Field (Issue #676)
 ## Whether force field is equipped.

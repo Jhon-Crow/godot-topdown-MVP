@@ -5,11 +5,11 @@
 **Title:** fix громкоговоритель (fix loudspeaker)
 
 **Reported symptoms (original Russian):**
-1. На карте Доки снайпер всё ещё стреляет по игроку при 0 врагах на счётчике  
+1. На карте Доки снайпер всё ещё стреляет по игроку при 0 врагах на счётчике
    *(On Docks map, sniper still shoots at the player when the counter shows 0 enemies)*
-2. На карте Канализация уровень завершается с 0 врагов, но при этом есть враги, которые стреляют  
+2. На карте Канализация уровень завершается с 0 врагов, но при этом есть враги, которые стреляют
    *(On Sewer map, level completes at 0 enemies but there are enemies shooting at the player)*
-3. Громкоговоритель перестаёт работать на карте ЖД Пути (возможно из-за особых врагов)  
+3. Громкоговоритель перестаёт работать на карте ЖД Пути (возможно из-за особых врагов)
    *(Loudspeaker stops working on Railway Station map, possibly due to special enemy types)*
 
 **Logs provided:**
@@ -107,7 +107,7 @@ The immediate fix for symptom 2 is the same as symptom 1 (adding the pacifist gu
 
 The loudspeaker **does work** on the Railway Station map but with very low apparent effectiveness due to:
 
-1. **Effect chance is only 11%** (Loudspeaker level 5)  
+1. **Effect chance is only 11%** (Loudspeaker level 5)
 2. **50° cone constraint** — player often fires the loudspeaker upward (-0.15, -0.99) while enemies are spread across a wide map
 3. **`was_attacked_by_player` check** — any enemy that previously attacked the player is excluded from pacification
 4. **4 extra drone enemies** — drones are in the "enemies" group but don't have `apply_pacifism` method, so the log shows `Effect applied: 0/19` (including 4 drones that can never be pacified)
