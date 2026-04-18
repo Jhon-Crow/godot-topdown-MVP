@@ -2529,3 +2529,36 @@ func test_sniper_scope_training_still_works_normally_when_scope_not_used_early()
 		"Tutorial advances to SCOPE_TRAINING after reload if scope not used early (Issue #998)")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
 		"Scope hint remains active in SCOPE_TRAINING step (Issue #998)")
+
+
+# ============================================================================
+# Issue #1881: Grenade tutorial hint should not cover the player
+# ============================================================================
+
+
+func test_tutorial_hints_are_bottom_aligned_above_player() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("const HINT_PLAYER_CLEARANCE"),
+		"Tutorial hints should use an explicit clearance above the player (Issue #1881)")
+	assert_true(content.contains("label.get_content_height()"),
+		"Tutorial hints should account for wrapped grenade hint height (Issue #1881)")
+	assert_true(content.contains("-HINT_PLAYER_CLEARANCE - label_height"),
+		"Tutorial hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
+
+
+func test_tutorial_hints_do_not_use_old_fixed_player_covering_offset() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("Vector2(-150, -80 - index * HINT_SPACING)"),
+		"Old fixed top-left offset can cover the player when grenade hint wraps (Issue #1881)")

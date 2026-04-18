@@ -160,6 +160,9 @@ var _hint_labels: Dictionary = {}
 ## Vertical spacing between stacked hints above the player (pixels).
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const HINT_SPACING := 60
+const HINT_WIDTH := 300
+const HINT_MIN_HEIGHT := 30
+const HINT_PLAYER_CLEARANCE := 120
 
 ## Issue #944: Animation durations for tutorial hint transitions.
 ## Fade-in duration for new hints appearing (seconds).
@@ -1960,7 +1963,7 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.custom_minimum_size = Vector2(300, 30)
+	label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 	label.fit_content = true
 	label.scroll_active = false
 
@@ -2274,9 +2277,14 @@ func _update_hint_position_indexed(label: RichTextLabel, index: int) -> void:
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
 
-	# Stack hints above player: index 0 is closest, higher indices are further up
-	label.custom_minimum_size = Vector2(300, 30)
-	label.position = screen_pos + Vector2(-150, -80 - index * HINT_SPACING)
+	# Bottom-align each hint above the player so tall grenade instructions grow upward
+	# instead of covering the player sprite.
+	label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
+	var label_height: float = maxf(label.get_content_height(), HINT_MIN_HEIGHT)
+	label.position = screen_pos + Vector2(
+		-HINT_WIDTH * 0.5,
+		-HINT_PLAYER_CLEARANCE - label_height - index * HINT_SPACING
+	)
 
 
 ## Show the completion message.
