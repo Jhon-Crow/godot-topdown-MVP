@@ -2502,6 +2502,15 @@ func _reset_tutorial_grenade_hint_tracking() -> void:
 	_tutorial_grenade_hint_drag_start = Vector2.ZERO
 
 
+func _reset_tutorial_grenade_hint_to_start() -> void:
+	_reset_tutorial_grenade_hint_tracking()
+	if _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
+		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
+		if is_instance_valid(label):
+			label.text = _build_tutorial_grenade_hint_bbcode(0)
+	_reset_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE)
+
+
 ## Update the grenade hint step based on current input (Issue #1818).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
@@ -2515,23 +2524,30 @@ func _update_tutorial_grenade_hint_step() -> void:
 	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
 	var current_mouse_pos := get_global_mouse_position()
 	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
-	var rmb_just_released := not rmb_pressed and _tutorial_grenade_rmb_was_pressed
 
 	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
-		_reset_tutorial_grenade_hint_tracking()
+		var awaiting_pin_state := (
+			_tutorial_grenade_hint_step == 2
+			and g_pressed
+			and not rmb_pressed
+			and _tutorial_grenade_drag_completed
+			and _tutorial_grenade_rmb_was_pressed
+		)
+		if not ((g_pressed and rmb_pressed and _tutorial_grenade_hint_step <= 2) or awaiting_pin_state):
+			_reset_tutorial_grenade_hint_to_start()
 	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
-		_reset_tutorial_grenade_hint_tracking()
+		_reset_tutorial_grenade_hint_to_start()
 	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
 		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
-			_reset_tutorial_grenade_hint_tracking()
+			_reset_tutorial_grenade_hint_to_start()
 	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
-		_reset_tutorial_grenade_hint_tracking()
+		_reset_tutorial_grenade_hint_to_start()
 	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
-		_reset_tutorial_grenade_hint_tracking()
+		_reset_tutorial_grenade_hint_to_start()
 	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
-		_reset_tutorial_grenade_hint_tracking()
+		_reset_tutorial_grenade_hint_to_start()
 	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
-		_reset_tutorial_grenade_hint_tracking()
+		_reset_tutorial_grenade_hint_to_start()
 
 	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
 		_tutorial_grenade_drag_completed = false
@@ -2542,15 +2558,15 @@ func _update_tutorial_grenade_hint_step() -> void:
 			_tutorial_grenade_drag_completed = true
 			_tutorial_grenade_hint_step = 2
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed and grenade_state >= 1:
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and rmb_just_released:
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and not rmb_pressed and grenade_state >= 1:
 		_tutorial_grenade_hint_step = 3
-	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed and grenade_state >= 1:
 		_tutorial_grenade_rmb_held_after_release = true
 		_tutorial_grenade_hint_step = 4
-	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release:
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release and grenade_state >= 2:
 		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
 
@@ -2801,7 +2817,6 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.name = "TutorialHint_" + hint_key
 	label.bbcode_enabled = true
 	label.text = text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("normal_font_size", 20)
 	# Issue #945: unique color per hint type for easy differentiation
 	label.add_theme_color_override("default_color", _get_tutorial_hint_color(hint_key))
@@ -2961,6 +2976,24 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 
 	_tutorial_hint_strike_progress[hint_key] = target_progress
 	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+func _reset_tutorial_hint_strikethrough(hint_key: String) -> void:
+	if not _tutorial_hint_strike_progress.has(hint_key):
+		return
+
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_tutorial_hint_strike_tweens.erase(hint_key)
+
+	_tutorial_hint_strike_progress[hint_key] = 0.0
+	var strike_lines: Array = _tutorial_hint_strike_lines.get(hint_key, [])
+	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if not strike_lines.is_empty():
+		_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, 0.0)
 
 
 ## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.
