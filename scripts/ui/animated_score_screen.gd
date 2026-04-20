@@ -774,31 +774,34 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 
 					# Sharply enlarge the rank letter before fading out (issue #539 feedback)
 					var enlarge_tween := create_tween()
-					enlarge_tween.set_parallel(true)
 					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(1.5, 1.5), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-					# After the sharp enlarge, fade out
-					enlarge_tween.chain().tween_callback(
+					# After the sharp enlarge (0.15 s), fade out the fullscreen rank and show it in the container
+					get_tree().create_timer(0.15).timeout.connect(
 						func():
+							if _skip_requested:
+								return
+
 							# Fade out flash background
 							var fade_tween := create_tween()
 							fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
 
-							# Fade out big rank letter and gradient background
+							# Fade out big rank letter and gradient background, fade in final rank
 							var fade_out_tween := create_tween()
 							fade_out_tween.set_parallel(true)
 							fade_out_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
 							fade_out_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
-
-							# Show final rank in container - it "sticks" in place (issue #539)
 							fade_out_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
 
-							# Clean up after animation
-							fade_out_tween.chain().tween_callback(
+							# Clean up after fade-out (RANK_SHRINK_DURATION = 0.5 s)
+							get_tree().create_timer(RANK_SHRINK_DURATION).timeout.connect(
 								func():
-									flash_bg.queue_free()
-									big_rank_label.queue_free()
-									rank_bg.queue_free()
+									if is_instance_valid(flash_bg):
+										flash_bg.queue_free()
+									if is_instance_valid(big_rank_label):
+										big_rank_label.queue_free()
+									if is_instance_valid(rank_bg):
+										rank_bg.queue_free()
 									_rank_flash_bg = null
 									_rank_gradient_bg = null
 									_big_rank_label = null
