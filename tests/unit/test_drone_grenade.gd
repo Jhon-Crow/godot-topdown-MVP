@@ -419,3 +419,87 @@ func test_throw_phase_collision_never_enters_piloting() -> void:
 		drone.process(0.016, Vector2.ZERO)
 	assert_eq(drone._drone_state, MockDroneGrenade.DroneState.EXPLODED,
 		"After throw-phase explosion the drone must never transition to PILOTING")
+
+
+# ============================================================================
+# C# Player Interop Regression Tests (Issue #1896)
+# ============================================================================
+
+
+func _read_csharp_player_grenade_source() -> String:
+	var file := FileAccess.open("res://Scripts/Characters/Player.Grenade.cs", FileAccess.READ)
+	assert_not_null(file, "Player.Grenade.cs must be readable for C# interop regression tests")
+	if file == null:
+		return ""
+	return file.get_as_text()
+
+
+func _extract_csharp_method(source: String, signature: String) -> String:
+	var method_start := source.find(signature)
+	assert_gt(method_start, -1, "Expected C# method signature to exist: %s" % signature)
+	if method_start == -1:
+		return ""
+
+	var brace_start := source.find("{", method_start)
+	assert_gt(brace_start, -1, "Expected method body to start after signature: %s" % signature)
+	if brace_start == -1:
+		return ""
+
+	var depth := 0
+	for i in range(brace_start, source.length()):
+		var ch := source.substr(i, 1)
+		if ch == "{":
+			depth += 1
+		elif ch == "}":
+			depth -= 1
+			if depth == 0:
+				return source.substr(brace_start, i - brace_start + 1)
+
+	fail_test("Expected method body to close for signature: %s" % signature)
+	return ""
+
+
+func test_csharp_simple_throw_sets_drone_aim_before_unfreeze() -> void:
+	var source := _read_csharp_player_grenade_source()
+	var method := _extract_csharp_method(source, "private void ThrowSimpleGrenade()")
+
+	var aim_idx := method.find("PassDroneThrowAimPoint(targetPos);")
+	var unfreeze_idx := method.find("_activeGrenade.Freeze = false;")
+	var throw_call_idx := method.find("_activeGrenade.Call(\"throw_grenade_simple\"")
+
+	assert_gt(aim_idx, -1,
+		"C# simple throw must pass the cursor target to DroneGrenade.set_aim_point before launch")
+	assert_gt(unfreeze_idx, -1, "C# simple throw must still unfreeze the grenade")
+	assert_gt(throw_call_idx, -1, "C# simple throw must still call the GDScript throw hook")
+	assert_lt(aim_idx, unfreeze_idx,
+		"C# simple throw must set the drone aim point before unfreezing to avoid fallback launch")
+	assert_lt(aim_idx, throw_call_idx,
+		"C# simple throw must set the drone aim point before calling throw_grenade_simple")
+
+
+func test_csharp_velocity_throw_sets_drone_aim_before_unfreeze() -> void:
+	var source := _read_csharp_player_grenade_source()
+	var method := _extract_csharp_method(source, "private void ThrowGrenade(Vector2 dragEnd)")
+
+	var aim_idx := method.find("PassDroneThrowAimPoint(dragEnd);")
+	var unfreeze_idx := method.find("_activeGrenade.Freeze = false;")
+	var throw_call_idx := method.find("_activeGrenade.Call(\"throw_grenade_with_direction\"")
+
+	assert_gt(aim_idx, -1,
+		"C# velocity throw must pass dragEnd to DroneGrenade.set_aim_point before launch")
+	assert_gt(unfreeze_idx, -1, "C# velocity throw must still unfreeze the grenade")
+	assert_gt(throw_call_idx, -1, "C# velocity throw must still call the GDScript throw hook")
+	assert_lt(aim_idx, unfreeze_idx,
+		"C# velocity throw must set the drone aim point before unfreezing to avoid fallback launch")
+	assert_lt(aim_idx, throw_call_idx,
+		"C# velocity throw must set the drone aim point before calling throw_grenade_with_direction")
+
+
+func test_csharp_drone_aim_helper_calls_snake_case_gdscript_method() -> void:
+	var source := _read_csharp_player_grenade_source()
+	var method := _extract_csharp_method(source, "private void PassDroneThrowAimPoint(Vector2 aimPoint)")
+
+	assert_true(method.contains("_activeGrenade.HasMethod(\"set_aim_point\")"),
+		"C# interop must look for DroneGrenade's snake_case GDScript method")
+	assert_true(method.contains("_activeGrenade.Call(\"set_aim_point\", aimPoint)"),
+		"C# interop must call DroneGrenade.set_aim_point with the world-space aim point")

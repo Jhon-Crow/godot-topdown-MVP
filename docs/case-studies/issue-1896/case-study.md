@@ -1,122 +1,200 @@
-# Case Study: Issue #1896 — Drone Grenade Throw-Before-Pilot Mechanic Not Working
+# Case Study: Issue #1896 — Drone Grenade Throw-Before-Pilot Mechanic
 
 ## Overview
 
 **Issue:** [#1896 — update граната дрон](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1896)  
 **PR:** [#1906](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1906)  
-**Game log:** `game_log_20260420_120715.txt` (attached by Jhon-Crow on 2026-04-20)  
-**Reported symptom:** Drone spawns next to player and immediately enters pilot mode — no ballistic throw phase.
+**Attached logs preserved in this folder:**
+
+- `game_log_20260420_120715.txt` — first failed retest attached at 2026-04-20T09:09Z.
+- `game_log_20260420_123426.txt` — second failed retest attached at 2026-04-20T09:35Z.
+
+**Original requirements:**
+
+1. Increase drone grenade speed by 50%.
+2. Throw the drone like a grenade toward the aim point first; only after a successful throw should player drone control begin. If it collides before reaching the throw aim point, it explodes immediately.
+
+**Reported symptom:** the drone still spawned near the player and entered piloting immediately, with no visible throw-before-pilot phase.
 
 ---
 
-## Timeline of Events
+## Timeline
 
-| Time | Event |
-|------|-------|
-| 2026-04-20 | Issue #1896 filed: requests 50% speed boost + throw-before-pilot mechanic |
-| 2026-04-20T07:15 | PR #1906 opened with implementation in `drone_grenade.gd` and unit tests |
-| 2026-04-20T07:20 | PR marked ready to merge, CI passing |
-| 2026-04-20T09:09 | Jhon-Crow tests in-game and reports: throw phase not working at all; attaches `game_log_20260420_120715.txt` |
-| 2026-04-20T09:10 | AI work session restarted |
+| Time (UTC) | Event |
+|------------|-------|
+| 2026-04-20 | Issue #1896 filed. |
+| 2026-04-20T07:15 | PR #1906 opened with `DroneGrenade` state machine and unit tests. |
+| 2026-04-20T09:09 | Jhon-Crow reported the first failure: “throw-before-pilot не работает”; attached `game_log_20260420_120715.txt`. |
+| 2026-04-20T09:13 | First follow-up fix added `set_aim_point()` calls to `scripts/characters/player.gd`. |
+| 2026-04-20T09:35 | Jhon-Crow reported the second failure: “всё по старому, не кидается”; attached `game_log_20260420_123426.txt`. |
+| 2026-04-20T09:37+ | Second investigation found that the tested runtime path was C# `Scripts/Characters/Player.Grenade.cs`, not GDScript `scripts/characters/player.gd`. |
 
 ---
 
-## Sequence of Events During a Drone Throw (from game log)
+## Evidence From Logs
 
+### First Failed Retest
+
+From `game_log_20260420_120715.txt`:
+
+```text
+[12:07:32] [Player.Grenade.Simple] Throwing! Target: (666.0539, 1545.0447), Distance: 410,1, Speed: 496,0, Friction: 300,0
+[12:07:32] [GrenadeBase] Simple mode throw! Dir: (0.999999, 0.001552), Speed: 496.0
+[12:07:32] [DroneGrenade] PILOTING phase started at (255.9691, 1544.408)
+[12:07:32] [DroneGrenade] Drone launched at (255.9691, 1544.408)
 ```
-12:07:27  [GrenadeBase] Grenade created at (0, 0) (frozen)
-12:07:27  [DroneGrenade] Ready
-12:07:27  [DroneGrenade] Pin pulled — drone will launch on throw
-12:07:32  [Player.Grenade.Simple] Throwing! Target: (666.05, 1545.04), Distance: 410.1, Speed: 496.0
-12:07:32  [GrenadeBase] Simple mode throw! Dir: (0.999999, 0.001552), Speed: 496.0
-12:07:32  [DroneGrenade] PILOTING phase started at (255.97, 1544.41)   ← BUG: should be THROWING
-12:07:32  [DroneGrenade] Drone launched at (255.97, 1544.41)
+
+### Second Failed Retest
+
+From `game_log_20260420_123426.txt`:
+
+```text
+[12:34:32] [Player.Grenade.Simple] Throwing! Target: (790.8414, 257.69128), Distance: 589,0, Speed: 594,5, Friction: 300,0
+[12:34:32] [Player.Grenade.Simple] C# set velocity directly: dir=(0.9874949, -0.15765108), speed=594,5, spawn=(209.2497, 350.54092)
+[12:34:32] [DroneGrenade] PILOTING phase started at (209.2497, 350.5409)
+[12:34:32] [DroneGrenade] Drone launched at (209.2497, 350.5409)
 ```
 
-**Key observation:** The log shows `PILOTING phase started` directly after throw — the `THROWING` phase is never entered. The target position `(666.05, 1545.04)` was known to the player code but never forwarded to the drone.
+The second log repeats the same signature twice:
+
+- `Throwing! Target: ...` proves the player throw code has the world-space aim point.
+- `C# set velocity directly` identifies the active path as `Scripts/Characters/Player.Grenade.cs`.
+- `PILOTING phase started` appears immediately.
+- `THROWING phase started` never appears.
 
 ---
 
-## Root Cause Analysis
+## Root Cause
 
-### The Bug
+The drone state machine was correct but its new API was only wired in the GDScript player path.
 
-`DroneGrenade._launch_drone()` enters the `THROWING` phase only when `_aim_point != Vector2.ZERO`:
+`DroneGrenade._launch_drone()` enters `THROWING` only when `_aim_point` is set:
 
 ```gdscript
-# drone_grenade.gd line 164
 if _aim_point != Vector2.ZERO:
-    _drone_state = DroneState.THROWING   # ← only reachable if set_aim_point() was called
-    ...
+    _drone_state = DroneState.THROWING
+    _throw_target = _aim_point
 else:
-    _start_piloting()                    # ← always reached because _aim_point = Vector2.ZERO
+    _start_piloting()
 ```
 
-`set_aim_point(world_pos)` was implemented in `drone_grenade.gd` but **never called** from `player.gd`. The player's grenade-throwing code (`_throw_simple_grenade` and `_throw_grenade`) knew the target position (`target_pos` / `drag_end`) but passed it only to the physics throw — not to the drone's state machine.
+The first follow-up fix added:
 
-### Why Unit Tests Passed
+```gdscript
+_active_grenade.set_aim_point(target_pos)
+```
 
-Unit tests (`test_drone_grenade.gd`) call `drone.set_aim_point(...)` directly before each throw. They test the drone in isolation and correctly verify the THROWING state. But the integration path — player code → grenade throw — never called `set_aim_point()`.
+to `scripts/characters/player.gd`, but the logs are produced by the C# player partial. The string:
 
-This is a classic **unit test / integration gap**: the component works in isolation, but the caller never uses the new API.
+```text
+[Player.Grenade.Simple] C# set velocity directly
+```
 
-### Root Cause (one sentence)
+exists in `Scripts/Characters/Player.Grenade.cs`, and that file still had zero `set_aim_point` call sites. Therefore the exported/tested path left `_aim_point == Vector2.ZERO`, so `DroneGrenade` fell back to immediate `PILOTING` every time.
 
-`player.gd`'s `_throw_simple_grenade()` and `_throw_grenade()` functions had the mouse cursor position available but never called `_active_grenade.set_aim_point(target_pos)` before invoking the throw, leaving `DroneGrenade._aim_point` at `Vector2.ZERO` and causing the drone to skip the THROWING phase entirely.
+### Why The First Fix Did Not Change The Retest
+
+There are two player implementations in this project:
+
+- `scripts/characters/player.gd`
+- `Scripts/Characters/Player.Grenade.cs` / `Scripts/Characters/Player.cs`
+
+The PR initially fixed only the GDScript implementation. The user's runtime was using the C# implementation, which directly sets grenade velocity and then calls GDScript grenade hooks. That C# code needed to call the GDScript method `set_aim_point` before the drone was unfrozen or launched.
 
 ---
 
-## Evidence
+## Additional Facts Checked Online
 
-### Game Log (lines 1190–1199)
-```
-[Player.Grenade.Simple] Throwing! Target: (666.0539, 1545.0447), Distance: 410.1, Speed: 496.0
-[GrenadeBase] Simple mode throw! Dir: (0.999999, 0.001552), Speed: 496.0
-[DroneGrenade] PILOTING phase started at (255.9691, 1544.408)   ← wrong state
-[DroneGrenade] Drone launched at (255.9691, 1544.408)
-```
-No `THROWING phase started` log line ever appears across the entire 2985-line log.
+Official Godot documentation confirms the interop assumptions used in the fix:
 
-### Code Search
-```
-$ grep -rn "set_aim_point" scripts/
-scripts/projectiles/drone_grenade.gd:143:func set_aim_point(world_pos: Vector2) -> void:
-```
-Zero call sites found — only the definition existed.
+- Godot C# projects can communicate with GDScript nodes through `Call(...)`; the cross-language scripting docs show C# calling a GDScript node method with `myGDScriptNode.Call("print_node_name", this)`:
+  https://docs.godotengine.org/en/3.3/getting_started/scripting/cross_language_scripting.html
+- Godot's C# docs note that `Get()`, `Set()`, `Call()` and `Connect()` rely on Godot API naming conventions, including `snake_case` names for dynamically called methods. This supports calling `"set_aim_point"` from C#:
+  https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/c_sharp_basics.html
+- `RigidBody2D.freeze` disables gravity and forces; setting the drone aim point before unfreezing avoids a fallback launch path running while the aim point is still unset:
+  https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html
 
 ---
 
 ## Fix Applied
 
-Two call sites added in `scripts/characters/player.gd`:
+### C# Runtime Path
 
-**1. Simple mode (`_throw_simple_grenade`, line ~1931):**
-```gdscript
-# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
-if _active_grenade.has_method("set_aim_point"):
-    _active_grenade.set_aim_point(target_pos)
+`Scripts/Characters/Player.Grenade.cs` now passes the world-space throw target to any active grenade that implements `set_aim_point`:
+
+```csharp
+private void PassDroneThrowAimPoint(Vector2 aimPoint)
+{
+    if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+    {
+        return;
+    }
+
+    if (_activeGrenade.HasMethod("set_aim_point"))
+    {
+        _activeGrenade.Call("set_aim_point", aimPoint);
+        LogToFile($"[Player.Grenade] Drone aim point set to {aimPoint}");
+    }
+}
 ```
 
-**2. Velocity-based mode (`_throw_grenade`, line ~2094):**
-```gdscript
-# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
-if _active_grenade.has_method("set_aim_point"):
-    _active_grenade.set_aim_point(drag_end)
+The helper is called in both C# throw paths:
+
+- `ThrowSimpleGrenade()` passes `targetPos`.
+- `ThrowGrenade(Vector2 dragEnd)` passes `dragEnd`.
+
+Both calls happen after the safe spawn position is assigned and before `_activeGrenade.Freeze = false` / `throw_grenade_*` calls. That ordering prevents `DroneGrenade` from launching with `_aim_point == Vector2.Zero`.
+
+### Existing GDScript Path
+
+The previous fix remains in `scripts/characters/player.gd`, so both player implementations now pass the aim point.
+
+---
+
+## Tests
+
+`tests/unit/test_drone_grenade.gd` now covers:
+
+- Drone state machine behavior: aim point enters `THROWING`, reaches target then enters `PILOTING`, throw-phase collision explodes.
+- C# interop regression: `ThrowSimpleGrenade()` must call `PassDroneThrowAimPoint(targetPos)` before unfreezing and before `throw_grenade_simple`.
+- C# interop regression: `ThrowGrenade(Vector2 dragEnd)` must call `PassDroneThrowAimPoint(dragEnd)` before unfreezing and before `throw_grenade_with_direction`.
+- C# interop regression: helper must call the snake_case GDScript method `set_aim_point`.
+
+These tests fail against the earlier PR state because `Player.Grenade.cs` did not contain any `set_aim_point` handoff.
+
+---
+
+## Expected Runtime Signature After Fix
+
+For a successful drone throw, logs should show:
+
+```text
+[Player.Grenade] Drone aim point set to (...)
+[DroneGrenade] THROWING phase started toward (...)
+[DroneGrenade] Drone launched at (...)
 ```
 
-Both use `has_method()` guard so non-drone grenades are unaffected.
+Only after the drone reaches the throw target should it log:
+
+```text
+[DroneGrenade] Throw target reached — switching to PILOTING
+[DroneGrenade] PILOTING phase started at (...)
+```
+
+If the drone collides with a wall or enemy during the throw phase, expected logs include:
+
+```text
+[DroneGrenade] Throw collision with '...' — exploding!
+```
 
 ---
 
 ## Lessons Learned
 
-1. **New API methods on components must be wired up at every call site.** Adding `set_aim_point()` to `DroneGrenade` without adding a matching call in `player.gd` created a silent no-op.
-
-2. **Unit tests that test components in isolation can miss integration bugs.** The test called `set_aim_point()` directly; the real throwing code did not.
-
-3. **Log-first debugging is effective.** The game log provided an unambiguous trace: `PILOTING phase started` appearing immediately after throw (with no `THROWING phase started` line) pinpointed the issue within minutes.
-
-4. **Fallback-to-legacy patterns hide missing calls.** The "if `_aim_point == Vector2.ZERO`, start piloting immediately" fallback was added for backward compatibility but masked the missing caller setup — the drone silently fell back to old behavior with no warning.
+1. Component unit tests were not enough because they called `set_aim_point()` directly. The regression lived in the caller integration.
+2. This codebase has parallel GDScript and C# player paths. Gameplay fixes touching player behavior must check both.
+3. Log strings are useful runtime fingerprints. The `C# set velocity directly` line identified the actual implementation used in the user's exported build.
+4. Backward-compatible fallback behavior (`_aim_point == Vector2.ZERO` => immediate piloting) hid the missing caller setup. Future fallback paths should log enough state to distinguish intentional legacy behavior from missing setup.
 
 ---
 
@@ -124,6 +202,9 @@ Both use `has_method()` guard so non-drone grenades are unaffected.
 
 | File | Change |
 |------|--------|
-| `scripts/characters/player.gd` | Added `set_aim_point(target_pos)` call before throw in `_throw_simple_grenade()` and `set_aim_point(drag_end)` in `_throw_grenade()` |
-| `docs/case-studies/issue-1896/case-study.md` | This document |
-| `docs/case-studies/issue-1896/game_log_20260420_120715.txt` | Original game log from Jhon-Crow |
+| `scripts/projectiles/drone_grenade.gd` | Drone speed 400 -> 600 and throw/pilot state machine from the original implementation. |
+| `scripts/characters/player.gd` | GDScript player passes `set_aim_point()` before throw. |
+| `Scripts/Characters/Player.Grenade.cs` | C# player now passes `set_aim_point()` before unfreezing/calling grenade throw hooks. |
+| `tests/unit/test_drone_grenade.gd` | Added C# interop regression tests. |
+| `docs/case-studies/issue-1896/game_log_20260420_120715.txt` | First failed retest log preserved. |
+| `docs/case-studies/issue-1896/game_log_20260420_123426.txt` | Second failed retest log preserved. |
