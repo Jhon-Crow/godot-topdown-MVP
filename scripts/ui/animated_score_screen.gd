@@ -181,11 +181,11 @@ func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, ou
 	_apply_gothic_font(label)
 
 	var font := label.get_theme_font("font")
-	var glyph_size := Vector2(float(font_size) * 0.72, float(font_size)) if font == null else font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-	var padding := float(outline_size * 2 + maxi(8, font_size / 12))
+	var glyph_size := Vector2(float(font_size) * 0.60, float(font_size)) if font == null else font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var padding := float(outline_size * 2 + maxi(4, font_size / 20))
 	var viewport_size := Vector2i(
 		maxi(8, int(ceil(glyph_size.x + padding * 2.0))),
-		maxi(8, int(ceil(float(font_size) * 1.25 + padding * 2.0)))
+		maxi(8, int(ceil(float(font_size) * 1.15 + padding * 2.0)))
 	)
 
 	label.custom_minimum_size = Vector2(viewport_size)
@@ -225,6 +225,8 @@ func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, ou
 		shine_mat.shader = shader
 		shine_mat.set_shader_parameter("horizontal_sweep", true)
 		shine_mat.set_shader_parameter("cycle_duration", 2.8)
+		shine_mat.set_shader_parameter("sweep_color", Vector4(0.85, 0.92, 1.0, 1.0))
+		shine_mat.set_shader_parameter("burst_color", Vector4(0.75, 0.88, 1.0, 1.0))
 		shine_mat.set_shader_parameter("texel_size", Vector2(1.0 / float(viewport_size.x), 1.0 / float(viewport_size.y)))
 		letter.material = shine_mat
 
@@ -238,7 +240,7 @@ func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int,
 	holder.name = "RankLetterCutout"
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
-	holder.add_theme_constant_override("separation", 0)
+	holder.add_theme_constant_override("separation", -4)
 
 	for i in range(text.length()):
 		var ch := text.substr(i, 1)
@@ -719,19 +721,19 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	_rank_gradient_bg = rank_bg
 
 	# Create large centered rank cutout assembled from transparent letter sprites.
-	var big_rank_label := _create_rank_letter_cutout(rank, 280, 18, rank_color)
+	var big_rank_label := _create_rank_letter_cutout(rank, 560, 18, rank_color)
 	big_rank_label.name = "BigRankLabel"
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
-	big_rank_label.offset_left = -200
-	big_rank_label.offset_right = 200
-	big_rank_label.offset_top = -150
-	big_rank_label.offset_bottom = 150
+	big_rank_label.offset_left = -300
+	big_rank_label.offset_right = 300
+	big_rank_label.offset_top = -300
+	big_rank_label.offset_bottom = 300
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
-	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 67, 6, rank_color)
+	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 134, 6, rank_color)
 	final_rank_label.name = "FinalRankLabel"
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
