@@ -1569,3 +1569,60 @@ func test_lab_sniper_scope_hint_coexists_with_reload_hint() -> void:
 		"Scope hint still visible after 2 shots if not used yet (Issue #998)")
 	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
 		"Reload hint also visible after 2 shots (Issue #998)")
+
+
+# ============================================================================
+# Issue #1881: Grenade tutorial hint must not cover the player on Labyrinth
+# ============================================================================
+
+
+func test_lab_hints_are_bottom_aligned_above_player() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("const TUTORIAL_HINT_PLAYER_CLEARANCE"),
+		"Labyrinth hints should use an explicit clearance above the player (Issue #1881)")
+	assert_true(content.contains("label.get_content_height()"),
+		"Labyrinth hints should account for wrapped grenade hint height (Issue #1881)")
+	assert_true(
+		content.contains("-TUTORIAL_HINT_PLAYER_CLEARANCE - cumulative_y - h"),
+		"Labyrinth hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
+
+
+func test_lab_hints_do_not_use_old_fixed_player_covering_offset() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)"),
+		"Old fixed top-left offset can cover the player when grenade hint wraps on Lab map (Issue #1881)")
+	assert_false(content.contains("index * TUTORIAL_HINT_SPACING"),
+		"Fixed index*HINT_SPACING stacking ignores actual hint heights — grenade hint overlaps the reload hint (Issue #1881)")
+
+
+func test_lab_hint_stacking_uses_cumulative_content_heights() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("cumulative_y"),
+		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints on Lab map (Issue #1881)")
+	assert_true(content.contains("_tutorial_hint_heights"),
+		"Hint heights should be tracked in a dictionary to survive stale get_content_height() (Issue #1881)")
+	assert_true(content.contains("_estimate_tutorial_hint_height"),
+		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
+	assert_true(content.contains("label.size = Vector2(TUTORIAL_HINT_WIDTH"),
+		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
+	assert_true(content.contains("known_bbcode"),
+		"_estimate_tutorial_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881)")
+

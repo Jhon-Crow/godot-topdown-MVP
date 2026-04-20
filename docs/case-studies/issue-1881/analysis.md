@@ -122,6 +122,50 @@ This ensures:
 
 - `scripts/levels/tutorial_level.gd` — hint positioning fix
 - `tests/unit/test_tutorial_level.gd` — regression tests
+- `scripts/levels/labyrinth_level.gd` — Session 5 port of content-aware stacking
+- `scripts/components/weapon_hints_component.gd` — Session 5 port of content-aware stacking
+- `scenes/levels/csharp/TestTier.tscn` — Session 5 removed duplicate `WeaponHintsComponent`
+- `tests/unit/test_labyrinth_level.gd` — Session 5 regression tests
+- `tests/unit/test_weapon_hints_component.gd` — Session 5 regression tests
+
+---
+
+## Session 5 (2026-04-20 — this session)
+
+### New reports from the owner (comment 19 on PR #1882)
+
+1. **Tutorial level:** non-grenade hints (reload) were shown **twice**, stacked vertically.
+2. **Labyrinth (maze) level:** after firing the AK GL underbarrel launcher, the grenade hint appeared **on top of** the still-visible reload hint.
+3. **All other levels:** grenade hint position still covered the player.
+
+### Root cause — broader than just `tutorial_level.gd`
+
+The previous sessions only fixed `scripts/levels/tutorial_level.gd`. The same positioning bug, and a new one, also existed in:
+
+- **`scripts/levels/labyrinth_level.gd`** (maze): `_add_tutorial_hint` and `_update_tutorial_hint_positions` still used `Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)` — a fixed index-based offset that ignores actual content height. Multi-line grenade hint bottom ended below the player → overlap. Simultaneous hints overlapped each other for the same reason as in the tutorial.
+- **`scripts/components/weapon_hints_component.gd`** (every non-tutorial / non-labyrinth level): same `HINT_OFFSET_Y - index * HINT_SPACING` pattern.
+- **`scenes/levels/csharp/TestTier.tscn`** (the Tutorial / "Обучение" scene): had **both** `tutorial_level.gd` attached to the root **and** a `WeaponHintsComponent` node. Both systems show reload hints → reload appeared **twice**.
+
+### Fix applied
+
+For labyrinth_level.gd and weapon_hints_component.gd, the same three-part fix that shipped in tutorial_level.gd (session 4) was ported:
+
+1. `const HINT_PLAYER_CLEARANCE = 120` (or `TUTORIAL_HINT_PLAYER_CLEARANCE`) so the bottom of the lowest hint always sits 120 px above the player center, regardless of how many lines the hint wraps to.
+2. `_hint_heights` / `_tutorial_hint_heights` dictionaries tracking measured `get_content_height()` per hint, seeded from a BBCode-aware `_estimate_hint_height()` so the first frame has a realistic estimate instead of `0`.
+3. `label.size = Vector2(HINT_WIDTH, ...)` set explicitly on creation and in every position update so RichTextLabel word-wrap computes content height (otherwise it stays at `0` for CanvasLayer-direct-child labels).
+4. Stacking uses `cumulative_y` over actual tracked heights (`-HINT_PLAYER_CLEARANCE - cumulative_y - h`), not `index * HINT_SPACING`.
+5. `_finalize_hint_dismiss` / `_finalize_tutorial_hint_dismiss` cleans `_hint_heights[hint_key]` and re-runs the position update so the remaining hints bubble down into the vacated slot.
+
+For the tutorial scene, the duplicated `WeaponHintsComponent` node was removed from `scenes/levels/csharp/TestTier.tscn`. The tutorial level owns its own hint system in `tutorial_level.gd`; the component is redundant there.
+
+### Why the maze screenshot showed the reload hint "not disappearing"
+
+In the maze flow with AK GL:
+1. Reload completes → `_dismiss_tutorial_hint(TUTORIAL_HINT_RELOAD)` starts a 0.7 s strikethrough + fade animation.
+2. AK GL hint appears immediately.
+3. Player fires the GL → grenade hint appears.
+
+If the player is fast (<0.7 s between reload completion and firing the GL), the reload hint label is still in `_tutorial_hints` and visible on screen during the strikethrough+fade. With the old index-based stacking, the grenade hint was placed over the still-visible reload label. With the new cumulative-height stacking, the grenade hint correctly sits above the animating reload hint, and once the reload finishes fading `_finalize_tutorial_hint_dismiss` re-packs the stack so the grenade slides down into the freed slot.
 
 ---
 

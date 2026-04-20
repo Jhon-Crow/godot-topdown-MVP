@@ -570,3 +570,76 @@ func test_auto_dismiss_timer_dismisses_all_hints_when_no_grenade_hint() -> void:
 		"Reload hint should be dismissed when no grenade hint is active")
 	assert_false(comp._hint_labels.has("fire_mode"),
 		"Fire-mode hint should be dismissed when no grenade hint is active")
+
+
+# ============================================================================
+# Issue #1881: Grenade tutorial hint must not cover the player on non-tutorial levels
+# ============================================================================
+
+
+func test_weapon_hints_are_bottom_aligned_above_player() -> void:
+	var file := FileAccess.open("res://scripts/components/weapon_hints_component.gd", FileAccess.READ)
+	if file == null:
+		pass_test("weapon_hints_component.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("const HINT_PLAYER_CLEARANCE"),
+		"Weapon hints should use an explicit clearance above the player (Issue #1881)")
+	assert_true(content.contains("label.get_content_height()"),
+		"Weapon hints should account for wrapped grenade hint height (Issue #1881)")
+	assert_true(
+		content.contains("-HINT_PLAYER_CLEARANCE - cumulative_y - h"),
+		"Weapon hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
+
+
+func test_weapon_hints_do_not_use_old_fixed_player_covering_offset() -> void:
+	var file := FileAccess.open("res://scripts/components/weapon_hints_component.gd", FileAccess.READ)
+	if file == null:
+		pass_test("weapon_hints_component.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("HINT_OFFSET_Y - index * HINT_SPACING"),
+		"Old fixed top-left offset can cover the player when grenade hint wraps (Issue #1881)")
+	assert_false(content.contains("index * HINT_SPACING"),
+		"Fixed index*HINT_SPACING stacking ignores actual hint heights — grenade hint overlaps the player on non-tutorial levels (Issue #1881)")
+
+
+func test_weapon_hints_stacking_uses_cumulative_content_heights() -> void:
+	var file := FileAccess.open("res://scripts/components/weapon_hints_component.gd", FileAccess.READ)
+	if file == null:
+		pass_test("weapon_hints_component.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("cumulative_y"),
+		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints (Issue #1881)")
+	assert_true(content.contains("_hint_heights"),
+		"Hint heights should be tracked in a dictionary to survive stale get_content_height() (Issue #1881)")
+	assert_true(content.contains("_estimate_hint_height"),
+		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
+	assert_true(content.contains("label.size = Vector2(HINT_WIDTH"),
+		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
+	assert_true(content.contains("known_bbcode"),
+		"_estimate_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881)")
+
+
+func test_tutorial_scene_does_not_double_stack_weapon_hints_component() -> void:
+	## Issue #1881: Tutorial level uses its own hint system in tutorial_level.gd.
+	## The csharp TestTier scene must not also attach WeaponHintsComponent, or reload
+	## hints would be shown twice (duplicate [R] [F] [R] Reload reported by user).
+	var file := FileAccess.open("res://scenes/levels/csharp/TestTier.tscn", FileAccess.READ)
+	if file == null:
+		pass_test("csharp TestTier.tscn not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("weapon_hints_component.gd"),
+		"Tutorial scene must not attach WeaponHintsComponent — tutorial_level.gd already owns the hint system (Issue #1881)")
+	assert_false(content.contains("WeaponHintsComponent"),
+		"Tutorial scene must not have a WeaponHintsComponent node — causes duplicate reload hints on Tutorial level (Issue #1881)")
