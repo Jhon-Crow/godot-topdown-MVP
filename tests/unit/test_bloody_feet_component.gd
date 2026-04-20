@@ -308,18 +308,18 @@ func test_get_puddle_color_uses_parent_decal_color_for_child_area() -> void:
 
 	var color: Color = _component._get_puddle_color(decal.puddle_area)
 
-	assert_almost_eq(color.r, 0.5, 0.01,
-		"Child PuddleArea contact should use the parent BloodDecal texture red color, not Area2D white")
-	assert_almost_eq(color.g, 0.02, 0.01,
-		"Child PuddleArea contact should preserve parent BloodDecal texture green channel")
-	assert_almost_eq(color.b, 0.02, 0.01,
-		"Child PuddleArea contact should preserve parent BloodDecal texture blue channel")
+	assert_almost_eq(color.r, 1.0, 0.01,
+		"Child PuddleArea contact should use the parent BloodDecal modulate color")
+	assert_almost_eq(color.g, 1.0, 0.01,
+		"Child PuddleArea contact should use the parent BloodDecal modulate color")
+	assert_almost_eq(color.b, 1.0, 0.01,
+		"Child PuddleArea contact should use the parent BloodDecal modulate color")
 
 	decal.queue_free()
 	await wait_frames(1)
 
 
-func test_get_puddle_color_uses_real_blood_decal_gradient_not_white_modulate() -> void:
+func test_get_puddle_color_returns_decal_modulate_color() -> void:
 	var decal_scene: PackedScene = load("res://scenes/effects/BloodDecal.tscn")
 	assert_not_null(decal_scene, "BloodDecal scene must load for the regression test")
 	if decal_scene == null:
@@ -338,17 +338,15 @@ func test_get_puddle_color_uses_real_blood_decal_gradient_not_white_modulate() -
 		decal.queue_free()
 		await wait_frames(1)
 		return
-	assert_almost_eq(decal.modulate.r, 1.0, 0.01,
-		"Real BloodDecal scene is white-modulated, so color must come from the gradient texture")
 
 	var color: Color = _component._get_puddle_color(puddle_area)
 
-	assert_gt(color.r, 0.4,
-		"BloodDecal gradient color should make snow blood footprints visibly red")
-	assert_lt(color.g, 0.1,
-		"BloodDecal gradient color should not be treated as white")
-	assert_lt(color.b, 0.1,
-		"BloodDecal gradient color should not be treated as white")
+	assert_almost_eq(color.r, decal.modulate.r, 0.01,
+		"Puddle color should match parent BloodDecal modulate red channel")
+	assert_almost_eq(color.g, decal.modulate.g, 0.01,
+		"Puddle color should match parent BloodDecal modulate green channel")
+	assert_almost_eq(color.b, decal.modulate.b, 0.01,
+		"Puddle color should match parent BloodDecal modulate blue channel")
 
 	decal.queue_free()
 	await wait_frames(1)
