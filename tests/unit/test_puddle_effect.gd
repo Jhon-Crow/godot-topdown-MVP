@@ -413,3 +413,58 @@ func test_max_puddle_alpha_matches_phase3_cap() -> void:
 func test_max_puddle_alpha_is_less_than_one() -> void:
 	assert_true(MockPuddleManager.MAX_PUDDLE_ALPHA < 1.0,
 		"MAX_PUDDLE_ALPHA must be < 1.0 — puddles should always be semi-transparent")
+
+
+# ============================================================================
+# PuddleManager – merge shader source (regression for white-rectangle bug)
+# ============================================================================
+
+
+## Reads the merge shader source as text so we can assert on its structure
+## without needing a live ShaderMaterial / rendering context.
+func _read_merge_shader_source() -> String:
+	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
+	if f == null:
+		return ""
+	var src := f.get_as_text()
+	f.close()
+	return src
+
+
+func test_merge_shader_file_exists() -> void:
+	var src := _read_merge_shader_source()
+	assert_true(src.length() > 0,
+		"puddle_merge.gdshader must exist and be readable")
+
+
+func test_merge_shader_reads_canvas_group_texture_not_screen() -> void:
+	# Regression for the full-screen white-rectangle bug: on the gl_compatibility
+	# renderer, hint_screen_texture inside a CanvasGroup shader can return
+	# uninitialised pixels (white) when the backbuffer has not been populated.
+	# The correct source for a CanvasGroup merge shader is TEXTURE, which is
+	# bound to the group's composited child buffer.
+	var src := _read_merge_shader_source()
+	assert_false(src.contains("hint_screen_texture"),
+		"Shader must NOT use hint_screen_texture — triggers white-rectangle bug on gl_compatibility")
+	assert_true(src.contains("texture(TEXTURE"),
+		"Shader must sample TEXTURE (the CanvasGroup's composited child buffer)")
+
+
+func test_merge_shader_clamps_alpha_to_max() -> void:
+	# The shader must clamp accumulated alpha to max_alpha so overlapping
+	# puddles do not appear darker than a single puddle at its phase-3 cap.
+	var src := _read_merge_shader_source()
+	assert_true(src.contains("max_alpha"),
+		"Shader must expose a max_alpha uniform for alpha clamping")
+	assert_true(src.contains("min(c.a, max_alpha)") or src.contains("clamp"),
+		"Shader must clamp accumulated alpha to max_alpha")
+
+
+func test_merge_shader_early_outs_for_fully_transparent_pixels() -> void:
+	# If the early-out branch is removed, the CanvasGroup's full bounding quad
+	# would be filled with the un-premultiplied colour, producing a huge
+	# coloured rectangle over the play-field (visible in the bug report
+	# screenshot docs/case-studies/issue-1626/white-rectangle-bug.png).
+	var src := _read_merge_shader_source()
+	assert_true(src.contains("c.a < 0.001") or src.contains("c.a<0.001"),
+		"Shader must early-out with alpha=0 for fully transparent pixels")

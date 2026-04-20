@@ -265,6 +265,66 @@ The fix is two-fold:
 
 ---
 
+### Iteration 9 — White Rectangle Covers Play-field (2026-03-30 ~09:44)
+
+**User feedback:** "белый прямоугольник вместо лужи" — a white rectangle instead of a puddle.
+**Reference image:** `white-rectangle-bug.png` — entire viewport is white, only the player + a tiny strip of water along the right edge are visible.
+**Game log:** `game_log_20260330_124245.txt` — no shader compile errors; `PuddleManager` reports 26 puddles spawned successfully each time the level loads.
+
+**Timeline of events**
+| Time | Event |
+|------|-------|
+| 12:42:45 | DocksLevel loads; all other shaders warm up cleanly |
+| 12:42:46 | Scene rendered for the first time |
+| 12:43:05 | `[PuddleManager] Puddle manager ready: 26 puddles spawned` — by this point the full white quad is already covering the screen |
+| 12:43:05+ | Repeated scene reloads show same behaviour every time |
+
+**Root cause — `hint_screen_texture` inside a CanvasGroup on gl_compatibility**
+
+The merge shader from Iteration 8 read from `uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;`. This was wrong for two interacting reasons:
+
+1. **`hint_screen_texture` is *not* the CanvasGroup's composited buffer.** It is a copy of the screen framebuffer made before the shader's parent canvas item renders. The CanvasGroup's composited children land in `TEXTURE` (the `texture(TEXTURE, UV)` builtin), not in `SCREEN_TEXTURE`.
+
+2. **`gl_compatibility` (the renderer used by this project) does not populate `SCREEN_TEXTURE` for a CanvasGroup unless a `BackBufferCopy` triggers it.** When the shader samples `screen_texture` without a backbuffer copy having run, it reads uninitialised GPU memory — which on most drivers is white (all 1s). The CanvasGroup's bounding quad is the union of all children's rects, which for 26 puddles scattered across the 5000×4000 map is effectively the entire play-field. The early-out branch (`if (c.a < 0.001)`) never fired because the uninitialised sample's alpha was 1.0, so every pixel in the huge quad was painted un-premultiplied white over the scene.
+
+Other shaders in the project that use `hint_screen_texture` work fine because they are applied to full-screen `ColorRect` overlays on top of a fully rendered scene (black_metal, cinema_film, last_chance, flashbang, saturation — all post-processing overlays), not to a CanvasGroup.
+
+**Fix applied (this session):**
+
+Changed `scripts/shaders/puddle_merge.gdshader` to sample the CanvasGroup's composited child buffer directly via `texture(TEXTURE, UV)` instead of `hint_screen_texture`:
+
+```glsl
+void fragment() {
+    vec4 c = texture(TEXTURE, UV);      // CanvasGroup's composited premultiplied buffer
+    if (c.a < 0.001) { COLOR = vec4(0.0); return; }
+    vec3 rgb = c.rgb / c.a;              // un-premultiply
+    float clamped_alpha = min(c.a, max_alpha) * COLOR.a;
+    COLOR = vec4(rgb, clamped_alpha);
+}
+```
+
+Key properties of the fix:
+- `texture(TEXTURE, UV)` is always initialised to `vec4(0)` for uncovered pixels, so the early-out branch correctly makes the CanvasGroup's bounding quad transparent wherever no child puddle has drawn.
+- No dependency on a `BackBufferCopy` anywhere in the scene tree — works on both `gl_compatibility` and `forward_plus` renderers.
+- Clamping still happens before multiplying by `COLOR.a`, so the CanvasGroup's own `self_modulate` still dims the whole group correctly.
+- Output is straight (non-premultiplied) RGBA, which matches Godot's standard 2D blend (`SRC_ALPHA, ONE_MINUS_SRC_ALPHA`).
+
+**Regression tests added (`tests/unit/test_puddle_effect.gd`):**
+
+Four new unit tests read the shader source text and assert on its structure so this specific bug cannot silently recur:
+- `test_merge_shader_file_exists`
+- `test_merge_shader_reads_canvas_group_texture_not_screen` — fails if `hint_screen_texture` ever reappears; passes only when `texture(TEXTURE` is present.
+- `test_merge_shader_clamps_alpha_to_max`
+- `test_merge_shader_early_outs_for_fully_transparent_pixels`
+
+**Technical references:**
+- [Godot 4 CanvasGroup](https://docs.godotengine.org/en/stable/classes/class_canvasgroup.html) — "The children of this node are composited onto an image..."; composited buffer is exposed as `TEXTURE` in the group's shader.
+- [Godot 4 Screen-reading shaders](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html) — explains that `hint_screen_texture` requires a `BackBufferCopy` or an already-rendered scene and is unreliable mid-pipeline.
+- [Godot 4 canvas_item builtins](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/canvas_item_shader.html#fragment-built-ins) — `TEXTURE` vs `SCREEN_TEXTURE`.
+- Default CanvasGroup shader (from Godot source, `servers/rendering/renderer_rd/shaders/canvas.glsl`) demonstrates the correct `texture(TEXTURE, UV) → un-premultiply → COLOR *= c` pattern this fix mirrors.
+
+---
+
 ## Data Files in This Folder
 
 | File | Source | Description |
@@ -275,3 +335,5 @@ The fix is two-fold:
 | `feedback_building_overlap.png` | PR comment screenshot 2026-03-28 | User feedback showing puddle/building overlap |
 | `feedback_obstacle_layer.png` | PR comment screenshot 2026-03-28 | User feedback showing obstacle z-order issue |
 | `feedback_intersection_clipping_20260329.png` | PR comment screenshot 2026-03-29 | User feedback showing intersection color issue and edge clipping |
+| `white-rectangle-bug.png` | PR comment screenshot 2026-03-30 | User feedback showing full-screen white rectangle over play-field |
+| `game_log_20260330_124245.txt` | PR comment attachment 2026-03-30 | Game log for the white-rectangle bug — no shader errors, puddles spawned |
