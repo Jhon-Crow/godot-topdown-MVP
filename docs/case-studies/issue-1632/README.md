@@ -239,6 +239,75 @@ The April 20 log confirms the upstream version still has the invisible-gas bug. 
 
 **Our fix addresses this correctly**: by scaling only `_cloud_visual` (the particle node), the gas becomes visible immediately while the grow-in animation progresses over 5.62 seconds. The detection area remains at full scale throughout.
 
+---
+
+---
+
+## Third Visual Regression Report (April 20, 2026 — 12:29)
+
+**Report date**: 2026-04-20  
+**Log**: `logs/game_log_20260420_122934.txt`  
+**Symptom**: "газовая граната врага в противогазе всё ещё сломана, сверься с веткой backup" — gas mask enemy's gas grenade is still broken; owner asks to check the backup branch.
+
+### Session Overview
+
+| Metric | Value |
+|--------|-------|
+| Session time | 12:29:34 – 12:29:56+ |
+| Clouds spawned | 8 (logged by grenade) |
+| `[ChemicalCloud]` log lines | **0** — `_ready()` never ran |
+| FPS drops | Yes (21, 28, 29 fps drops logged) |
+| Level load error | `ERROR: Invalid resource (falling back to sync): Labyrinth2Level.tscn` |
+| GDScript level init | `LevelInitFallback GDScript _ready() did NOT execute` |
+
+### Evidence: `_ready()` Never Called
+
+8 "Chemical cloud spawned" lines appear (from grenade), but zero `[ChemicalCloud] _ready()` lines follow. The sequence for each cloud is:
+
+```
+[12:29:40] [ChemicalGasGrenade] Spawning cloud with 5.62s grow-in matching sound
+[12:29:40] [ChemicalGasGrenade] Chemical cloud spawned at (401.18, 1193.68) (radius=600, duration=20s, grow_in=5.62s)
+```
+
+No `[ChemicalCloud] _ready()` ever appears after these lines. In the March 2026 logs, `_ready()` appeared BETWEEN those two grenade messages (because `add_child()` fires `_ready()` synchronously before returning).
+
+### Root Cause: Godot Binary Tokenization Bug (Issue #94150)
+
+The log shows:
+
+```
+[SceneLoader] ERROR: Invalid resource (falling back to sync): res://scenes/levels/Labyrinth2Level.tscn
+[LevelInitFallback] GDScript _ready() did NOT execute - performing C# fallback initialization
+```
+
+This is Godot engine bug [#94150](https://github.com/godotengine/godot/issues/94150): the async scene loader encounters binary tokenization errors, falls back to sync. The level's GDScript `_ready()` fails to execute (C# fallback compensates for that).
+
+When `ChemicalCloud.new()` is called after this scene loading failure, Godot may fail to look up the `ChemicalCloud` class from the GDScript class registry if `chemical_cloud.gd` was not tokenized successfully in this run. The node is added to the scene tree but has no script attached — so `_ready()` (the GDScript method) is never called.
+
+### Comparison with Backup Branch
+
+The owner asked to "check the backup branch" (refs/heads/backup, HEAD at `7e89c045`, dated 2026-04-10). Analysis shows:
+
+- `scripts/effects/chemical_cloud.gd` on the backup branch is **identical** to upstream/main — it still has the `scale = Vector2.ZERO` bug introduced in commit `949c490e`.
+- `scripts/projectiles/chemical_gas_grenade.gd` on the backup branch is **identical** to upstream/main.
+- Neither branch has a `ChemicalCloud.tscn` scene file.
+
+The backup branch does NOT provide a working version of the gas cloud. It has the same bugs as upstream/main.
+
+### Conclusion
+
+There are two independent problems in the upstream build:
+
+1. **Scale bug** (our fix in PR #1646): `scale = Vector2.ZERO` on the entire node collapses particles and detection area. Our fix scales only `_cloud_visual`. This makes the gas visible as soon as it's spawned.
+
+2. **GDScript class registration failure** (Godot engine bug #94150): When the level scene fails to load via async, the GDScript tokenizer may fail to register `ChemicalCloud` as a class. `ChemicalCloud.new()` silently creates a bare Node2D with no script. The cloud has no behavior and is invisible.
+
+The second issue is a Godot engine-level bug that is not reliably reproducible (it only happens when the async loader encounters tokenization errors on a given run). PR #1646 does not address bug #94150. A future mitigation could use `preload("res://scripts/effects/chemical_cloud.gd").new()` or a `.tscn` scene file for the cloud, which forces the resource to be compiled at game startup rather than relying on runtime class lookup.
+
+---
+
+---
+
 ## Files Involved
 
 | File | Role |
