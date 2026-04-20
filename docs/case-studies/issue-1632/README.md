@@ -16,6 +16,8 @@
 - `logs/game_log_20260420_122934.txt` (GDScript class registration follow-up)
 - `logs/game_log_20260420_125332.txt` (continued missing-gas report)
 - `logs/game_log_20260420_125349.txt` (continued missing-gas report)
+- `logs/game_log_20260420_131056.txt` (PackedScene fix verification follow-up)
+- `logs/game_log_20260420_135047.txt` (locally-built exe follow-up — still no `_ready()`)
 - `logs/performance-key-lines.txt` (extracted chemical-cloud and FPS events)
 
 ---
@@ -426,6 +428,89 @@ Applied the same fix to `aggression_gas_grenade.gd` / `aggression_cloud.gd`:
 - Also fixed the `aggression_cloud.gd` issue #1688 regression: the whole-node scale was never fixed (it was only fixed for `chemical_cloud.gd`). Now only `_cloud_visual` is scaled so the detection area stays at full size.
 
 ---
+
+---
+
+---
+
+## Sixth Visual Regression Report (April 20, 2026 — 13:50)
+
+**Report date**: 2026-04-20
+**Log**: `logs/game_log_20260420_135047.txt`
+**Symptom**: "не исправлено" — still not fixed after the PackedScene fix.
+
+### Session Overview
+
+| Metric | Value |
+|--------|-------|
+| Session time | 13:50:47 – 13:50:55 (8 seconds) |
+| Executable | `I:/Загрузки/godot exe/иллюзорные копии/Godot-Top-Down-Template.exe` |
+| `Build info: not available (build_info.cfg not found)` | Yes — locally-built binary |
+| Clouds spawned | 4 (logged by grenade) |
+| `[ChemicalCloud]` log lines | **0** — `_ready()` never ran |
+| FPS drop | 1 fps (line 309) |
+
+### Log Evidence
+
+```
+[13:50:51] [ChemicalGasGrenade] Chemical cloud spawned at (56.27212, 1035.477) ... grow_in=5.62s
+[13:50:51] [ChemicalGasGrenade] Chemical cloud spawned at (369.837, 1036.312) ... grow_in=5.62s
+[13:50:54] [ChemicalGasGrenade] Chemical cloud spawned at (105.2258, 1120.137) ... grow_in=5.62s
+[13:50:55] [ChemicalGasGrenade] Chemical cloud spawned at (653.6795, 1119.57) ... grow_in=5.62s
+```
+
+Zero `[ChemicalCloud]` messages follow any of these lines. The first cloud had ~4 seconds to run `_ready()` before the log terminated — more than enough time for `FileLogger` to flush its 1-second write buffer.
+
+### Root Cause Analysis
+
+**Diagnostic `Build info: not available`**: The CI workflow `build-windows.yml` (line 33-43) generates `build_info.cfg` for every CI-produced exe. Its absence proves the user is running a locally-built binary — not a CI artifact from our PR branch. We have no evidence the binary contains our PackedScene fix at all.
+
+**Possible causes** (cannot be distinguished without a CI build reproducing the issue):
+
+1. **Build was made before the PackedScene commit** — the user rebuilt from source but at a revision that predates `62654b66 fix(#1632): instantiate cloud nodes via PackedScene to ensure _ready() runs` (2026-04-20 10:22 UTC).
+2. **Exported PCK is missing the `.tscn`** — even though `export_filter="all_resources"`, Godot 4.3 has occasional edge cases where newly added scene files are not picked up by the export pipeline unless the editor has refreshed its cache.
+3. **PackedScene deserialization drops the script** — a known side-effect of Godot bug #94150 where the `ext_resource` script reference in the `.tscn` can fail to resolve under a degraded class registry. The cloud then instantiates as a bare `Node2D` with no script, so `_ready()` cannot be called.
+
+### Fix Applied (defense-in-depth)
+
+To eliminate case 3 regardless of class-registry state, `chemical_gas_grenade.gd` and `aggression_gas_grenade.gd` now:
+
+1. **Preload the script directly** in addition to the scene:
+   ```gdscript
+   const ChemicalCloudScene := preload("res://scenes/effects/ChemicalCloud.tscn")
+   const ChemicalCloudScript := preload("res://scripts/effects/chemical_cloud.gd")
+   ```
+2. **Verify the script is attached** after `instantiate()`:
+   ```gdscript
+   var cloud: Node2D = ChemicalCloudScene.instantiate() as Node2D
+   if cloud.get_script() != ChemicalCloudScript:
+       cloud.set_script(ChemicalCloudScript)
+   ```
+3. **Log `script_attached` and `parent` scene** so future regressions can be diagnosed from the log without guesswork:
+   ```
+   [ChemicalGasGrenade] Chemical cloud spawned at (...) (..., script_attached=true, parent=LabyrinthLevel)
+   ```
+4. **Guard against `current_scene == null`** with an explicit error log instead of a silent crash.
+
+This belt-and-suspenders approach guarantees:
+
+- If `instantiate()` returns a correctly-scripted node, behavior is unchanged.
+- If `instantiate()` returns a bare `Node2D` (Godot bug #94150), `set_script()` restores the ChemicalCloud/AggressionCloud behavior, `_ready()` runs, and the log records a `warning` that is easy to spot.
+- If even `set_script()` fails, the log will show `script_attached=false` — a diagnostic flag that closes the root-cause gap in one test run.
+
+### Also in this commit
+
+- `tests/unit/test_cloud_scene_instantiation.gd`:
+  - Asserts `cloud.get_script()` equals the preloaded script resource (required for the identity check the grenade uses).
+  - Simulates the "bare Node2D" recovery path by manually creating a `Node2D` and calling `set_script(ChemicalCloudScript)` — verifies `_ready()` runs and methods are accessible.
+
+### User Action Required
+
+The CI artifact at `https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions?query=branch%3Aissue-1632-b7c654022b0b` contains a tested build. Running that exe instead of a locally-built one will:
+
+- Include `build_info.cfg` in the log (so we can verify the exact commit under test).
+- Guarantee the exported PCK contains the `.tscn` files.
+- Let the new `script_attached=true/false` diagnostic distinguish the remaining causes.
 
 ---
 

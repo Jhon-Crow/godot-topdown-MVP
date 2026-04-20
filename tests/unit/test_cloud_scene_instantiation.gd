@@ -78,3 +78,43 @@ func test_aggression_cloud_grow_in_scales_only_visual() -> void:
 
 	assert_eq(cloud.scale, Vector2.ONE,
 		"AggressionCloud parent node scale must remain 1.0 — detection area must not be collapsed")
+
+
+func test_chemical_cloud_scene_has_preloaded_script_matching_grenade_reference() -> void:
+	# Regression test: the grenade uses set_script() as a belt-and-suspenders fallback
+	# comparing the instantiated cloud's script identity to a preloaded script reference.
+	# That comparison only works if both references resolve to the same Script resource.
+	var ChemicalCloudScript := preload("res://scripts/effects/chemical_cloud.gd")
+	var cloud := ChemicalCloudScene.instantiate()
+	add_child_autofree(cloud)
+	await wait_frames(1)
+
+	assert_eq(cloud.get_script(), ChemicalCloudScript,
+		"ChemicalCloud.tscn must use the same Script resource as chemical_cloud.gd preload")
+
+
+func test_aggression_cloud_scene_has_preloaded_script_matching_grenade_reference() -> void:
+	var AggressionCloudScript := preload("res://scripts/effects/aggression_cloud.gd")
+	var cloud := AggressionCloudScene.instantiate()
+	add_child_autofree(cloud)
+	await wait_frames(1)
+
+	assert_eq(cloud.get_script(), AggressionCloudScript,
+		"AggressionCloud.tscn must use the same Script resource as aggression_cloud.gd preload")
+
+
+func test_chemical_cloud_set_script_fallback_attaches_behavior() -> void:
+	# Simulates the exported-build case where instantiate() returns a bare Node2D
+	# with no script. The grenade's set_script() fallback must restore behavior.
+	var ChemicalCloudScript := preload("res://scripts/effects/chemical_cloud.gd")
+	var bare := Node2D.new()
+	bare.set_script(ChemicalCloudScript)
+	add_child_autofree(bare)
+	await wait_frames(2)
+
+	assert_eq(bare.get_script(), ChemicalCloudScript,
+		"set_script() must attach the ChemicalCloud script to a bare Node2D")
+	assert_true(bare.has_method("_is_player_in_range"),
+		"After set_script(), the node must expose ChemicalCloud methods")
+	assert_eq(bare._time_remaining, bare.cloud_duration,
+		"_ready() must still run after set_script() — _time_remaining should be initialized")

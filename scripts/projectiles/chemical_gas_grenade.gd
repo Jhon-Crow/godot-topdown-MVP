@@ -21,6 +21,12 @@ class_name ChemicalGasGrenade
 ## (Godot bug #94150) that prevent ChemicalCloud._ready() from being called when using .new().
 const ChemicalCloudScene := preload("res://scenes/effects/ChemicalCloud.tscn")
 
+## Preloaded script used as a belt-and-suspenders fallback: after `instantiate()`
+## we verify the cloud has the script attached, and re-attach via set_script()
+## if the PackedScene deserialization dropped it (observed in some exported builds
+## as a consequence of Godot bug #94150).
+const ChemicalCloudScript := preload("res://scripts/effects/chemical_cloud.gd")
+
 ## Hiss visual pulse timer.
 var _hiss_timer: float = 0.0
 
@@ -138,7 +144,19 @@ func _spawn_chemical_cloud() -> void:
 ## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
 ## This makes the gas start spreading when the sound starts, not after it ends.
 func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
-	var cloud := ChemicalCloudScene.instantiate()
+	var cloud: Node2D = ChemicalCloudScene.instantiate() as Node2D
+	if cloud == null:
+		FileLogger.error("[ChemicalGasGrenade] ChemicalCloudScene.instantiate() returned null — aborting cloud spawn")
+		return
+
+	# Belt-and-suspenders: guarantee the ChemicalCloud script is attached.
+	# Exported builds have been observed to deserialize the PackedScene without
+	# the script attached (Godot bug #94150 side-effect), causing _ready() to
+	# never run and the cloud to behave as a bare Node2D.
+	if cloud.get_script() != ChemicalCloudScript:
+		FileLogger.warning("[ChemicalGasGrenade] Instantiated cloud is missing ChemicalCloud script — attaching via set_script()")
+		cloud.set_script(ChemicalCloudScript)
+
 	cloud.name = "ChemicalCloud"
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
@@ -146,9 +164,16 @@ func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
 	if grow_duration > 0.0:
 		cloud.grow_in_duration = grow_duration
 
-	get_tree().current_scene.add_child(cloud)
+	var scene_root: Node = get_tree().current_scene
+	if scene_root == null:
+		FileLogger.error("[ChemicalGasGrenade] current_scene is null — cannot attach cloud")
+		cloud.queue_free()
+		return
+	scene_root.add_child(cloud)
 	cloud.global_position = global_position
 
-	FileLogger.info("[ChemicalGasGrenade] Chemical cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
-		str(global_position), effect_radius, cloud_duration, grow_duration
+	var has_script: bool = cloud.get_script() == ChemicalCloudScript
+	FileLogger.info("[ChemicalGasGrenade] Chemical cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs, script_attached=%s, parent=%s)" % [
+		str(global_position), effect_radius, cloud_duration, grow_duration,
+		str(has_script), scene_root.name
 	])

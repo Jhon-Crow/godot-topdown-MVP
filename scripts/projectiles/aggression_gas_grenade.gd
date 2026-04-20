@@ -30,6 +30,11 @@ class_name AggressionGasGrenade
 ## (Godot bug #94150) that can prevent AggressionCloud._ready() from being called.
 const AggressionCloudScene := preload("res://scenes/effects/AggressionCloud.tscn")
 
+## Preloaded script used as a belt-and-suspenders fallback: after `instantiate()`
+## we verify the cloud has the script attached, and re-attach via set_script()
+## if the PackedScene deserialization dropped it (Godot bug #94150 side-effect).
+const AggressionCloudScript := preload("res://scripts/effects/aggression_cloud.gd")
+
 ## Hiss visual pulse timer for gas release countdown.
 var _hiss_timer: float = 0.0
 
@@ -144,7 +149,18 @@ func _spawn_aggression_cloud() -> void:
 ## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
 ## This makes the gas start spreading when the sound starts, not after it ends.
 func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
-	var cloud := AggressionCloudScene.instantiate()
+	var cloud: Node2D = AggressionCloudScene.instantiate() as Node2D
+	if cloud == null:
+		FileLogger.error("[AggressionGasGrenade] AggressionCloudScene.instantiate() returned null — aborting cloud spawn")
+		return
+
+	# Belt-and-suspenders: guarantee the AggressionCloud script is attached.
+	# Mirrors the chemical grenade fix — exported builds can deserialize the
+	# PackedScene without the script attached (Godot bug #94150 side-effect).
+	if cloud.get_script() != AggressionCloudScript:
+		FileLogger.warning("[AggressionGasGrenade] Instantiated cloud is missing AggressionCloud script — attaching via set_script()")
+		cloud.set_script(AggressionCloudScript)
+
 	cloud.name = "AggressionCloud"
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
@@ -152,10 +168,17 @@ func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
 	if grow_duration > 0.0:
 		cloud.grow_in_duration = grow_duration
 
-	# Add to current scene (not as child of grenade, since grenade will be freed)
-	get_tree().current_scene.add_child(cloud)
+	var scene_root: Node = get_tree().current_scene
+	if scene_root == null:
+		FileLogger.error("[AggressionGasGrenade] current_scene is null — cannot attach cloud")
+		cloud.queue_free()
+		return
+	# Add to current scene (not as child of grenade, since grenade will be freed).
+	scene_root.add_child(cloud)
 	cloud.global_position = global_position
 
-	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
-		str(global_position), effect_radius, cloud_duration, grow_duration
+	var has_script: bool = cloud.get_script() == AggressionCloudScript
+	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs, script_attached=%s, parent=%s)" % [
+		str(global_position), effect_radius, cloud_duration, grow_duration,
+		str(has_script), scene_root.name
 	])
