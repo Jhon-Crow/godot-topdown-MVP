@@ -365,3 +365,41 @@ func test_training_revolver_open_close_rolls_hint_back_before_insert() -> void:
 		"Training revolver open/close without insertion must roll the hint back")
 	assert_true(content.contains("_reset_hint_strikethrough(HINT_RELOAD)"),
 		"Training revolver rollback must clear partial strikethrough progress")
+
+
+## Issue #1890: Strikethrough line must use get_line_count() and actual line height so the
+## line stays centered on each text row instead of drifting above later rows.
+func test_tutorial_strikethrough_line_y_uses_actual_line_height() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("label.get_line_count()"),
+		"Issue #1890: tutorial_level must use label.get_line_count() for accurate line count, not content_height / constant")
+	assert_false(content.contains("roundi(content_height / LINE_HEIGHT)"),
+		"Issue #1890: tutorial_level must not estimate line count from a hardcoded LINE_HEIGHT constant")
+	assert_true(content.contains("actual_line_height := float(content_height) / float(line_count)"),
+		"Issue #1890: tutorial_level must derive actual_line_height from content_height so strikethrough y matches real text rows")
+	assert_true(content.contains("actual_line_height * 0.5"),
+		"Issue #1890: strikethrough y must be placed at the vertical center (50%) of each actual line")
+
+
+func test_labyrinth_strikethrough_line_y_uses_actual_line_height() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("label.get_line_count()"),
+		"Issue #1890: labyrinth_level must use label.get_line_count() for accurate line count, not content_height / constant")
+	assert_false(content.contains("roundi(content_height / LINE_HEIGHT)"),
+		"Issue #1890: labyrinth_level must not estimate line count from a hardcoded LINE_HEIGHT constant")
+	assert_true(content.contains("actual_line_height := float(content_height) / float(line_count)"),
+		"Issue #1890: labyrinth_level must derive actual_line_height from content_height so strikethrough y matches real text rows")
+	assert_true(content.contains("actual_line_height * 0.5"),
+		"Issue #1890: strikethrough y must be placed at the vertical center (50%) of each actual line")
