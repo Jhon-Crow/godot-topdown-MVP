@@ -156,6 +156,49 @@ The combined approach matches the physics-query pattern used elsewhere in the co
 
 ---
 
+---
+
+## Visual Regression: Gas Cloud Invisible on Spawn (Issue #1688, April 2026)
+
+**Report date**: 2026-04-18  
+**Log**: `logs/game_log_20260418_080333.txt`  
+**Symptom**: "газ перестал появляться (граната просто исчезает со звуком газа)" — the grenade disappears with the gas sound but no visual cloud appears.
+
+### Analysis
+
+The April 18 log confirms gas IS released (18/19 grenades → "Gas released" logged) and clouds ARE created ("Chemical cloud spawned" appears). The issue is purely visual.
+
+**Root cause**: The grow-in feature (Issue #1688) sets `scale = Vector2.ZERO` on the entire `ChemicalCloud` Node2D in `_ready()`. This scales the whole node, including:
+
+- `GPUParticles2D`: particles emit but are squished to a point — invisible.
+- `Area2D` (detection area): collapses to zero size, breaking enemy-detection during grow-in.
+- `_is_player_in_range()` uses direct distance comparison and is unaffected, but the Area2D is still scaled.
+
+The cloud takes ~5.62 seconds (= gas sound length) to grow from scale 0 to 1. At the low FPS observed in the log (3–29 FPS, with many drops to 5–10 FPS), the player sees:
+1. Grenade hits obstacle → gas sound plays.
+2. Cloud spawned (logged by grenade code).
+3. No visible gas for 5+ seconds (cloud is at near-zero scale).
+4. Player interprets this as "gas did not appear".
+
+### Fix
+
+Scale only `_cloud_visual` (the `GPUParticles2D` or sprite fallback), not the entire node:
+
+```gdscript
+# _ready():
+if grow_in_duration > 0.0 and _cloud_visual != null:
+    _cloud_visual.scale = Vector2.ZERO  # visual only
+
+# _physics_process():
+if grow_in_duration > 0.0 and _cloud_visual != null:
+    var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
+    _cloud_visual.scale = Vector2(grow_progress, grow_progress)
+```
+
+This keeps the detection area at full size and ensures the grow-in animation works correctly while fixing the invisible-gas regression.
+
+---
+
 ## Files Involved
 
 | File | Role |

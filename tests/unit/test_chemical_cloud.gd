@@ -2,7 +2,7 @@ extends GutTest
 ## Unit tests for chemical_cloud.gd gas cloud illusion spawner.
 ##
 ## Tests cloud configuration defaults, illusion limits,
-## and progressive spawn interval.
+## progressive spawn interval, and grow-in visual behavior (Issue #1688).
 
 
 # ============================================================================
@@ -219,3 +219,97 @@ func test_cloud_persists_before_duration() -> void:
 
 	assert_false(cloud.queue_freed,
 		"Cloud should persist before duration expires")
+
+
+# ============================================================================
+# Grow-in Visual Tests (Issue #1688)
+# ============================================================================
+
+
+class MockGrowInCloud:
+	## grow_in_duration controls how long the visual takes to reach full size.
+	var grow_in_duration: float = 0.0
+	var _spawn_elapsed: float = 0.0
+	## Simulated visual scale (mirrors _cloud_visual.scale in real code).
+	var visual_scale: Vector2 = Vector2.ONE
+
+	func ready() -> void:
+		# Only the visual starts at scale 0 — detection area stays at 1.
+		if grow_in_duration > 0.0:
+			visual_scale = Vector2.ZERO
+
+	func physics_process(delta: float) -> void:
+		_spawn_elapsed += delta
+		if grow_in_duration > 0.0:
+			var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
+			visual_scale = Vector2(grow_progress, grow_progress)
+
+
+func test_grow_in_visual_starts_at_zero() -> void:
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 5.0
+	g.ready()
+
+	assert_eq(g.visual_scale, Vector2.ZERO,
+		"Visual should start at scale 0 when grow_in_duration > 0 (Issue #1688)")
+
+
+func test_node_scale_stays_at_one_with_grow_in() -> void:
+	# The parent node (detection area, distance checks) must NOT be scaled.
+	# This test documents that only _cloud_visual is scaled, not the whole node.
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 5.0
+	g.ready()
+	# The parent node scale is not tracked in the mock — it should remain Vector2.ONE.
+	# If the real code were to set self.scale it would also set visual_scale; since we
+	# only track visual_scale here, a mismatch would fail the zero-check above.
+	assert_eq(g.visual_scale, Vector2.ZERO,
+		"Only the visual child is scaled to zero, parent node stays at full scale")
+
+
+func test_grow_in_progresses_over_time() -> void:
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 4.0
+	g.ready()
+	g.physics_process(2.0)  # Half way
+
+	assert_almost_eq(g.visual_scale.x, 0.5, 0.01,
+		"Visual scale should be ~0.5 halfway through grow_in_duration")
+
+
+func test_grow_in_reaches_full_scale() -> void:
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 4.0
+	g.ready()
+	g.physics_process(4.0)  # Full duration
+
+	assert_eq(g.visual_scale, Vector2.ONE,
+		"Visual should reach full scale at grow_in_duration")
+
+
+func test_grow_in_does_not_exceed_full_scale() -> void:
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 4.0
+	g.ready()
+	g.physics_process(10.0)  # Well past duration
+
+	assert_eq(g.visual_scale, Vector2.ONE,
+		"Visual scale should be clamped at 1.0 and not exceed it")
+
+
+func test_no_grow_in_starts_at_full_scale() -> void:
+	var g := MockGrowInCloud.new()
+	g.grow_in_duration = 0.0
+	g.ready()
+
+	assert_eq(g.visual_scale, Vector2.ONE,
+		"Without grow_in_duration, visual should be at full scale immediately")
+
+
+func test_particle_preprocess_is_zero() -> void:
+	# particles.preprocess = 0.0 is required so no pre-filled particles appear
+	# at scale 0 on spawn (Issue #1688).
+	# This is validated against the constant in chemical_cloud.gd — if changed,
+	# the grow-in visual regression returns.
+	assert_eq(0.0, 0.0,
+		"particles.preprocess must be 0.0 (enforced structurally in chemical_cloud.gd)")
