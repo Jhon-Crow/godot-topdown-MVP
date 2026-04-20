@@ -15,7 +15,7 @@ enum ActiveItemType {
 	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
 	BFF_PENDANT,       # BFF pendant - press Space to summon a friendly companion with M16
 	INVISIBILITY_SUIT, # Invisibility cloak - press Space to become invisible (Issue #673)
-	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 60px before wall, spawning shrapnel cone (Issue #678)
+	BREAKER_BULLETS,   # Breaker bullets - passive: bullets explode 95px before wall/enemy (proximity fuse + arming distance), spawning shrapnel cone (Issue #678, #1634)
 	FORCE_FIELD,       # Force field - hold Space to activate glowing shield that reflects projectiles (Issue #676)
 	TRAJECTORY_GLASSES, # Trajectory glasses - press Space to show ricochet trajectories for 10 seconds (Issue #744)
 	LASER_SIGHT,       # Laser sight - passive: purple laser sight on all weapons regardless of difficulty (Issue #947)
@@ -137,7 +137,7 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Breaker Bullets",
 		"name_key": "ITEM_BREAKER_BULLETS_NAME",
 		"icon_path": "res://assets/sprites/weapons/breaker_bullets_icon.png",
-		"description": "Breaker bullets — passive: bullets explode 60px before hitting a wall, dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone.",
+		"description": "Breaker bullets — passive: bullets explode 95px before hitting a wall or enemy (proximity fuse), dealing 1 damage in a 15px radius and releasing shrapnel in a forward cone.",
 		"desc_key": "ITEM_BREAKER_BULLETS_DESC"
 	},
 	ActiveItemType.FORCE_FIELD: {

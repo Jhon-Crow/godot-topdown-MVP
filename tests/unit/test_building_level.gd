@@ -213,6 +213,10 @@ func test_building_level_uses_shared_weapon_hints_component() -> void:
 		"Building level should load the shared weapon hints component")
 	assert_string_contains(source, "_weapon_hints_component.setup(_player, canvas_layer)",
 		"Building level should initialize the shared weapon hints component with player and CanvasLayer")
+	assert_string_contains(source, "var existing_component := get_node_or_null(\"WeaponHintsComponent\")",
+		"Building level should reuse the scene-owned WeaponHintsComponent when present")
+	assert_string_contains(source, "_weapon_hints_component = existing_component",
+		"Building level should not create duplicate weapon hints components")
 
 
 func test_building_level_fallback_sets_up_weapon_hints() -> void:

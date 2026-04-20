@@ -18,7 +18,7 @@ class_name SnowyFeetComponent
 @export var snow_steps_count: int = 8
 
 ## Number of red blood-stained snow prints to spawn after stepping in blood (Issue #1627).
-@export var snow_blood_steps_count: int = 2
+@export var snow_blood_steps_count: int = 5
 
 ## Distance in pixels between consecutive footprint spawns.
 @export var step_distance: float = 30.0
@@ -96,6 +96,13 @@ var _snow_detector: Area2D = null
 ## Whether currently overlapping a snow surface (signal-based detection).
 var _is_overlapping_snow: bool = false
 
+## Area2D used to detect overlap with blood puddles so red snow prints only start
+## after the character steps out of the puddle itself.
+var _blood_detector: Area2D = null
+
+## Whether currently overlapping a blood puddle (signal-based detection).
+var _is_overlapping_blood: bool = false
+
 
 func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
@@ -125,6 +132,7 @@ func _ready() -> void:
 
 	# Create Area2D detector for snow-surface overlap (deferred so parent is in tree).
 	call_deferred("_setup_snow_detector")
+	call_deferred("_setup_blood_detector")
 
 	_initialized = true
 	_log_info("SnowyFeetComponent ready on %s" % _parent_body.name)
@@ -138,7 +146,7 @@ func _setup_snow_detector() -> void:
 	_snow_detector = Area2D.new()
 	_snow_detector.name = "SnowDetector"
 	_snow_detector.collision_layer = 0
-	_snow_detector.collision_mask = 32  # Layer 6 = 2^5 = 32 (snow_area layer)
+	_snow_detector.collision_mask = 128  # Layer 8 = snow_area layer.
 	_snow_detector.monitoring = true
 	_snow_detector.monitorable = false
 
@@ -154,6 +162,32 @@ func _setup_snow_detector() -> void:
 	_snow_detector.area_exited.connect(_on_snow_area_exited)
 
 	_log_info("Snow detector created on %s" % _parent_body.name)
+
+
+## Creates an Area2D attached to the parent body to detect blood-puddle overlap.
+func _setup_blood_detector() -> void:
+	if _parent_body == null:
+		return
+
+	_blood_detector = Area2D.new()
+	_blood_detector.name = "SnowBloodPuddleDetector"
+	_blood_detector.collision_layer = 0
+	_blood_detector.collision_mask = 64  # Layer 7 = blood puddles/decorative areas.
+	_blood_detector.monitoring = true
+	_blood_detector.monitorable = false
+
+	var collision_shape := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 8.0
+	collision_shape.shape = shape
+	_blood_detector.add_child(collision_shape)
+
+	_parent_body.add_child(_blood_detector)
+
+	_blood_detector.area_entered.connect(_on_blood_area_entered)
+	_blood_detector.area_exited.connect(_on_blood_area_exited)
+
+	_log_info("Snow blood-puddle detector created on %s" % _parent_body.name)
 
 
 ## Called when the foot detector enters an Area2D.
@@ -173,6 +207,18 @@ func _on_snow_area_exited(area: Area2D) -> void:
 					still_on_snow = true
 					break
 			_is_overlapping_snow = still_on_snow
+
+
+## Called when the foot detector enters a blood puddle Area2D.
+func _on_blood_area_entered(area: Area2D) -> void:
+	if _is_blood_puddle_area(area):
+		_is_overlapping_blood = true
+
+
+## Called when the foot detector exits a blood puddle Area2D.
+func _on_blood_area_exited(area: Area2D) -> void:
+	if _is_blood_puddle_area(area):
+		_is_overlapping_blood = _has_overlapping_blood_puddle()
 
 
 ## Called immediately when the sibling BloodyFeetComponent detects blood contact.
@@ -224,6 +270,27 @@ func _is_on_snow() -> bool:
 	if _snow_detector and _snow_detector.is_inside_tree():
 		for area in _snow_detector.get_overlapping_areas():
 			if area.is_in_group("snow_area"):
+				return true
+	return false
+
+
+## Returns true when an Area2D is a blood puddle or a child detector of one.
+func _is_blood_puddle_area(area: Area2D) -> bool:
+	return area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle"))
+
+
+## Returns true when the character is standing on a blood puddle.
+func _is_on_blood_puddle() -> bool:
+	if _is_overlapping_blood:
+		return true
+	return _has_overlapping_blood_puddle()
+
+
+## Checks current blood detector overlaps directly.
+func _has_overlapping_blood_puddle() -> bool:
+	if _blood_detector and _blood_detector.is_inside_tree():
+		for area in _blood_detector.get_overlapping_areas():
+			if _is_blood_puddle_area(area):
 				return true
 	return false
 
@@ -299,7 +366,7 @@ func _spawn_footprint() -> void:
 	_arm_blood_snow_steps_from_bloody_feet_if_needed()
 
 	# Decide which scene to use: red blood print or normal white print.
-	var use_blood_print := _blood_snow_steps_remaining > 0
+	var use_blood_print: bool = _blood_snow_steps_remaining > 0 and not _is_on_blood_puddle()
 	var active_scene: PackedScene = _snow_blood_footprint_scene if use_blood_print else _footprint_scene
 	if active_scene == null:
 		# Fallback to whichever scene is available.
@@ -329,7 +396,14 @@ func _spawn_footprint() -> void:
 
 	if use_blood_print:
 		# Apply blood color and compute alpha decaying over snow_blood_steps_count steps.
-		var blood_color := _blood_snow_color
+		var total := snow_blood_steps_count
+		if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
+			total = _bloody_feet.snow_blood_steps_count
+		var steps_taken := total - _blood_snow_steps_remaining
+		var fade_factor := 1.0
+		if total > 1:
+			fade_factor = 1.0 - (float(steps_taken) / float(total - 1)) * 0.65
+		var blood_color := _blood_snow_color.lerp(Color.WHITE, 1.0 - fade_factor)
 		if footprint.has_method("set_blood_color"):
 			footprint.set_blood_color(blood_color)
 		else:
@@ -337,10 +411,6 @@ func _spawn_footprint() -> void:
 			footprint.modulate.g = blood_color.g
 			footprint.modulate.b = blood_color.b
 
-		var total := snow_blood_steps_count
-		if _bloody_feet and _bloody_feet.get("snow_blood_steps_count") != null:
-			total = _bloody_feet.snow_blood_steps_count
-		var steps_taken := total - _blood_snow_steps_remaining
 		var alpha := initial_alpha - (steps_taken * alpha_decay_rate)
 		alpha = maxf(alpha, 0.05)
 		if footprint.has_method("set_alpha"):
@@ -386,7 +456,7 @@ func _schedule_footprint_fade(footprint: Node2D) -> void:
 		return
 
 	# Capture a weak reference so we don't crash if the scene unloads first.
-	var footprint_ref := weakref(footprint)
+	var footprint_ref: WeakRef = weakref(footprint)
 
 	# Use an anonymous async function via a lambda-style timer.
 	tree.create_timer(footprint_fade_delay).timeout.connect(

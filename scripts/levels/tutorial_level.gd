@@ -1956,7 +1956,6 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	label.name = "TutorialHint_" + hint_key
 	label.bbcode_enabled = true
 	label.text = text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("normal_font_size", 20)
 	# Issue #945: unique color per hint type for easy differentiation
 	label.add_theme_color_override("default_color", _get_hint_color(hint_key))

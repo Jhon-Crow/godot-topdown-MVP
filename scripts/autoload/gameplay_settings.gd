@@ -3,6 +3,7 @@ extends Node
 ##
 ## Provides centralized control over gameplay-affecting visual settings:
 ## - Blood amount (количество крови): multiplier for blood decals spawned per hit
+## - Unlock notifications: show or suppress Armory unlock toast messages
 ## - Combo font size (Issue #1790): pixel size of the combo counter label
 ##
 ## Settings are persisted to disk.
@@ -22,6 +23,10 @@ var wall_hit_particles_enabled: bool = true
 ## Whether revolver aim assist (slight bullet homing) is enabled (Issue #1332).
 ## When enabled (default), revolver bullets gently steer toward enemies near the crosshair.
 var revolver_aim_assist_enabled: bool = true
+
+## Whether unlock toast notifications are shown when new Armory items become available.
+## Enabled by default so existing behavior is preserved.
+var unlock_notifications_enabled: bool = true
 
 ## Combo label font size in pixels (Issue #1790). Default is 112 (2× the base 56px).
 ## Range: [28, 224].
@@ -45,7 +50,7 @@ const MAX_COMBO_FONT_SIZE: int = 224
 
 func _ready() -> void:
 	_load_settings()
-	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s, revolver_aim_assist: %s, combo_font_size: %d" % [blood_amount, wall_hit_particles_enabled, revolver_aim_assist_enabled, combo_font_size])
+	_log_to_file("GameplaySettings initialized - blood_amount: %.2f, wall_hit_particles: %s, revolver_aim_assist: %s, unlock_notifications: %s, combo_font_size: %d" % [blood_amount, wall_hit_particles_enabled, revolver_aim_assist_enabled, unlock_notifications_enabled, combo_font_size])
 
 
 ## Sets the blood amount multiplier.
@@ -94,6 +99,21 @@ func is_revolver_aim_assist_enabled() -> bool:
 	return revolver_aim_assist_enabled
 
 
+## Sets whether unlock toast notifications are shown.
+## @param enabled: true to show unlock toasts, false to suppress them.
+func set_unlock_notifications_enabled(enabled: bool) -> void:
+	if unlock_notifications_enabled != enabled:
+		unlock_notifications_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Unlock notifications %s" % ("enabled" if enabled else "disabled"))
+
+
+## Returns whether unlock toast notifications are shown.
+func are_unlock_notifications_enabled() -> bool:
+	return unlock_notifications_enabled
+
+
 ## Sets the combo label font size (Issue #1790).
 ## @param size: Pixel size [28, 224].
 func set_combo_font_size(size: int) -> void:
@@ -116,6 +136,7 @@ func _save_settings() -> void:
 	config.set_value("gameplay", "blood_amount", blood_amount)
 	config.set_value("gameplay", "wall_hit_particles_enabled", wall_hit_particles_enabled)
 	config.set_value("gameplay", "revolver_aim_assist_enabled", revolver_aim_assist_enabled)
+	config.set_value("gameplay", "unlock_notifications_enabled", unlock_notifications_enabled)
 	config.set_value("gameplay", "combo_font_size", combo_font_size)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
@@ -131,12 +152,14 @@ func _load_settings() -> void:
 		blood_amount = clamp(blood_amount, MIN_BLOOD_AMOUNT, MAX_BLOOD_AMOUNT)
 		wall_hit_particles_enabled = config.get_value("gameplay", "wall_hit_particles_enabled", true)
 		revolver_aim_assist_enabled = config.get_value("gameplay", "revolver_aim_assist_enabled", true)
+		unlock_notifications_enabled = config.get_value("gameplay", "unlock_notifications_enabled", true)
 		combo_font_size = config.get_value("gameplay", "combo_font_size", 112)
 		combo_font_size = clampi(combo_font_size, MIN_COMBO_FONT_SIZE, MAX_COMBO_FONT_SIZE)
 	else:
 		blood_amount = 1.0
 		wall_hit_particles_enabled = true
 		revolver_aim_assist_enabled = true
+		unlock_notifications_enabled = true
 		combo_font_size = 112
 
 

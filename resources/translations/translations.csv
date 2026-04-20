@@ -26,6 +26,7 @@ BLOOD_AMOUNT,Blood Amount,Количество крови
 WEAPON_HINTS,Weapon Hints,Подсказки оружия
 REVOLVER_AIM_ASSIST,Revolver Aim Assist,Помощь прицеливания револьвера
 COMBO_FONT_SIZE,Combo Font Size,Размер шрифта комбо
+UNLOCK_NOTIFICATIONS,Unlock Notifications,Оповещения об анлоке
 WEAPON_HINTS_ALWAYS,Always,Всегда
 WEAPON_HINTS_FIRST_TIME,First time only,Только первый раз
 WEAPON_HINTS_NEVER,Never,Никогда
