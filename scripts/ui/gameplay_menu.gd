@@ -4,6 +4,7 @@ extends CanvasLayer
 ## Provides settings that affect gameplay mechanics:
 ## - Blood amount (количество крови): slider controlling blood decals per hit (Issue #1090)
 ## - Weapon hints display mode (Issue #809): Always / First time only / Never
+## - Unlock notifications: toggle Armory unlock toast display
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -13,6 +14,7 @@ signal back_pressed
 @onready var blood_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BloodContainer/BloodValueLabel
 @onready var weapon_hints_option: OptionButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/WeaponHintsContainer/WeaponHintsOption
 @onready var aim_assist_toggle: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer/AimAssistToggle
+@onready var unlock_notifications_toggle: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/UnlockNotificationsContainer/UnlockNotificationsToggle
 @onready var combo_size_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer/ComboSizeSlider
 @onready var combo_size_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer/ComboSizeValueLabel
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
@@ -26,6 +28,8 @@ func _ready() -> void:
 			tr("WEAPON_HINTS"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AimAssistContainer,
 			tr("REVOLVER_AIM_ASSIST"))
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/UnlockNotificationsContainer,
+			tr("UNLOCK_NOTIFICATIONS"))
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComboSizeContainer,
 			tr("COMBO_FONT_SIZE"))
 
@@ -34,6 +38,7 @@ func _ready() -> void:
 	_setup_weapon_hints_option()
 	weapon_hints_option.item_selected.connect(_on_weapon_hints_selected)
 	aim_assist_toggle.toggled.connect(_on_aim_assist_toggled)
+	unlock_notifications_toggle.toggled.connect(_on_unlock_notifications_toggled)
 	combo_size_slider.value_changed.connect(_on_combo_size_changed)
 	back_button.pressed.connect(_on_back_pressed)
 
@@ -64,6 +69,14 @@ func _update_ui() -> void:
 	aim_assist_toggle.set_block_signals(true)
 	aim_assist_toggle.button_pressed = gameplay_settings.is_revolver_aim_assist_enabled()
 	aim_assist_toggle.set_block_signals(false)
+
+	# Unlock toast notification toggle (Issue #1883)
+	unlock_notifications_toggle.set_block_signals(true)
+	if gameplay_settings.has_method("are_unlock_notifications_enabled"):
+		unlock_notifications_toggle.button_pressed = gameplay_settings.are_unlock_notifications_enabled()
+	else:
+		unlock_notifications_toggle.button_pressed = true
+	unlock_notifications_toggle.set_block_signals(false)
 
 	# Combo font size slider (Issue #1790)
 	combo_size_slider.set_block_signals(true)
@@ -101,6 +114,13 @@ func _on_aim_assist_toggled(enabled: bool) -> void:
 	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
 	if gameplay_settings:
 		gameplay_settings.set_revolver_aim_assist_enabled(enabled)
+
+
+## Called when unlock toast notifications are toggled (Issue #1883).
+func _on_unlock_notifications_toggled(enabled: bool) -> void:
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	if gameplay_settings and gameplay_settings.has_method("set_unlock_notifications_enabled"):
+		gameplay_settings.set_unlock_notifications_enabled(enabled)
 
 
 ## Called when the combo font size slider is changed (Issue #1790).

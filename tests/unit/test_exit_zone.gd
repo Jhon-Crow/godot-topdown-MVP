@@ -344,3 +344,40 @@ func test_custom_offset() -> void:
 
 	assert_eq(exit_zone.zone_offset, Vector2(50, 100),
 		"Custom offset should be applied")
+
+
+# ============================================================================
+# Localization Regression Tests
+# ============================================================================
+
+
+func test_exit_zone_uses_translation_key_for_label() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_true(source.contains("tr(\"EXIT_ZONE_LABEL\")"),
+		"Exit zone label should use the localized EXIT_ZONE_LABEL key")
+
+
+func test_exit_zone_does_not_hardcode_russian_exit_text() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_false(source.contains("\"ВЫХОД\""),
+		"Exit zone should not hard-code Russian text")
+
+
+func test_exit_zone_arrow_text_uses_localized_label() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_true(source.contains("func _get_arrow_text(direction: Vector2) -> String:"),
+		"Exit zone should centralize localized arrow text")
+	assert_true(source.contains("var exit_text: String = tr(\"EXIT_ZONE_LABEL\")"),
+		"Arrow indicator should use the localized exit label")
+
+
+func test_exit_zone_refreshes_text_on_locale_change() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_true(source.contains("locale_changed.connect(_on_locale_changed)"),
+		"Exit zone should listen for locale changes")
+	assert_true(source.contains("func _on_locale_changed(_locale: String) -> void:"),
+		"Exit zone should refresh visible text when locale changes")

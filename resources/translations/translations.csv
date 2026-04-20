@@ -8,6 +8,7 @@ ROGUELIKE,Roguelike,Рогалик
 ARENA,Arena,Арена
 SETTINGS,Settings,Настройки
 QUIT,Quit,Выход
+EXIT_ZONE_LABEL,EXIT,ВЫХОД
 SETTINGS_TITLE,Settings,Настройки
 CONTROLS,Controls,Управление
 DIFFICULTY,Difficulty,Сложность
@@ -25,6 +26,7 @@ BLOOD_AMOUNT,Blood Amount,Количество крови
 WEAPON_HINTS,Weapon Hints,Подсказки оружия
 REVOLVER_AIM_ASSIST,Revolver Aim Assist,Помощь прицеливания револьвера
 COMBO_FONT_SIZE,Combo Font Size,Размер шрифта комбо
+UNLOCK_NOTIFICATIONS,Unlock Notifications,Оповещения об анлоке
 WEAPON_HINTS_ALWAYS,Always,Всегда
 WEAPON_HINTS_FIRST_TIME,First time only,Только первый раз
 WEAPON_HINTS_NEVER,Never,Никогда
@@ -54,6 +56,11 @@ RUN_BENCHMARK,Run Benchmark,Запустить тест
 QUICK_TEST,Quick Test (1 cycle),Быстрый тест (1 цикл)
 STRESS_BENCHMARK,Stress Benchmark,Стресс-тест
 PERFORMANCE_ALL_ENABLED,All performance features enabled,Все функции производительности включены
+LEVEL_CLEAR_ALL_PACIFIED,All enemies eliminated or pacified! Level cleared!,Все враги устранены или стали пацифистами! Уровень очищен!
+LOUDSPEAKER_TRUE_ENDING_MESSAGE,"We have nothing to fight over, so we will not shoot each other.","Нам нечего делить, поэтому мы не будем стрелять друг в друга."
+GAME_END_TITLE,The End,Конец
+GAME_END_THANKS,Thanks for playing,Спасибо за игру
+GAME_END_DISMISS_HINT,Press any key or mouse button...,Нажмите любую клавишу или кнопку мыши...
 LANGUAGE_TITLE,Language,Язык
 LANGUAGE_ENGLISH,English,English
 LANGUAGE_RUSSIAN,Русский,Русский
@@ -88,6 +95,10 @@ ARMORY_NO_GRENADE,No grenade,Нет гранаты
 ARMORY_NO_ACTIVE_ITEM,None,Нет
 ARMORY_NO_DATA,No data available,Нет данных
 ARMORY_NO_ACTIVE_ITEM_DESC,No active item equipped.,Спецснаряжение не выбрано.
+UNLOCK_NOTIFICATION_OPENED,Unlocked %s!,Открыт %s !
+UNLOCK_NOTIFICATION_KIND_WEAPON,weapon,оружие
+UNLOCK_NOTIFICATION_KIND_GRENADE,grenade,граната
+UNLOCK_NOTIFICATION_KIND_ACTIVE_ITEM,item,предмет
 WEAPON_PM_NAME,PM,ПМ
 WEAPON_PM_DESC,Makarov PM — 9x18mm starting pistol. 9-round magazine. Medium ricochets.,ПМ — пистолет Макарова 9x18мм. Магазин 9 патронов. Средние рикошеты.
 WEAPON_M16_NAME,M16,M16
@@ -218,6 +229,9 @@ ITEM_HINT_PRESS_SPACE_RANDOM,Press Space to trigger random effect,Нажми П�
 ITEM_HINT_PRESS_SPACE_RELOAD,Press Space to reload,Нажми Пробел для перезарядки
 ITEM_HINT_PRESS_SPACE_DASH,Press Space to dash,Нажми Пробел для рывка
 HINT_RELOAD_2STEP_0,[R] [R] Reload,[R] [R] Перезарядись
+HUD_ENEMIES,Enemies: %d,Враги: %d
+HUD_AMMO,Ammo: %d / %d,Патроны: %d / %d
+HUD_DIFFICULTY,Difficulty: %s,Сложность: %s
 HINT_RELOAD_2STEP_1,[R] [R] Reload,[R] [R] Перезарядись
 HINT_RELOAD_3STEP_0,[R] [F] [R] Reload,[R] [F] [R] Перезарядись
 HINT_RELOAD_3STEP_1,[R] [F] [R] Reload,[R] [F] [R] Перезарядись

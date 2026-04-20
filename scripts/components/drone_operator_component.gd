@@ -186,6 +186,11 @@ func _show_weapon_hide_tablet() -> void:
 
 ## Update called each physics frame from enemy._physics_process().
 func update(delta: float) -> void:
+	if _parent_is_pacifist():
+		if _drone != null and is_instance_valid(_drone) and _drone.has_method("_explode"):
+			FileLogger.info("[DroneOperator] Operator is pacifist - neutralizing controlled drone (Issue #1868)")
+			_drone._explode()
+		return
 	match _phase:
 		Phase.DEPLOYING:
 			_update_deploying(delta)
@@ -203,6 +208,10 @@ func get_phase() -> Phase:
 ## Returns true if the operator is in the defenseless controlling phase.
 func is_controlling_drone() -> bool:
 	return _phase == Phase.CONTROLLING
+
+
+func _parent_is_pacifist() -> bool:
+	return _parent != null and _parent.has_method("is_pacifist") and _parent.is_pacifist()
 
 
 ## Returns true if the teleport is ready (off cooldown). ACTIVE phase only.
@@ -377,11 +386,16 @@ func _transition_to_active() -> void:
 		if lens:
 			lens.color = Color(1.0, 0.05, 0.05, 1.0)  # Bright red = disconnected (Issue #1532)
 
-	# Force transition to COMBAT state
-	if _parent and _parent.has_method("_transition_to_combat"):
-		_parent._transition_to_combat()
-	elif _parent and _parent.get("_current_state") != null:
-		_parent._current_state = 1  # AIState.COMBAT
+	# Force transition to COMBAT state — unless the operator is already pacifist (Issue #1744).
+	# A pacifist drone operator should stay pacifist even after their drone is destroyed;
+	# forcing COMBAT here would override the loudspeaker effect and make them attack again.
+	if not _parent_is_pacifist():
+		if _parent and _parent.has_method("_transition_to_combat"):
+			_parent._transition_to_combat()
+		elif _parent and _parent.get("_current_state") != null:
+			_parent._current_state = 1  # AIState.COMBAT
+	else:
+		FileLogger.info("[DroneOperator] Drone destroyed but operator is pacifist — staying pacifist (Issue #1744)")
 
 	# Set up EnemyTeleportComponent for evasion (Issue #1664).
 	# Same teleport behavior as the teleport enemy — teleport to cover on first bullet, etc.

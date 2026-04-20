@@ -14,6 +14,8 @@ extends Node2D
 ## - Death/victory messages
 ## - Quick restart with Q key
 
+const LEVEL_SCENE_PATH := "res://scenes/levels/TestTier.tscn"
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -252,6 +254,14 @@ func _setup_weapon_hints() -> void:
 	var canvas_layer: Node = get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
 		push_warning("[TestTier] CanvasLayer node not found for weapon hints")
+		return
+
+	var existing_component := get_node_or_null("WeaponHintsComponent")
+	if existing_component != null:
+		_weapon_hints_component = existing_component
+		if _weapon_hints_component.has_method("setup"):
+			_weapon_hints_component.setup(_player, canvas_layer)
+			print("[TestTier] Scene-owned weapon hints component setup")
 		return
 
 	var hints_script = load("res://scripts/components/weapon_hints_component.gd")
@@ -513,11 +523,13 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	# Create difficulty label
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -528,7 +540,7 @@ func _setup_debug_ui() -> void:
 	# Create magazines label (shows individual magazine ammo counts)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -580,7 +592,7 @@ func _update_debug_ui() -> void:
 		return
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Called when an enemy dies.
@@ -783,7 +795,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	# Color coding: red at <=5, yellow at <=10, white otherwise
 	if current <= 5:
@@ -800,7 +812,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	# Color coding: red when mag <=5, yellow when mag <=10
 	if current_mag <= 5:
@@ -820,68 +832,20 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 
 	# Check if player has a weapon with tube magazine (shotgun)
 	# If so, hide the magazine label as shotguns don't use detachable magazines
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MiniUzi")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SilencedPistol")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SniperRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		# Shotgun equipped - hide magazine display
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Complete the level and show the score screen.

@@ -19,6 +19,14 @@ namespace GodotTopDownTemplate.Characters;
 /// </summary>
 public partial class Player
 {
+    private CanvasLayer? _loudspeakerVictoryCanvas = null;
+    private bool _loudspeakerVictoryScreenShown = false;
+    private bool _loudspeakerVictoryDismissed = false;
+    private bool _loudspeakerVictoryPending = false;
+    private bool _loudspeakerVictoryDelayStarted = false;
+    private float _loudspeakerVictoryDelayTimer = 0.0f;
+    private const float LoudspeakerVictoryDelaySeconds = 20.0f;
+
     #region Flashlight Methods (Issue #546)
 
     /// <summary>
@@ -1512,7 +1520,7 @@ public partial class Player
         }
 
         _breakerBulletsActive = true;
-        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls");
+        LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)");
 
         // Set breaker bullet flag on current weapon so all spawned bullets get the flag
         if (CurrentWeapon != null)
@@ -2785,7 +2793,7 @@ public partial class Player
                         enemyNode.Call("apply_pacifism", 0.0f);
                 }
             }
-            ShowLoudspeakerVictoryMessage();
+            StartLoudspeakerVictoryDelay();
             return;
         }
 
@@ -2837,18 +2845,82 @@ public partial class Player
     }
 
     /// <summary>
+    /// Arm the delayed victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
+    /// The player may still move while the ending is pending, but weapon actions stay blocked.
+    /// </summary>
+    private void StartLoudspeakerVictoryDelay()
+    {
+        _loudspeakerVictoryPending = true;
+        _loudspeakerVictoryDelayStarted = false;
+        _loudspeakerVictoryDelayTimer = 0.0f;
+        _semiAutoShootBuffered = false;
+        LogToFile($"[Player.Loudspeaker] Victory pending (Level 7), waiting for first player input then {LoudspeakerVictoryDelaySeconds:F0}s delay");
+    }
+
+    private bool IsLoudspeakerVictoryWeaponLocked()
+    {
+        return _loudspeakerVictoryPending || _loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed;
+    }
+
+    private void HandleLoudspeakerVictoryDelay(float delta)
+    {
+        if (!_loudspeakerVictoryPending || _loudspeakerVictoryScreenShown)
+            return;
+
+        if (!_loudspeakerVictoryDelayStarted)
+        {
+            if (!HasAnyGameplayInput())
+                return;
+
+            _loudspeakerVictoryDelayStarted = true;
+            _loudspeakerVictoryDelayTimer = LoudspeakerVictoryDelaySeconds;
+            LogToFile($"[Player.Loudspeaker] First player input detected, true-ending message will appear in {LoudspeakerVictoryDelaySeconds:F0}s");
+        }
+
+        _loudspeakerVictoryDelayTimer -= delta;
+        if (_loudspeakerVictoryDelayTimer <= 0.0f)
+        {
+            _loudspeakerVictoryPending = false;
+            _loudspeakerVictoryDelayTimer = 0.0f;
+            ShowLoudspeakerVictoryMessage();
+        }
+    }
+
+    private bool HasAnyGameplayInput()
+    {
+        return Input.IsActionPressed("move_up")
+            || Input.IsActionPressed("move_down")
+            || Input.IsActionPressed("move_left")
+            || Input.IsActionPressed("move_right")
+            || Input.IsActionJustPressed("shoot")
+            || Input.IsActionJustPressed("grenade_throw")
+            || Input.IsActionJustPressed("grenade_prepare")
+            || Input.IsActionJustPressed("reload")
+            || Input.IsActionJustPressed("reload_step")
+            || Input.IsActionJustPressed("toggle_fire_mode")
+            || Input.IsActionJustPressed("flashlight_toggle");
+    }
+
+    /// <summary>
     /// Show the victory message for Level 7 (all enemies defeated via pacifism) (Issue #959).
     /// </summary>
     private void ShowLoudspeakerVictoryMessage()
     {
+        _loudspeakerVictoryScreenShown = true;
+        _loudspeakerVictoryDismissed = false;
+        _loudspeakerVictoryPending = false;
+        SetProcessUnhandledInput(true);
+        _semiAutoShootBuffered = false;
+
         var canvas = new CanvasLayer();
         canvas.Name = "LoudspeakerVictoryCanvas";
         canvas.Layer = 100;
         AddChild(canvas);
+        _loudspeakerVictoryCanvas = canvas;
 
         // Victory message label
         var label = new Label();
-        label.Text = "Нам нечего делить по этому мы не будем стрелять друг в друга.";
+        label.Text = Tr("LOUDSPEAKER_TRUE_ENDING_MESSAGE");
         label.AddThemeFontSizeOverride("font_size", 36);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         label.VerticalAlignment = VerticalAlignment.Center;
@@ -2861,7 +2933,7 @@ public partial class Player
 
         // "Click to continue" hint
         var hint = new Label();
-        hint.Text = "[ нажмите, чтобы продолжить ]";
+        hint.Text = Tr("GAME_END_DISMISS_HINT");
         hint.AddThemeFontSizeOverride("font_size", 18);
         hint.AddThemeColorOverride("font_color", new Color(0.8f, 0.8f, 0.8f, 0.8f));
         hint.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2883,21 +2955,57 @@ public partial class Player
         panel.GuiInput += (InputEvent ev) =>
         {
             if (ev is InputEventMouseButton mb && mb.Pressed)
-                ShowLoudspeakerEndScreen(canvas);
+            {
+                GetViewport().SetInputAsHandled();
+                DismissLoudspeakerVictoryMessage();
+            }
         };
         canvas.AddChild(panel);
 
         LogToFile("[Player.Loudspeaker] Victory message shown (Level 7)");
     }
 
+    private bool HandleLoudspeakerVictoryInput(InputEvent @event)
+    {
+        if (!_loudspeakerVictoryScreenShown || _loudspeakerVictoryDismissed)
+            return false;
+
+        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.Pressed)
+        {
+            GetViewport().SetInputAsHandled();
+            DismissLoudspeakerVictoryMessage();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void DismissLoudspeakerVictoryMessage()
+    {
+        if (_loudspeakerVictoryDismissed)
+            return;
+
+        _loudspeakerVictoryDismissed = true;
+        _semiAutoShootBuffered = false;
+        ShowLoudspeakerEndScreen(_loudspeakerVictoryCanvas);
+    }
+
     /// <summary>
     /// Show end screen after player clicks on victory message (Issue #959).
     /// </summary>
-    private void ShowLoudspeakerEndScreen(CanvasLayer victoryCanvas)
+    private void ShowLoudspeakerEndScreen(CanvasLayer? victoryCanvas)
     {
         // Remove victory screen
-        if (Godot.GodotObject.IsInstanceValid(victoryCanvas))
+        if (victoryCanvas != null && Godot.GodotObject.IsInstanceValid(victoryCanvas))
             victoryCanvas.QueueFree();
+        _loudspeakerVictoryCanvas = null;
 
         // Create end screen canvas
         var canvas = new CanvasLayer();
@@ -2916,7 +3024,7 @@ public partial class Player
 
         // "Конец" title
         var title = new Label();
-        title.Text = "Конец";
+        title.Text = Tr("GAME_END_TITLE");
         title.AddThemeFontSizeOverride("font_size", 72);
         title.AddThemeColorOverride("font_color", new Color(1, 1, 1, 1));
         title.HorizontalAlignment = HorizontalAlignment.Center;
@@ -2929,7 +3037,7 @@ public partial class Player
 
         // Thank you message
         var thanks = new Label();
-        thanks.Text = "Спасибо за игру!";
+        thanks.Text = Tr("GAME_END_THANKS");
         thanks.AddThemeFontSizeOverride("font_size", 32);
         thanks.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f, 1));
         thanks.HorizontalAlignment = HorizontalAlignment.Center;

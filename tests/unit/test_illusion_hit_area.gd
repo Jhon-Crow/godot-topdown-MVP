@@ -49,14 +49,16 @@ class MockIllusionHitArea:
 	## Extended hit handler with bullet info and damage.
 	func on_hit_with_bullet_info_and_damage(
 		_direction: Vector2, _caliber_data, _is_ricochet: bool,
-		_is_penetration: bool, _damage: float, _from_player: bool
+		_is_penetration: bool, _damage: float, _from_player: bool,
+		_attacker_node: Node2D = null
 	) -> void:
 		on_hit()
 
 	## Extended hit handler with bullet info.
 	func on_hit_with_bullet_info(
 		_direction: Vector2, _caliber_data, _is_ricochet: bool,
-		_is_penetration: bool, _from_player: bool
+		_is_penetration: bool, _from_player: bool,
+		_attacker_node: Node2D = null
 	) -> void:
 		on_hit()
 

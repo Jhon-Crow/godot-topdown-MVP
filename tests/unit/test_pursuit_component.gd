@@ -84,3 +84,25 @@ func test_occupied_radius_matches_desired_distance() -> void:
 func test_occupied_penalty_is_positive() -> void:
 	assert_gt(PursuitComp.PURSUIT_ENEMY_OCCUPIED_PENALTY, 0.0,
 		"Occupied penalty should be positive")
+
+
+# =============================================================================
+# Passage waypoint fallback
+# =============================================================================
+
+func test_passage_waypoint_fallback_rejects_waypoint_farther_from_target() -> void:
+	var from_pos := Vector2(500.0, 0.0)
+	var target_pos := Vector2.ZERO
+	var farther_waypoint := Vector2(650.0, 0.0)
+
+	assert_false(PursuitComp.waypoint_moves_toward_target(from_pos, target_pos, farther_waypoint),
+		"PURSUING fallback must not route to a passage waypoint farther from the player")
+
+
+func test_passage_waypoint_fallback_accepts_waypoint_closer_to_target() -> void:
+	var from_pos := Vector2(500.0, 0.0)
+	var target_pos := Vector2.ZERO
+	var closer_waypoint := Vector2(350.0, 0.0)
+
+	assert_true(PursuitComp.waypoint_moves_toward_target(from_pos, target_pos, closer_waypoint),
+		"PURSUING fallback may use passage waypoints that actually approach the player")

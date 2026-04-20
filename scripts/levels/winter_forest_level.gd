@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/WinterForestLevel.tscn"
 ## Winter Forest level scene (Issue #1440).
 ##
 ## Outdoor winter forest with sparse trees, sewer exit start, and open clearing.
@@ -66,6 +68,9 @@ func _ready() -> void:
 
 	# Add cold winter sunlight from top-right corner
 	_setup_sunlight()
+
+	# Wire up snow-surface interaction: footprints in snow + faster blood fading (Issue #1627).
+	_setup_snow_interaction()
 
 
 func _initialize_score_manager() -> void:
@@ -517,7 +522,7 @@ func _setup_debug_ui() -> void:
 	# Create difficulty label
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 45
@@ -528,7 +533,7 @@ func _setup_debug_ui() -> void:
 	# Create magazines label
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 105
@@ -732,15 +737,16 @@ func _show_saturation_effect() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
+	LevelLocalization.apply_level_label_from_node(self, LEVEL_SCENE_PATH)
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Update the ammo label with color coding (simple format for GDScript Player).
@@ -748,7 +754,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -763,7 +769,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -778,61 +784,14 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MiniUzi")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SilencedPistol")
-		if weapon == null:
-			weapon = _player.get_node_or_null("SniperRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Show death message when player dies.
@@ -845,6 +804,8 @@ func _show_death_message() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	var death_label := Label.new()
 	death_label.name = "DeathLabel"
@@ -1417,6 +1378,149 @@ func _create_sunlight_texture() -> ImageTexture:
 			image.set_pixel(x, y, Color(brightness, brightness, brightness, 1.0))
 
 	return ImageTexture.create_from_image(image)
+
+
+## Wire up snow-surface interaction for the Winter Forest (Issue #1627).
+##
+## Attaches SnowyFeetComponent to the player and all enemies so they leave
+## footprints in the snow as they walk.  Also sets on_snow = true on every
+## BloodyFeetComponent so blood picked up from snow-absorbed blood stains
+## fades in fewer steps.
+func _setup_snow_interaction() -> void:
+	var snowy_feet_script := load("res://scripts/components/snowy_feet_component.gd")
+	if snowy_feet_script == null:
+		push_warning("[WinterForestLevel] SnowyFeetComponent script not found — snow footprints disabled")
+		return
+
+	# Create snow-surface area so components can detect when they are on snow.
+	_create_snow_area()
+
+	# Attach to player.
+	if _player != null and _player is CharacterBody2D:
+		_add_snowy_feet(_player, snowy_feet_script)
+
+	# Attach to all tracked enemies.
+	for enemy in _enemies:
+		if enemy is CharacterBody2D:
+			_add_snowy_feet(enemy, snowy_feet_script)
+
+	_log_to_file("Snow interaction setup complete (Issue #1627)")
+
+
+## Creates an Area2D (group "snow_area") that marks every snow-covered tile in the
+## Winter Forest map.  The snow surface is the large white ColorRect (64,64)-(3264,2464)
+## minus the brown forest trails that visually overlay it.
+##
+## Each non-trail region is represented by one Area2D + RectangleShape2D.  Characters
+## check overlap with nodes in this group to decide whether to leave snow footprints.
+func _create_snow_area() -> void:
+	# Snow collision layer 8 (bit 7, value 128). Keep snow off layer 6 ("targets")
+	# so bullets and shotgun pellets do not treat snow-surface markers as targets.
+	const SNOW_LAYER: int = 128
+
+	# Snow bounds: matches the "Snow" ColorRect in WinterForestLevel.tscn.
+	const SNOW_LEFT: float   = 64.0
+	const SNOW_TOP: float    = 64.0
+	const SNOW_RIGHT: float  = 3264.0
+	const SNOW_BOTTOM: float = 2464.0
+
+	# Non-snow overlay regions (forest trail, dirt path) that sit on top of the snow
+	# visually but are not snow.  Characters walking here should NOT leave snow tracks.
+	var non_snow_rects: Array[Rect2] = [
+		Rect2(200.0, 1600.0, 300.0, 800.0),   # ForestTrail
+		Rect2(400.0, 1200.0, 300.0, 500.0),   # TrailCurve
+		Rect2(600.0,  800.0, 600.0, 500.0),   # TrailToClearing
+		Rect2(120.0, 2200.0, 280.0, 200.0),   # SewerExitPlatform (concrete)
+	]
+
+	# Split the snow rect into sub-rectangles that avoid the non-snow overlays.
+	# Simple approach: add the full snow rect, then add "non-snow blocker" areas on a
+	# separate layer so the detectors' union correctly reports snow/non-snow.
+	#
+	# We mark snow areas with group "snow_area" and non-snow blockers with
+	# group "non_snow_area".  Detectors check "snow_area" membership only, so a
+	# character on a trail (which overlaps a non_snow_area) is NOT counted as on snow
+	# even if it also geometrically overlaps the large snow rect.
+	#
+	# To implement mutual-exclusion simply: we add ONLY snow-only rectangles (i.e.
+	# the snow rect rows/columns that do not overlap any trail), which avoids the
+	# need for an exclusion group altogether.
+	#
+	# Computed snow sub-rects (horizontal slabs between trail rows, full width):
+	# Row 1: y = 64  to  800  (above all trails, full snow width)
+	# Row 2: y = 800 to 1200  (TrailToClearing only at x=600-1200; split left/right)
+	# Row 3: y = 1200 to 1600 (TrailCurve at x=400-700; TrailToClearing above; split)
+	# Row 4: y = 1600 to 2200 (ForestTrail at x=200-500; TrailCurve above; split)
+	# Row 5: y = 2200 to 2464 (ForestTrail + SewerExit at left; split)
+	#
+	# Rather than hard-coding a polygon, we emit simple axis-aligned rectangles that
+	# cover every cell of the snow *not* covered by a trail.  The overlap of multiple
+	# rects for the same position is fine — Area2D overlaps are correctly merged.
+
+	# Each row is split at the union of non-snow x-ranges present in that row.
+	#
+	# Row y=64-800   : no trails — full width.
+	# Row y=800-1200 : TrailToClearing x=600-1200 → left x=64-600, right x=1200-3264.
+	# Row y=1200-1600: TrailCurve x=400-700 ∪ TrailToClearing bottom x=600-1200
+	#                  → union x=400-1200 → left x=64-400, right x=1200-3264.
+	# Row y=1600-2200: ForestTrail x=200-500 ∪ TrailCurve bottom x=400-700
+	#                  → union x=200-700 → left x=64-200, right x=700-3264.
+	# Row y=2200-2464: ForestTrail x=200-500 ∪ SewerExit x=120-400
+	#                  → union x=120-500 → left x=64-120, right x=500-3264.
+	var snow_sub_rects: Array[Rect2] = [
+		# Full-width row above all trails.
+		Rect2(SNOW_LEFT,  SNOW_TOP, SNOW_RIGHT - SNOW_LEFT,  800.0 - SNOW_TOP),
+		# Row y=800-1200
+		Rect2(SNOW_LEFT,  800.0,   600.0  - SNOW_LEFT,       400.0),
+		Rect2(1200.0,     800.0,   SNOW_RIGHT - 1200.0,       400.0),
+		# Row y=1200-1600
+		Rect2(SNOW_LEFT, 1200.0,   400.0  - SNOW_LEFT,       400.0),
+		Rect2(1200.0,    1200.0,   SNOW_RIGHT - 1200.0,       400.0),
+		# Row y=1600-2200
+		Rect2(SNOW_LEFT, 1600.0,   200.0  - SNOW_LEFT,       600.0),
+		Rect2(700.0,     1600.0,   SNOW_RIGHT - 700.0,        600.0),
+		# Row y=2200-2464
+		Rect2(SNOW_LEFT, 2200.0,   120.0  - SNOW_LEFT,       SNOW_BOTTOM - 2200.0),
+		Rect2(500.0,     2200.0,   SNOW_RIGHT - 500.0,        SNOW_BOTTOM - 2200.0),
+	]
+
+	var env := get_node_or_null("Environment")
+	var parent_node: Node = env if env else self
+
+	for rect in snow_sub_rects:
+		var area := Area2D.new()
+		area.add_to_group("snow_area")
+		area.collision_layer = SNOW_LAYER
+		area.collision_mask = 0
+		area.monitoring = false
+		area.monitorable = true
+
+		var col_shape := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+		shape.size = rect.size
+		col_shape.shape = shape
+		area.add_child(col_shape)
+
+		# Position Area2D at the rect centre (Godot's RectangleShape2D is centred).
+		area.position = rect.get_center()
+		parent_node.add_child(area)
+
+	_log_to_file("Snow area created with %d sub-rects (Issue #1627)" % snow_sub_rects.size())
+
+
+## Adds a SnowyFeetComponent to a CharacterBody2D and configures any existing
+## BloodyFeetComponent on the same character for faster snow-blood fading.
+func _add_snowy_feet(character: CharacterBody2D, snowy_feet_script: GDScript) -> void:
+	# SnowyFeetComponent: leave snow tracks.
+	var snowy_feet := Node.new()
+	snowy_feet.name = "SnowyFeetComponent"
+	snowy_feet.set_script(snowy_feet_script)
+	character.add_child(snowy_feet)
+
+	# BloodyFeetComponent: enable faster fading on snow (Issue #1627).
+	var bloody_feet: Node = character.get_node_or_null("BloodyFeetComponent")
+	if bloody_feet and bloody_feet.get("on_snow") != null:
+		bloody_feet.on_snow = true
 
 
 func _log_to_file(message: String) -> void:

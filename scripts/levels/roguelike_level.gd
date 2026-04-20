@@ -43,11 +43,13 @@ enum RoomType {
 }
 
 ## Room size options for procedural generation (Issue #1240: larger, more varied rooms)
-## Three sizes: compact, standard, and large.
+## Issue #1619: added extra-large size for wide-open tactical arenas.
+## Four sizes: compact, standard, large, and extra-large.
 const ROOM_SIZE_OPTIONS: Array = [
 	Vector2(1280.0, 720.0),   ## Compact — tight quarters, close combat
 	Vector2(1600.0, 900.0),   ## Standard — moderate space, balanced
 	Vector2(1920.0, 1080.0),  ## Large — open tactical arena, long sightlines
+	Vector2(2240.0, 1260.0),  ## Extra-large — sprawling arena, complex flanking routes
 ]
 
 ## Backwards-compatible aliases (used for fixed-size code paths like the tscn)
@@ -65,19 +67,40 @@ const MAX_ROOMS: int = 10
 ## Minimum BFS distance from start to the exit room (Issue #1451: exit must be in a far room)
 const EXIT_MIN_DISTANCE: int = 3
 
-## Wall / visual colour constants
+## Wall / visual colour constants (fallback defaults)
 const WALL_COLOR:  Color = Color(0.3,  0.3,  0.35, 1.0)
 const FLOOR_COLOR: Color = Color(0.18, 0.18, 0.22, 1.0)
 const BG_COLOR:    Color = Color(0.05, 0.05, 0.07, 1.0)
 
-## Floor tint per room type (subtle)
+## Issue #1619: Per-type floor colours — distinct, clearly readable palette.
+## Replaces the near-identical dark-grey tints with room-specific hues.
 const ROOM_FLOOR_COLORS: Dictionary = {
-	RoomType.LABYRINTH: Color(0.16, 0.18, 0.22, 1.0),
-	RoomType.BUILDING:  Color(0.20, 0.18, 0.18, 1.0),
-	RoomType.BEACH:     Color(0.22, 0.20, 0.14, 1.0),
-	RoomType.DOCKS:     Color(0.14, 0.18, 0.20, 1.0),
-	RoomType.CITY:      Color(0.20, 0.20, 0.20, 1.0),
-	RoomType.SEWER:     Color(0.12, 0.14, 0.12, 1.0),
+	RoomType.LABYRINTH: Color(0.10, 0.12, 0.20, 1.0),  ## Deep blue-slate stone
+	RoomType.BUILDING:  Color(0.22, 0.16, 0.14, 1.0),  ## Warm red-brick dust
+	RoomType.BEACH:     Color(0.52, 0.44, 0.28, 1.0),  ## Sandy golden shore
+	RoomType.DOCKS:     Color(0.12, 0.18, 0.24, 1.0),  ## Cold industrial steel-blue
+	RoomType.CITY:      Color(0.18, 0.18, 0.18, 1.0),  ## Mid-grey asphalt
+	RoomType.SEWER:     Color(0.10, 0.16, 0.12, 1.0),  ## Dark swampy green
+}
+
+## Issue #1619: Per-type wall colours — visually distinct from floors.
+const ROOM_WALL_COLORS: Dictionary = {
+	RoomType.LABYRINTH: Color(0.28, 0.34, 0.55, 1.0),  ## Cool blue-stone
+	RoomType.BUILDING:  Color(0.52, 0.28, 0.22, 1.0),  ## Deep brick red
+	RoomType.BEACH:     Color(0.48, 0.36, 0.16, 1.0),  ## Weathered driftwood tan
+	RoomType.DOCKS:     Color(0.26, 0.36, 0.44, 1.0),  ## Steel container blue
+	RoomType.CITY:      Color(0.38, 0.38, 0.40, 1.0),  ## Urban concrete grey
+	RoomType.SEWER:     Color(0.22, 0.36, 0.22, 1.0),  ## Mossy sewer green
+}
+
+## Issue #1619: Per-type cover/obstacle colours.
+const ROOM_COVER_COLORS: Dictionary = {
+	RoomType.LABYRINTH: Color(0.38, 0.42, 0.60, 1.0),  ## Pale blue-grey stone slab
+	RoomType.BUILDING:  Color(0.58, 0.40, 0.34, 1.0),  ## Worn red-brown brick cover
+	RoomType.BEACH:     Color(0.60, 0.50, 0.32, 1.0),  ## Sandbag / sun-bleached crate
+	RoomType.DOCKS:     Color(0.36, 0.48, 0.56, 1.0),  ## Light steel/container
+	RoomType.CITY:      Color(0.50, 0.48, 0.44, 1.0),  ## Concrete debris / car body
+	RoomType.SEWER:     Color(0.32, 0.46, 0.32, 1.0),  ## Algae-coated pipe
 }
 
 const ROOM_TYPE_NAMES: Dictionary = {
@@ -141,6 +164,9 @@ var _room_w: float = 1280.0
 var _room_h: float = 720.0
 ## Layout variant index chosen at build time (Issue #1240: multiple variants per type)
 var _room_variant: int = 0
+## Issue #1619: active per-type wall and cover colours set in _build_room.
+var _active_wall_color:  Color = WALL_COLOR
+var _active_cover_color: Color = Color(0.42, 0.38, 0.34, 1.0)
 
 var _player: Node2D = null
 
@@ -217,6 +243,7 @@ const DOOR_GAP: float = 120.0
 
 func _ready() -> void:
 	randomize()
+	FileLogger.info("[RoguelikeLevel] _ready entered")
 
 	if GameManager.roguelike_in_treasure_room:
 		# ── Treasure room: no combat, just item pedestal + exit ──────────
@@ -284,6 +311,12 @@ func _ready() -> void:
 
 	print("[RoguelikeLevel] Level %d — Map Room %d — type: %s" % [
 		GameManager.roguelike_current_level,
+		map_room_idx,
+		ROOM_TYPE_NAMES.get(_room_type, "?")])
+	FileLogger.info("[RoguelikeLevel] Normal room setup — active=%s current_room=%d total_rooms=%d map_room=%d type=%s" % [
+		str(GameManager.roguelike_active),
+		_current_room_idx,
+		_total_rooms,
 		map_room_idx,
 		ROOM_TYPE_NAMES.get(_room_type, "?")])
 
@@ -741,8 +774,9 @@ func _build_room_scene() -> void:
 	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
 	_room_w = chosen_size.x
 	_room_h = chosen_size.y
-	_room_variant = randi() % 3  # 0, 1, or 2 — three layout variants per type
+	_room_variant = randi() % 5  # 0..4 — five layout variants per type (Issue #1619)
 	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d" % [_room_w, _room_h, _room_variant])
+	FileLogger.info("[RoguelikeLevel] Building combat room scene size=%.0fx%.0f variant=%d" % [_room_w, _room_h, _room_variant])
 
 	# Background
 	var bg := ColorRect.new()
@@ -769,8 +803,9 @@ func _build_room_scene_no_enemies() -> void:
 	var chosen_size: Vector2 = ROOM_SIZE_OPTIONS[size_idx]
 	_room_w = chosen_size.x
 	_room_h = chosen_size.y
-	_room_variant = randi() % 3
+	_room_variant = randi() % 5  # 0..4 — five layout variants per type (Issue #1619)
 	print("[RoguelikeLevel] Room size: %.0f×%.0f, variant: %d (no enemies)" % [_room_w, _room_h, _room_variant])
+	FileLogger.info("[RoguelikeLevel] Building no-enemy room scene size=%.0fx%.0f variant=%d" % [_room_w, _room_h, _room_variant])
 
 	var bg := ColorRect.new()
 	bg.name  = "WorldBackground"
@@ -789,6 +824,10 @@ func _build_room_scene_no_enemies() -> void:
 
 
 func _build_room(parent: Node) -> void:
+	# Issue #1619: apply per-type wall and cover colours for visual variety.
+	_active_wall_color  = ROOM_WALL_COLORS.get(_room_type, WALL_COLOR)
+	_active_cover_color = ROOM_COVER_COLORS.get(_room_type, Color(0.42, 0.38, 0.34, 1.0))
+
 	var floor_color: Color = ROOM_FLOOR_COLORS.get(_room_type, FLOOR_COLOR)
 	var floor_rect := ColorRect.new()
 	floor_rect.position = Vector2(0, 0)
@@ -998,6 +1037,35 @@ func _build_labyrinth_interior(room_node: Node2D) -> void:
 			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, 20, h * 0.20))
 			_create_wall(room_node, Rect2(w * 0.47, h * 0.40, w * 0.08, 20))
 			_create_wall(room_node, Rect2(w * 0.47, h * 0.60, w * 0.08, 20))
+		3:
+			# Issue #1619: Cross-maze — four quadrants separated by cross walls with
+			# off-centre gaps creating asymmetric chokepoints and ambush pockets.
+			# Horizontal bar (two halves, gap left-of-centre)
+			_create_wall(room_node, Rect2(60, h * 0.50, w * 0.28, 20))
+			_create_wall(room_node, Rect2(w * 0.28 + opening, h * 0.50, w - w * 0.28 - opening - 60, 20))
+			# Vertical bar (two halves, gap above-centre)
+			_create_wall(room_node, Rect2(w * 0.50, 60, 20, h * 0.22))
+			_create_wall(room_node, Rect2(w * 0.50, h * 0.22 + opening, 20, h - h * 0.22 - opening - 60))
+			# Corner alcove walls — force flanking routes
+			_create_wall(room_node, Rect2(80, h * 0.18, 100, 20))
+			_create_wall(room_node, Rect2(w - 180, h * 0.70, 100, 20))
+			# Cover at cross-centre for dangerous push-through
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.46, 32, 32))
+		4:
+			# Issue #1619: Snaking corridor — single long wall snakes left-then-right
+			# creating a winding path with dead-end alcoves for ambush play.
+			# Upper snake segment (left side)
+			_create_wall(room_node, Rect2(60, h * 0.30, w * 0.45, 20))
+			_create_wall(room_node, Rect2(60, h * 0.30, 20, h * 0.30))
+			# Lower snake segment (right side)
+			_create_wall(room_node, Rect2(w * 0.55, h * 0.60, w * 0.45 - 60, 20))
+			_create_wall(room_node, Rect2(w - 80, h * 0.60, 20, -h * 0.30))
+			# Mid connector stub creating T-junction inside the snake
+			_create_wall(room_node, Rect2(w * 0.45, h * 0.30, 20, h * 0.18))
+			_create_wall(room_node, Rect2(w * 0.55, h * 0.52, 20, h * 0.08))
+			# Cover pieces at bend apexes
+			_create_cover(room_node, Rect2(w * 0.18, h * 0.40, 40, 40))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.40, 40, 40))
 
 
 ## ─── Building: walled sub-rooms with doorways ───────────────────────────────
@@ -1046,6 +1114,40 @@ func _build_building_interior(room_node: Node2D) -> void:
 			# Central cover pair
 			_create_cover(room_node, Rect2(w * 0.46, h * 0.40, 24, 80))
 			_create_cover(room_node, Rect2(w * 0.54, h * 0.40, 24, 80))
+		3:
+			# Issue #1619: Office maze — grid of partial partition walls creating
+			# cubicle-like cells with varying entry points; strong CQC ambush potential.
+			# Vertical partitions column A
+			_create_wall(room_node, Rect2(w * 0.28, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.28, h * 0.28 + opening, 20, h * 0.22))
+			# Vertical partitions column B
+			_create_wall(room_node, Rect2(w * 0.56, h * 0.22, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.56, h * 0.22 + h * 0.28 + opening, 20, h * 0.22))
+			# Horizontal partition linking columns (top row)
+			_create_wall(room_node, Rect2(w * 0.28, h * 0.22, w * 0.16, 20))
+			_create_wall(room_node, Rect2(w * 0.56, h * 0.72, w * 0.16, 20))
+			# Cover desks scattered in cell interiors
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.40, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.40, h * 0.55, 60, 24))
+			_create_cover(room_node, Rect2(w * 0.68, h * 0.30, 60, 24))
+		4:
+			# Issue #1619: Siege room — a thick inner fortress wall surrounds a central
+			# stronghold; attackers must breach one of four narrow gateway gaps.
+			# Top fortress wall (two halves — north gateway)
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.24, w * 0.22, 20))
+			_create_wall(room_node, Rect2(w * 0.22 + w * 0.22 + opening, h * 0.24, w * 0.22, 20))
+			# Bottom fortress wall (south gateway)
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.76, w * 0.22, 20))
+			_create_wall(room_node, Rect2(w * 0.22 + w * 0.22 + opening, h * 0.76, w * 0.22, 20))
+			# Left fortress wall (west gateway)
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.24, 20, h * 0.20))
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.24 + h * 0.20 + opening, 20, h * 0.20))
+			# Right fortress wall (east gateway)
+			_create_wall(room_node, Rect2(w * 0.78, h * 0.24, 20, h * 0.20))
+			_create_wall(room_node, Rect2(w * 0.78, h * 0.24 + h * 0.20 + opening, 20, h * 0.20))
+			# Inner stronghold cover
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.44, 32, 32))
+			_create_cover(room_node, Rect2(w * 0.54, h * 0.44, 32, 32))
 
 
 ## ─── Beach: open field with scattered obstacles ─────────────────────────────
@@ -1096,6 +1198,35 @@ func _build_beach_interior(room_node: Node2D) -> void:
 			_create_cover(room_node, Rect2(w * 0.80, h * 0.70, 36, 60))
 			# Central chokepoint wall
 			_create_cover(room_node, Rect2(w * 0.42, h * 0.46, 20, 80))
+		3:
+			# Issue #1619: Bunker assault — two parallel trench lines of sandbags
+			# with a wide-open killing field between them; flanking is rewarded.
+			# Defender trench (right side)
+			_create_cover(room_node, Rect2(w * 0.64, h * 0.16, 160, 20))
+			_create_cover(room_node, Rect2(w * 0.64, h * 0.38, 160, 20))
+			_create_cover(room_node, Rect2(w * 0.64, h * 0.60, 160, 20))
+			_create_cover(room_node, Rect2(w * 0.64, h * 0.80, 160, 20))
+			# Attacker trench (left side)
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.24, 120, 20))
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.50, 120, 20))
+			_create_cover(room_node, Rect2(w * 0.16, h * 0.72, 120, 20))
+			# Lone exposed crate in the killing field
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.46, 44, 44))
+		4:
+			# Issue #1619: Rock garden — five boulders (large rounded covers) arranged
+			# in an asymmetric arc; one open lane, two flanking channels.
+			var boulder_pos: Array = [
+				Vector2(w * 0.20, h * 0.30),
+				Vector2(w * 0.35, h * 0.60),
+				Vector2(w * 0.52, h * 0.26),
+				Vector2(w * 0.66, h * 0.54),
+				Vector2(w * 0.78, h * 0.32),
+			]
+			for bp in boulder_pos:
+				_create_cover(room_node, Rect2(bp.x - 36, bp.y - 36, 72, 72))
+			# Small scattered pebble covers — add depth without blocking lanes
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.70, 28, 28))
+			_create_cover(room_node, Rect2(w * 0.58, h * 0.78, 28, 28))
 
 
 ## ─── Docks: parallel container walls ────────────────────────────────────────
@@ -1134,6 +1265,36 @@ func _build_docks_interior(room_node: Node2D) -> void:
 			# Mid-room gap-cover pair
 			_create_cover(room_node, Rect2(w * 0.44, h * 0.46, 24, 80))
 			_create_cover(room_node, Rect2(w * 0.56, h * 0.46, 24, 80))
+		3:
+			# Issue #1619: Container maze — four large containers form a tight
+			# Z-shaped alley; machine gunners excel here; flanking is difficult.
+			# Upper-left container block
+			_create_wall(room_node, Rect2(80, h * 0.20, w * 0.35, 22))
+			_create_wall(room_node, Rect2(80, h * 0.20, 22, h * 0.22))
+			# Lower-right container block
+			_create_wall(room_node, Rect2(w * 0.65, h * 0.58, w * 0.35 - 80, 22))
+			_create_wall(room_node, Rect2(w - 102, h * 0.58, 22, h * 0.22))
+			# Central cross-stack
+			_create_wall(room_node, Rect2(w * 0.38, h * 0.38, w * 0.24, 22))
+			_create_wall(room_node, Rect2(w * 0.50, h * 0.38, 22, h * 0.24))
+			# Cover gap pieces
+			_create_cover(room_node, Rect2(w * 0.26, h * 0.46, 24, 60))
+			_create_cover(room_node, Rect2(w * 0.70, h * 0.36, 24, 60))
+		4:
+			# Issue #1619: Crane yard — large central open area flanked by two long
+			# parallel container walls; snipers and machine gunners punish open runs.
+			# Left container wall (full height minus gaps at both ends)
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.12, 22, h * 0.32))
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.56, 22, h * 0.32))
+			# Right container wall (full height minus gaps at both ends)
+			_create_wall(room_node, Rect2(w * 0.78, h * 0.12, 22, h * 0.32))
+			_create_wall(room_node, Rect2(w * 0.78, h * 0.56, 22, h * 0.32))
+			# Top cross-bar linking the two walls
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.12, w * 0.56, 22))
+			# Bottom cross-bar
+			_create_wall(room_node, Rect2(w * 0.22, h * 0.88, w * 0.56, 22))
+			# Central crane pillar cover
+			_create_cover(room_node, Rect2(w * 0.47, h * 0.44, 44, 44))
 
 
 ## ─── City: L-shaped cover blocks and barriers ───────────────────────────────
@@ -1177,6 +1338,40 @@ func _build_city_interior(room_node: Node2D) -> void:
 			_create_wall(room_node, Rect2(w * 0.36, h * 0.33 + 120, 20, h * 0.33))
 			_create_wall(room_node, Rect2(w * 0.64, 60, 20, h * 0.33))
 			_create_wall(room_node, Rect2(w * 0.64, h * 0.33 + 120, 20, h * 0.33))
+		3:
+			# Issue #1619: Market ambush — vendor stalls (L-shaped covers) arranged
+			# in two rows creating a central market lane with side pockets.
+			# Left-row stalls
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.20, 20, 60))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.54, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.14, h * 0.54, 20, 60))
+			# Right-row stalls
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.28, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.72 + 60, h * 0.28, 20, 60))
+			_create_cover(room_node, Rect2(w * 0.72, h * 0.62, 80, 20))
+			_create_cover(room_node, Rect2(w * 0.72 + 60, h * 0.62, 20, 60))
+			# Central fountain cover
+			_create_cover(room_node, Rect2(w * 0.44, h * 0.40, 52, 52))
+			# Bollard row across market lane (partial — one gap)
+			for i in range(4):
+				if i == 2:
+					continue  ## Gap for lane access
+				_create_cover(room_node, Rect2(w * 0.36 + i * 36, h * 0.68, 28, 28))
+		4:
+			# Issue #1619: Rooftop — two elevated cover strips (parapets) run along
+			# top and bottom; centre is exposed; HVAC block in the middle.
+			# Top parapet (two sections with gap for flankers)
+			_create_cover(room_node, Rect2(80, h * 0.18, w * 0.32, 24))
+			_create_cover(room_node, Rect2(w * 0.32 + 100, h * 0.18, w * 0.36, 24))
+			# Bottom parapet (two sections with gap)
+			_create_cover(room_node, Rect2(80, h * 0.78, w * 0.36, 24))
+			_create_cover(room_node, Rect2(w * 0.36 + 100, h * 0.78, w * 0.32, 24))
+			# Central HVAC block (large solid cover)
+			_create_cover(room_node, Rect2(w * 0.42, h * 0.38, 100, 80))
+			# Air duct pipe covers flanking HVAC
+			_create_cover(room_node, Rect2(w * 0.28, h * 0.44, 60, 20))
+			_create_cover(room_node, Rect2(w * 0.62, h * 0.44, 60, 20))
 
 
 func _build_sewer_interior(room_node: Node2D) -> void:
@@ -1210,6 +1405,38 @@ func _build_sewer_interior(room_node: Node2D) -> void:
 			_create_cover(room_node, Rect2(w * 0.40, h * 0.25, 40, 40))
 			_create_cover(room_node, Rect2(w * 0.56, h * 0.55, 40, 40))
 			_create_cover(room_node, Rect2(w * 0.48, h * 0.80, 60, 24))
+		3:
+			# Issue #1619: Flood chamber — two large pillars flank a flooded central
+			# channel (represented as an impassable wall strip); side catwalks allow
+			# flanking but expose the player to cross-fire.
+			# Left catwalk wall
+			_create_wall(room_node, Rect2(w * 0.28, 60, 20, h * 0.38))
+			_create_wall(room_node, Rect2(w * 0.28, h * 0.62, 20, h * 0.30))
+			# Right catwalk wall
+			_create_wall(room_node, Rect2(w * 0.72, 60, 20, h * 0.30))
+			_create_wall(room_node, Rect2(w * 0.72, h * 0.62, 20, h * 0.38))
+			# Central channel divider (two halves with small gap)
+			_create_wall(room_node, Rect2(w * 0.44, h * 0.30, 20, h * 0.16))
+			_create_wall(room_node, Rect2(w * 0.44, h * 0.54, 20, h * 0.16))
+			# Pipe covers on catwalks
+			_create_cover(room_node, Rect2(w * 0.12, h * 0.42, 60, 20))
+			_create_cover(room_node, Rect2(w * 0.80, h * 0.42, 60, 20))
+		4:
+			# Issue #1619: Junction chamber — three sewer lines converge; creates a
+			# triangular kill-zone in the centre with three separate approach vectors.
+			# North tunnel walls
+			_create_wall(room_node, Rect2(w * 0.38, 60, 20, h * 0.28))
+			_create_wall(room_node, Rect2(w * 0.62, 60, 20, h * 0.28))
+			# South-west tunnel walls
+			_create_wall(room_node, Rect2(80, h * 0.60, w * 0.20, 20))
+			_create_wall(room_node, Rect2(80, h * 0.80, w * 0.20, 20))
+			# South-east tunnel walls
+			_create_wall(room_node, Rect2(w * 0.70, h * 0.60, w * 0.20, 20))
+			_create_wall(room_node, Rect2(w * 0.70, h * 0.80, w * 0.20, 20))
+			# Junction pillar trio (triangular arrangement in centre)
+			_create_cover(room_node, Rect2(w * 0.46, h * 0.34, 32, 32))
+			_create_cover(room_node, Rect2(w * 0.38, h * 0.54, 32, 32))
+			_create_cover(room_node, Rect2(w * 0.56, h * 0.54, 32, 32))
 
 
 ## ============================================================
@@ -1524,6 +1751,7 @@ func _spawn_player() -> void:
 	player.position = spawn_pos
 	entities_node.add_child(player)
 	print("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
+	FileLogger.info("[RoguelikeLevel] Player spawned at (%.0f, %.0f)" % [player.position.x, player.position.y])
 
 
 ## ============================================================
@@ -1598,7 +1826,7 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -1637,7 +1865,7 @@ func _setup_player_tracking() -> void:
 ## Called after a mid-game weapon swap (e.g. pedestal pickup in Issue #1323) so the
 ## ammo/shot counter UI stays in sync with the new weapon node.
 func _reconnect_weapon_signals() -> void:
-	var weapon: Node = _find_player_weapon()
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 	if weapon == null:
 		return
 	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
@@ -1853,7 +2081,7 @@ func _setup_debug_ui() -> void:
 	# Enemy count (top-right)
 	_enemy_count_label = Label.new()
 	_enemy_count_label.name = "EnemyCountLabel"
-	_enemy_count_label.text = "Враги: 0"
+	_enemy_count_label.text = LevelLocalization.get_enemy_count_text(0)
 	_enemy_count_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_enemy_count_label.offset_left   = -200
 	_enemy_count_label.offset_right  = -10
@@ -1865,7 +2093,7 @@ func _setup_debug_ui() -> void:
 	# Ammo (top-left)
 	_ammo_label = Label.new()
 	_ammo_label.name = "AmmoLabel"
-	_ammo_label.text = "AMMO: -"
+	_ammo_label.text = tr("HUD_AMMO") % [0, 0]
 	_ammo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_ammo_label.offset_left   = 10
 	_ammo_label.offset_top    = 10
@@ -1876,7 +2104,7 @@ func _setup_debug_ui() -> void:
 	# Difficulty (top-left, below ammo)
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left   = 10
 	_difficulty_label.offset_top    = 80
@@ -1887,7 +2115,7 @@ func _setup_debug_ui() -> void:
 	# Magazines
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left   = 10
 	_magazines_label.offset_top    = 115
@@ -1980,7 +2208,7 @@ func _create_wall(parent: Node, rect: Rect2) -> void:
 	body.add_child(shape_node)
 
 	var visual      := ColorRect.new()
-	visual.color    = WALL_COLOR
+	visual.color    = _active_wall_color  # Issue #1619: per-type themed colour
 	visual.size     = rect.size
 	visual.position = -rect.size / 2.0
 	body.add_child(visual)
@@ -2001,7 +2229,7 @@ func _create_cover(parent: Node, rect: Rect2) -> void:
 	body.add_child(shape_node)
 
 	var visual     := ColorRect.new()
-	visual.color   = Color(0.42, 0.38, 0.34, 1.0)
+	visual.color   = _active_cover_color  # Issue #1619: per-type themed colour
 	visual.size    = rect.size
 	visual.position = -rect.size / 2.0
 	body.add_child(visual)
@@ -3255,13 +3483,13 @@ func _show_victory_message() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Враги: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
@@ -3273,7 +3501,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 10:
@@ -3285,49 +3513,20 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(mag_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	var weapon: Node = _find_player_weapon()
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
-	if mag_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % mag_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, mag_counts.size()):
-		var ammo: int = mag_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, mag_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 func _show_saturation_effect() -> void:

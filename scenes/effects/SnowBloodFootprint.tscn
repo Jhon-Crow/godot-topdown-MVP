@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://snow_blood_footprint_1627"]
+
+[ext_resource type="Script" path="res://scripts/effects/snow_blood_footprint.gd" id="1_snow_blood_footprint"]
+
+[node name="SnowBloodFootprint" type="Sprite2D"]
+z_index = 0
+script = ExtResource("1_snow_blood_footprint")

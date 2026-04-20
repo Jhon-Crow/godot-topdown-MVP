@@ -1,0 +1,683 @@
+5:[03:02:01] [INFO] Log file: I:/Загрузки/godot exe/обучение/game_log_20260417_030201.txt
+6:[03:02:01] [INFO] Executable: I:/Загрузки/godot exe/обучение/Godot-Top-Down-Template.exe
+70:[03:02:02] [INFO] [BlackMetalEffectsManager] Black Metal shader loaded (B&W+red, hint_screen_texture approach)
+94:[03:02:02] [INFO] [PersistManager] Restored levels_completed_with_silenced_pistol: 0
+107:[03:02:02] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol", "ak_gl"]
+142:[03:02:02] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+144:[03:02:02] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+169:[03:02:02] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+188:[03:02:02] [INFO] [LabyrinthLevel] Revolver already equipped by C# Player - applying labyrinth ammo config
+189:[03:02:02] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for revolver
+190:[03:02:02] [INFO] [LabyrinthLevel] HUD ammo refreshed (post level ammo config): Revolver 5/55
+203:[03:02:02] [INFO] [ReplayManager] Detected player weapon: Revolver
+222:[03:02:02] [INFO] [UnlockManager] Skipped restore for weapon 'silenced_pistol' (condition not met — treating as corrupt save)
+251:[03:02:03] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+273:[03:02:03] [INFO] [CinemaEffects] Scene changed to: Tutorial
+275:[03:02:03] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+285:[03:02:03] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+286:[03:02:03] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+288:[03:02:03] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+313:[03:02:03] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+332:[03:02:03] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+369:[03:02:14] [INFO] [GameManager] restart_scene() — starting scene reload
+376:[03:02:14] [INFO] [CinemaEffects] Scene changed to: Tutorial
+378:[03:02:14] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+387:[03:02:14] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+414:[03:02:14] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+452:[03:02:16] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+454:[03:02:17] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+455:[03:02:17] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+457:[03:02:18] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+458:[03:02:18] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+459:[03:02:18] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+485:[03:02:23] [INFO] [GameManager] restart_scene() — starting scene reload
+492:[03:02:23] [INFO] [CinemaEffects] Scene changed to: Tutorial
+494:[03:02:23] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+503:[03:02:23] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+504:[03:02:23] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+506:[03:02:23] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 8/8)
+531:[03:02:23] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+550:[03:02:23] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+551:[03:02:23] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+561:[03:02:24] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(255.83333, 360)
+562:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-5,2, distance=46,8px, pos=(299.20975, 342.32455)
+563:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=14,0, distance=66,0px, pos=(316.8507, 334.75342)
+564:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=11,8, distance=63,8px, pos=(315.29074, 336.81183)
+565:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=1,5, distance=53,5px, pos=(306.07193, 341.52853)
+566:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-0,0, distance=52,0px, pos=(305.36057, 344.3032)
+567:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-13,2, distance=38,8px, pos=(292.9611, 348.58356)
+568:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-12,2, distance=39,8px, pos=(294.28485, 349.55435)
+569:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=12,9, distance=64,9px, pos=(318.62683, 343.72137)
+570:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=0,4, distance=52,4px, pos=(306.97873, 348.46725)
+571:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-13,2, distance=38,8px, pos=(293.95566, 352.6771)
+572:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-5,1, distance=46,9px, pos=(302.1715, 352.57755)
+573:[03:02:24] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-3,4, distance=48,6px, pos=(304.01453, 353.9508)
+574:[03:02:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(255.8333, 360), source=PLAYER (Shotgun), range=800, listeners=0
+580:[03:02:24] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+581:[03:02:24] [INFO] [Shotgun.FIX#445] dragStartPos=(885, 245), aimDir=(0,97, -0,22)
+582:[03:02:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+583:[03:02:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+584:[03:02:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+585:[03:02:24] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+586:[03:02:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+587:[03:02:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+588:[03:02:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+590:[03:02:25] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(33,0, -123,5), length=127,9, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+591:[03:02:25] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+592:[03:02:25] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+593:[03:02:25] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+594:[03:02:25] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+595:[03:02:25] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+596:[03:02:25] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-7,3, 213,1), length=213,2, ActionState=Ready
+597:[03:02:25] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+599:[03:02:26] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(519.8295, 255.47905)
+600:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-2,0, distance=50,0px, pos=(569.7061, 251.37581)
+601:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=13,4, distance=65,4px, pos=(585.08746, 251.50899)
+602:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=11,6, distance=63,6px, pos=(583.4206, 253.35497)
+603:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=-6,1, distance=45,9px, pos=(565.6693, 253.60934)
+604:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=11,0, distance=63,0px, pos=(582.8672, 255.7084)
+605:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-8,5, distance=43,5px, pos=(563.3034, 257.243)
+606:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=9,3, distance=61,3px, pos=(580.9963, 260.09183)
+607:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-2,1, distance=49,9px, pos=(569.53644, 259.46683)
+608:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-8,1, distance=43,9px, pos=(563.6066, 258.90546)
+609:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-0,2, distance=51,8px, pos=(571.1078, 262.9581)
+610:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=12,5, distance=64,5px, pos=(583.4737, 265.9288)
+611:[03:02:26] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-7,6, distance=44,4px, pos=(563.60376, 263.05066)
+612:[03:02:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(519.8295, 255.479), source=PLAYER (Shotgun), range=800, listeners=0
+618:[03:02:27] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+619:[03:02:27] [INFO] [Shotgun.FIX#445] dragStartPos=(973, 275), aimDir=(1,00, 0,04)
+620:[03:02:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+621:[03:02:27] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+622:[03:02:27] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+623:[03:02:27] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+624:[03:02:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+626:[03:02:27] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+627:[03:02:27] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+628:[03:02:27] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+629:[03:02:27] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-14,0, -177,0), length=177,5, ActionState=NeedsPumpDown
+630:[03:02:27] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+633:[03:02:28] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+634:[03:02:28] [INFO] [Shotgun.FIX#445] dragStartPos=(958, 64), aimDir=(0,92, -0,40)
+635:[03:02:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+636:[03:02:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+637:[03:02:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+638:[03:02:28] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+639:[03:02:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+640:[03:02:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+641:[03:02:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+642:[03:02:28] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+643:[03:02:28] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(30,7, 430,1), length=431,2, ActionState=Ready
+644:[03:02:28] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+647:[03:02:29] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+648:[03:02:29] [INFO] [Shotgun.FIX#445] dragStartPos=(1019, 288), aimDir=(1,00, 0,06)
+649:[03:02:29] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+650:[03:02:29] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+651:[03:02:29] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+652:[03:02:30] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+653:[03:02:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+654:[03:02:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+655:[03:02:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+657:[03:02:30] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+658:[03:02:30] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-20,0, -150,9), length=152,3, ActionState=Ready
+660:[03:02:30] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+661:[03:02:30] [INFO] [Shotgun.FIX#445] dragStartPos=(980, 64), aimDir=(1,00, 0,06)
+662:[03:02:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+663:[03:02:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+664:[03:02:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+665:[03:02:30] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+666:[03:02:30] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+667:[03:02:30] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+668:[03:02:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+669:[03:02:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+670:[03:02:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+672:[03:02:31] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+673:[03:02:31] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(10,7, 458,2), length=458,3, ActionState=Ready
+674:[03:02:31] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+676:[03:02:32] [INFO] [GameManager] restart_scene() — starting scene reload
+683:[03:02:32] [INFO] [CinemaEffects] Scene changed to: Tutorial
+685:[03:02:32] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+694:[03:02:32] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+695:[03:02:32] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+697:[03:02:32] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 8/8)
+722:[03:02:32] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+741:[03:02:33] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+742:[03:02:33] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+753:[03:02:34] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 15° spread at pos=(421.58554, 309.22522)
+754:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=0,6, distance=52,6px, pos=(473.07925, 298.61188)
+755:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=12,7, distance=64,7px, pos=(484.5941, 294.42786)
+756:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=1,2, distance=53,2px, pos=(473.79153, 299.04196)
+757:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=7,9, distance=59,9px, pos=(480.5147, 298.43317)
+758:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=-1,2, distance=50,8px, pos=(471.79547, 301.43558)
+759:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=6,8, distance=58,8px, pos=(479.92038, 301.7672)
+760:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=-8,1, distance=43,9px, pos=(465.25375, 305.1134)
+761:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=-11,6, distance=40,4px, pos=(461.83582, 306.3796)
+762:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=8,7, distance=60,7px, pos=(482.18454, 306.45367)
+763:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=10,0, distance=62,0px, pos=(483.48587, 306.32422)
+764:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=-14,5, distance=37,5px, pos=(459.04633, 308.54395)
+765:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=10,9, distance=62,9px, pos=(484.52185, 308.10138)
+766:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=-10,9, distance=41,1px, pos=(462.7218, 309.9661)
+767:[03:02:34] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=3,8, distance=55,8px, pos=(477.3159, 311.4083)
+768:[03:02:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(421.5855, 309.2252), source=PLAYER (Shotgun), range=800, listeners=0
+773:[03:02:34] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+774:[03:02:34] [INFO] [Shotgun.FIX#445] dragStartPos=(1186, 241), aimDir=(1,00, -0,06)
+775:[03:02:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+776:[03:02:34] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+777:[03:02:34] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+778:[03:02:34] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+779:[03:02:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+780:[03:02:34] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+781:[03:02:34] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+783:[03:02:35] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+784:[03:02:35] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(74,2, -94,2), length=119,9, ActionState=NeedsPumpDown
+785:[03:02:35] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+787:[03:02:35] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+788:[03:02:35] [INFO] [Shotgun.FIX#445] dragStartPos=(1271, 64), aimDir=(0,95, -0,30)
+789:[03:02:35] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+790:[03:02:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+791:[03:02:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+792:[03:02:35] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+793:[03:02:35] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+794:[03:02:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+795:[03:02:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+796:[03:02:35] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+797:[03:02:35] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(15,4, 276,5), length=276,9, ActionState=Ready
+798:[03:02:35] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+801:[03:02:36] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+802:[03:02:36] [INFO] [Shotgun.FIX#445] dragStartPos=(1338, 375), aimDir=(0,99, 0,12)
+803:[03:02:36] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+804:[03:02:36] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+805:[03:02:36] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+806:[03:02:36] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=7/8
+807:[03:02:36] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+808:[03:02:36] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+809:[03:02:36] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+810:[03:02:37] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+811:[03:02:37] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(2,7, -267,2), length=267,2, ActionState=Ready
+814:[03:02:37] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+815:[03:02:37] [INFO] [Shotgun.FIX#445] dragStartPos=(1339, 123), aimDir=(0,99, 0,12)
+816:[03:02:37] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+817:[03:02:37] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+818:[03:02:37] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+819:[03:02:37] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+820:[03:02:37] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 7 shells
+821:[03:02:37] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+822:[03:02:37] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+823:[03:02:37] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+824:[03:02:37] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+825:[03:02:37] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+826:[03:02:37] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(4,7, 258,5), length=258,5, ActionState=Ready
+827:[03:02:37] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+828:[03:02:37] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(575.4954, 280.77002)
+829:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-6,4, distance=45,6px, pos=(621.1329, 281.65417)
+830:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-14,5, distance=37,5px, pos=(613.0094, 282.06488)
+831:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-11,5, distance=40,5px, pos=(615.9211, 282.99838)
+832:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=6,1, distance=58,1px, pos=(633.37244, 286.37466)
+833:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=13,8, distance=65,8px, pos=(640.8877, 287.89117)
+834:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=0,4, distance=52,4px, pos=(627.24854, 288.7465)
+835:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=7,4, distance=59,4px, pos=(633.79553, 292.13092)
+836:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=12,3, distance=64,3px, pos=(638.74243, 292.18674)
+837:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=5,4, distance=57,4px, pos=(631.58936, 292.77344)
+838:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=9,0, distance=61,0px, pos=(634.365, 296.7365)
+839:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-10,4, distance=41,6px, pos=(615.3181, 292.83762)
+840:[03:02:37] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=5,3, distance=57,3px, pos=(630.02826, 298.50772)
+841:[03:02:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(575.4954, 280.77), source=PLAYER (Shotgun), range=800, listeners=0
+848:[03:02:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+849:[03:02:38] [INFO] [Shotgun.FIX#445] dragStartPos=(1344, 407), aimDir=(0,99, 0,16)
+850:[03:02:38] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+851:[03:02:38] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+852:[03:02:38] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+853:[03:02:38] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+854:[03:02:38] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+855:[03:02:38] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+856:[03:02:38] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+857:[03:02:38] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+858:[03:02:38] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(0,0, -286,5), length=286,5, ActionState=NeedsPumpDown
+859:[03:02:38] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+863:[03:02:40] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+864:[03:02:40] [INFO] [Shotgun.FIX#445] dragStartPos=(1344, 100), aimDir=(0,97, -0,23)
+865:[03:02:40] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+866:[03:02:40] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+867:[03:02:40] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+868:[03:02:40] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+869:[03:02:40] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+870:[03:02:40] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+871:[03:02:40] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+872:[03:02:40] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+873:[03:02:40] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-8,7, 354,0), length=354,1, ActionState=Ready
+874:[03:02:40] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+878:[03:02:41] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+879:[03:02:41] [INFO] [Shotgun.FIX#445] dragStartPos=(1344, 429), aimDir=(0,98, 0,19)
+880:[03:02:41] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+881:[03:02:41] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+882:[03:02:41] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+883:[03:02:41] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+884:[03:02:41] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+885:[03:02:41] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+886:[03:02:41] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+887:[03:02:41] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+888:[03:02:41] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(0,0, -313,2), length=313,2, ActionState=Ready
+892:[03:02:43] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+893:[03:02:43] [INFO] [Shotgun.FIX#445] dragStartPos=(1335, 65), aimDir=(0,98, 0,19)
+894:[03:02:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+895:[03:02:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+896:[03:02:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+897:[03:02:43] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+898:[03:02:43] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+899:[03:02:43] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+900:[03:02:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+901:[03:02:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+902:[03:02:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+903:[03:02:43] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+904:[03:02:43] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-0,7, 260,5), length=260,5, ActionState=Ready
+905:[03:02:43] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+909:[03:02:45] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+910:[03:02:45] [INFO] [Shotgun.FIX#445] dragStartPos=(1344, 244), aimDir=(1,00, -0,05)
+911:[03:02:45] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+912:[03:02:45] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+913:[03:02:45] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+914:[03:02:45] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+915:[03:02:45] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+916:[03:02:45] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+917:[03:02:45] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+918:[03:02:45] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+919:[03:02:45] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-6,7, -126,2), length=126,4, ActionState=Ready
+921:[03:02:46] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+922:[03:02:46] [INFO] [Shotgun.FIX#445] dragStartPos=(1336, 64), aimDir=(1,00, -0,05)
+923:[03:02:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+925:[03:02:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+926:[03:02:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+927:[03:02:46] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+928:[03:02:46] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+929:[03:02:46] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+930:[03:02:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+931:[03:02:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+932:[03:02:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+933:[03:02:46] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-38,1, 329,9), length=332,1, isDragUp=False, isDragDown=True, ActionState=Ready
+934:[03:02:46] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+935:[03:02:46] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-37,4, 354,0), length=356,0, ActionState=Ready
+936:[03:02:46] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+938:[03:02:46] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+939:[03:02:46] [INFO] [Shotgun.FIX#445] dragStartPos=(1297, 449), aimDir=(0,97, 0,23)
+940:[03:02:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+941:[03:02:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+942:[03:02:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+943:[03:02:46] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+944:[03:02:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+945:[03:02:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+946:[03:02:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+947:[03:02:47] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+948:[03:02:47] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(32,1, -321,9), length=323,5, ActionState=Ready
+951:[03:02:47] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+952:[03:02:47] [INFO] [Shotgun.FIX#445] dragStartPos=(1323, 79), aimDir=(0,97, 0,23)
+953:[03:02:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+954:[03:02:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+955:[03:02:47] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+956:[03:02:47] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+957:[03:02:47] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+958:[03:02:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+959:[03:02:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+960:[03:02:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+961:[03:02:47] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,1, 365,3), length=368,2, isDragUp=False, isDragDown=True, ActionState=Ready
+962:[03:02:47] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+963:[03:02:47] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-46,1, 382,0), length=384,8, ActionState=Ready
+964:[03:02:47] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+966:[03:02:47] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+967:[03:02:47] [INFO] [Shotgun.FIX#445] dragStartPos=(1277, 509), aimDir=(0,95, 0,31)
+968:[03:02:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+969:[03:02:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+970:[03:02:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+971:[03:02:47] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+972:[03:02:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+973:[03:02:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+974:[03:02:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+975:[03:02:47] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+976:[03:02:47] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(59,5, -311,2), length=316,9, ActionState=Ready
+979:[03:02:48] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+980:[03:02:48] [INFO] [Shotgun.FIX#445] dragStartPos=(1326, 162), aimDir=(0,95, 0,31)
+981:[03:02:48] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+982:[03:02:48] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+983:[03:02:48] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+984:[03:02:48] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+985:[03:02:48] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+986:[03:02:48] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+987:[03:02:48] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+988:[03:02:48] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-46,1, 390,1), length=392,8, isDragUp=False, isDragDown=True, ActionState=Ready
+989:[03:02:48] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+990:[03:02:48] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-46,1, 390,1), length=392,8, ActionState=Ready
+991:[03:02:48] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+1007:[03:02:50] [INFO] [GameManager] restart_scene() — starting scene reload
+1014:[03:02:50] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1016:[03:02:50] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1025:[03:02:50] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1053:[03:02:51] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1102:[03:02:52] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1103:[03:02:52] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1112:[03:02:53] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1122:[03:02:54] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1124:[03:02:54] [INFO] [Player.Reload.Anim] LeftArm: pos=(-5.999757, 2.0000486), target=(-6, 2), base=(14, 6)
+1125:[03:02:54] [INFO] [Player.Reload.Anim] RightArm: pos=(0.9999994, 6), target=(1, 6), base=(1, 6)
+1126:[03:02:54] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1127:[03:02:54] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1128:[03:02:54] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1129:[03:02:55] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1142:[03:02:57] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+1145:[03:02:57] [INFO] [GameManager] Weapon selected: silenced_pistol
+1146:[03:02:57] [INFO] [GameManager] restart_scene() — starting scene reload
+1153:[03:02:57] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1155:[03:02:57] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1164:[03:02:57] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1165:[03:02:57] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+1167:[03:02:57] [INFO] [Player.Weapon] Equipped SilencedPistol (ammo: 13/13)
+1192:[03:02:57] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1211:[03:02:57] [INFO] [Player] Detected weapon: Silenced Pistol (Pistol pose)
+1231:[03:03:03] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1232:[03:03:03] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.843584, 2.0312831), target=(-4, 2), base=(16, 6)
+1233:[03:03:03] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+1234:[03:03:04] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1236:[03:03:04] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1237:[03:03:04] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1238:[03:03:04] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1294:[03:03:08] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+1296:[03:03:08] [INFO] [Player.Weapon] Equipped SilencedPistol (ammo: 13/13)
+1321:[03:03:08] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1338:[03:03:08] [INFO] [LabyrinthLevel] Setting up weapon: silenced_pistol
+1339:[03:03:08] [INFO] [LabyrinthLevel] SilencedPistol already equipped by C# Player - applying labyrinth ammo config
+1340:[03:03:08] [INFO] [LabyrinthLevel] HUD ammo refreshed (silenced pistol config): SilencedPistol 5/0
+1341:[03:03:08] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for silenced_pistol
+1342:[03:03:08] [INFO] [LabyrinthLevel] HUD ammo refreshed (post level ammo config): SilencedPistol 5/0
+1348:[03:03:08] [INFO] [LabyrinthLevel] HUD ammo refreshed (silenced pistol config): SilencedPistol 5/0
+1356:[03:03:09] [INFO] [ReplayManager] Detected player weapon: Silenced Pistol
+1361:[03:03:09] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+1398:[03:03:09] [INFO] [Player] Detected weapon: Silenced Pistol (Pistol pose)
+1452:[03:03:17] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1454:[03:03:17] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1463:[03:03:17] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1464:[03:03:17] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+1466:[03:03:17] [INFO] [Player.Weapon] Equipped SilencedPistol (ammo: 13/13)
+1491:[03:03:17] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1510:[03:03:18] [INFO] [Player] Detected weapon: Silenced Pistol (Pistol pose)
+1525:[03:03:20] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1526:[03:03:20] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1527:[03:03:20] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1528:[03:03:20] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1529:[03:03:20] [INFO] [Player.Reload.Anim] LeftArm: pos=(9.108009, 5.9288387), target=(16, 6), base=(16, 6)
+1530:[03:03:20] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 7.089364), target=(4, 6), base=(4, 6)
+1531:[03:03:21] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1542:[03:03:23] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+1579:[03:03:55] [INFO] [GameManager] restart_scene() — starting scene reload
+1586:[03:03:55] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1588:[03:03:55] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1597:[03:03:55] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1625:[03:03:55] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1669:[03:04:02] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1670:[03:04:02] [INFO] [Player.Reload.Anim] LeftArm: pos=(14.805551, 3.361111), target=(8, 2), base=(28, 6)
+1671:[03:04:02] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.9999957, 6), target=(-3, 6), base=(-3, 6)
+1673:[03:04:03] [INFO] [Player.Reload.Anim] LeftArm: pos=(8.000001, 2.0000002), target=(8, 2), base=(28, 6)
+1674:[03:04:03] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.9999998, 6), target=(-3, 6), base=(-3, 6)
+1676:[03:04:03] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1677:[03:04:03] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1678:[03:04:03] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1679:[03:04:03] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1685:[03:04:08] [INFO] [GameManager] restart_scene() — starting scene reload
+1692:[03:04:08] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1694:[03:04:08] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1703:[03:04:08] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1731:[03:04:08] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1775:[03:04:16] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+1776:[03:04:16] [INFO] [Player.Reload.Anim] LeftArm: pos=(19.667778, 4.333333), target=(8, 2), base=(28, 6)
+1777:[03:04:16] [INFO] [Player.Reload.Anim] RightArm: pos=(-3.0011113, 6), target=(-3, 6), base=(-3, 6)
+1779:[03:04:17] [INFO] [Player.Reload.Anim] LeftArm: pos=(8.000001, 2.0000002), target=(8, 2), base=(28, 6)
+1780:[03:04:17] [INFO] [Player.Reload.Anim] RightArm: pos=(-3.0000002, 6), target=(-3, 6), base=(-3, 6)
+1782:[03:04:18] [INFO] [Player.Reload.Anim] LeftArm: pos=(8.000001, 2.0000002), target=(8, 2), base=(28, 6)
+1783:[03:04:18] [INFO] [Player.Reload.Anim] RightArm: pos=(-3.0000002, 6), target=(-3, 6), base=(-3, 6)
+1784:[03:04:18] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+1786:[03:04:18] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+1787:[03:04:18] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+1792:[03:04:18] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+1810:[03:04:22] [INFO] [GameManager] restart_scene() — starting scene reload
+1817:[03:04:22] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1819:[03:04:22] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1828:[03:04:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1856:[03:04:22] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1908:[03:04:25] [INFO] [GameManager] restart_scene() — starting scene reload
+1915:[03:04:25] [INFO] [CinemaEffects] Scene changed to: Tutorial
+1917:[03:04:25] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+1926:[03:04:25] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+1927:[03:04:25] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+1929:[03:04:25] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 8/8)
+1954:[03:04:25] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+1973:[03:04:26] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+1974:[03:04:26] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+1983:[03:04:26] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(150, 360)
+1984:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=-12,9, distance=39,1px, pos=(189.13423, 359.12234)
+1985:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-5,1, distance=46,9px, pos=(196.89047, 359.7365)
+1986:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=12,4, distance=64,4px, pos=(214.39522, 361.18582)
+1987:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=-12,8, distance=39,2px, pos=(189.23157, 360.93524)
+1988:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=-7,3, distance=44,7px, pos=(194.63898, 363.04858)
+1989:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=8,0, distance=60,0px, pos=(209.80692, 364.958)
+1990:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-2,6, distance=49,4px, pos=(198.8562, 367.25635)
+1991:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=-4,8, distance=47,2px, pos=(196.67331, 367.12085)
+1992:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=-1,8, distance=50,2px, pos=(199.11865, 370.48297)
+1993:[03:04:26] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=-5,7, distance=46,3px, pos=(195.18828, 370.2147)
+1994:[03:04:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=800, listeners=0
+2000:[03:04:26] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+2001:[03:04:26] [INFO] [Shotgun.FIX#445] dragStartPos=(871, 423), aimDir=(1,00, 0,09)
+2002:[03:04:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2003:[03:04:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2004:[03:04:26] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+2005:[03:04:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2006:[03:04:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2007:[03:04:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2008:[03:04:26] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(49,1, -261,7), length=266,2, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+2009:[03:04:27] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+2010:[03:04:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2011:[03:04:27] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2012:[03:04:27] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2013:[03:04:27] [INFO] [Shotgun.FIX#243] RMB released after 4 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2014:[03:04:27] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(5,9, 171,0), length=171,2, ActionState=Ready
+2015:[03:04:27] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2017:[03:04:28] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(490.40402, 262.39423)
+2018:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-8,3, distance=43,7px, pos=(533.61285, 268.85886)
+2019:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-3,0, distance=49,0px, pos=(538.881, 269.2435)
+2020:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=14,3, distance=66,3px, pos=(555.3894, 275.63348)
+2021:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=14,6, distance=66,6px, pos=(555.77405, 275.1499)
+2022:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=2,6, distance=54,6px, pos=(543.613, 274.83423)
+2023:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-14,8, distance=37,2px, pos=(526.48834, 271.28302)
+2024:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-9,7, distance=42,3px, pos=(531.3481, 273.07117)
+2025:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=14,0, distance=66,0px, pos=(553.3046, 282.50058)
+2026:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=14,1, distance=66,1px, pos=(552.85706, 283.95898)
+2027:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=10,3, distance=62,3px, pos=(548.4936, 284.95056)
+2028:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-10,6, distance=41,4px, pos=(528.67035, 278.2126)
+2029:[03:04:28] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=11,7, distance=63,7px, pos=(549.3179, 286.7277)
+2030:[03:04:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(490.404, 262.3942), source=PLAYER (Shotgun), range=800, listeners=0
+2037:[03:04:28] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+2038:[03:04:28] [INFO] [Shotgun.FIX#445] dragStartPos=(996, 405), aimDir=(0,94, 0,35)
+2039:[03:04:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2040:[03:04:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2041:[03:04:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2042:[03:04:28] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+2043:[03:04:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2044:[03:04:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2045:[03:04:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2046:[03:04:29] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2047:[03:04:29] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(4,1, -281,1), length=281,1, ActionState=NeedsPumpDown
+2048:[03:04:29] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+2054:[03:04:30] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+2055:[03:04:30] [INFO] [Shotgun.FIX#445] dragStartPos=(1027, 130), aimDir=(0,97, -0,24)
+2056:[03:04:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2057:[03:04:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2058:[03:04:30] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+2059:[03:04:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2060:[03:04:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2061:[03:04:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2062:[03:04:30] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2063:[03:04:30] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-28,1, 311,2), length=312,5, ActionState=Ready
+2064:[03:04:30] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2069:[03:04:32] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+2070:[03:04:32] [INFO] [Shotgun.FIX#445] dragStartPos=(1055, 467), aimDir=(0,93, 0,38)
+2071:[03:04:32] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2072:[03:04:32] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2073:[03:04:32] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2074:[03:04:32] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+2075:[03:04:32] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2076:[03:04:32] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2077:[03:04:32] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2078:[03:04:33] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2079:[03:04:33] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(13,4, -325,9), length=326,2, ActionState=Ready
+2083:[03:04:34] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+2084:[03:04:34] [INFO] [Shotgun.FIX#445] dragStartPos=(1071, 65), aimDir=(0,93, 0,38)
+2085:[03:04:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2086:[03:04:34] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2087:[03:04:34] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2088:[03:04:34] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+2089:[03:04:34] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+2090:[03:04:34] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+2091:[03:04:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2092:[03:04:34] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2093:[03:04:34] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2094:[03:04:34] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2095:[03:04:34] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(0,7, 462,2), length=462,2, ActionState=Ready
+2096:[03:04:34] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2103:[03:04:41] [INFO] [GameManager] restart_scene() — starting scene reload
+2110:[03:04:41] [INFO] [CinemaEffects] Scene changed to: Tutorial
+2112:[03:04:41] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+2121:[03:04:41] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+2122:[03:04:41] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+2124:[03:04:41] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 8/8)
+2149:[03:04:41] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+2168:[03:04:41] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+2169:[03:04:41] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+2179:[03:04:41] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(261.33334, 360)
+2180:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=-0,5, distance=51,5px, pos=(312.7546, 357.87665)
+2181:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=-8,6, distance=43,4px, pos=(304.7103, 358.7159)
+2182:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=-1,3, distance=50,7px, pos=(312.02887, 360.65424)
+2183:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=-1,7, distance=50,3px, pos=(311.59055, 362.6545)
+2184:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-3,2, distance=48,8px, pos=(310.10696, 362.44855)
+2185:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=3,4, distance=55,4px, pos=(316.38214, 365.97125)
+2186:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=-9,9, distance=42,1px, pos=(303.21622, 364.21722)
+2187:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=-7,5, distance=44,5px, pos=(305.50687, 365.73575)
+2188:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=-14,8, distance=37,2px, pos=(298.08398, 365.9703)
+2189:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=13,8, distance=65,8px, pos=(325.87546, 372.5746)
+2190:[03:04:41] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=9,2, distance=61,2px, pos=(321.1561, 372.71207)
+2191:[03:04:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(261.3333, 360), source=PLAYER (Shotgun), range=800, listeners=0
+2197:[03:04:42] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+2198:[03:04:42] [INFO] [Shotgun.FIX#445] dragStartPos=(1138, 460), aimDir=(0,97, 0,24)
+2199:[03:04:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2200:[03:04:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2201:[03:04:42] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+2202:[03:04:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2203:[03:04:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2204:[03:04:42] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2205:[03:04:42] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2206:[03:04:42] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(63,0, -339,9), length=345,7, ActionState=NeedsPumpDown
+2207:[03:04:42] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+2209:[03:04:42] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+2210:[03:04:42] [INFO] [Shotgun.FIX#445] dragStartPos=(1205, 178), aimDir=(0,99, -0,11)
+2211:[03:04:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2212:[03:04:42] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+2213:[03:04:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2214:[03:04:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2215:[03:04:42] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2216:[03:04:42] [INFO] [Shotgun.FIX#243] RMB released after 4 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2217:[03:04:42] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(11,4, 223,1), length=223,4, ActionState=Ready
+2218:[03:04:42] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2220:[03:04:43] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(514.7035, 254.47702)
+2221:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=-10,5, distance=41,5px, pos=(555.30084, 263.02557)
+2222:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=1,4, distance=53,4px, pos=(566.8011, 266.31577)
+2223:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=9,0, distance=61,0px, pos=(574.24817, 267.67596)
+2224:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=2,6, distance=54,6px, pos=(567.20404, 269.5939)
+2225:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-7,4, distance=44,6px, pos=(557.38654, 267.26825)
+2226:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=-5,7, distance=46,3px, pos=(558.35657, 269.83194)
+2227:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=9,7, distance=61,7px, pos=(573.14923, 274.23367)
+2228:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=9,9, distance=61,9px, pos=(572.6673, 276.1531)
+2229:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=12,8, distance=64,8px, pos=(574.52576, 279.45425)
+2230:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=-5,5, distance=46,5px, pos=(557.41376, 272.8488)
+2231:[03:04:43] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-3,9, distance=48,1px, pos=(558.3558, 274.7762)
+2232:[03:04:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(514.7035, 254.477), source=PLAYER (Shotgun), range=800, listeners=0
+2239:[03:04:44] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+2240:[03:04:44] [INFO] [Shotgun.FIX#445] dragStartPos=(1226, 478), aimDir=(0,95, 0,30)
+2241:[03:04:44] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2242:[03:04:44] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2243:[03:04:44] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2244:[03:04:44] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+2245:[03:04:44] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2246:[03:04:44] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2247:[03:04:44] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2248:[03:04:44] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2249:[03:04:44] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(24,7, -375,4), length=376,2, ActionState=NeedsPumpDown
+2250:[03:04:44] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+2252:[03:04:45] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+2253:[03:04:45] [INFO] [Shotgun.FIX#445] dragStartPos=(1242, 64), aimDir=(0,97, -0,25)
+2254:[03:04:45] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2255:[03:04:45] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2256:[03:04:45] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2257:[03:04:45] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+2258:[03:04:45] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2259:[03:04:45] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2260:[03:04:45] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2261:[03:04:45] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2262:[03:04:45] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-17,4, 492,2), length=492,6, ActionState=Ready
+2263:[03:04:45] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2267:[03:04:46] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+2268:[03:04:46] [INFO] [Shotgun.FIX#445] dragStartPos=(1228, 601), aimDir=(0,90, 0,44)
+2269:[03:04:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2270:[03:04:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2271:[03:04:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2272:[03:04:46] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+2274:[03:04:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2275:[03:04:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2276:[03:04:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2277:[03:04:46] [INFO] [Shotgun.FIX#243] RMB released after 3 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2278:[03:04:46] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(37,4, -267,8), length=270,4, ActionState=Ready
+2281:[03:04:47] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+2282:[03:04:47] [INFO] [Shotgun.FIX#445] dragStartPos=(1267, 211), aimDir=(0,90, 0,44)
+2283:[03:04:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2284:[03:04:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2285:[03:04:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2286:[03:04:47] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+2287:[03:04:47] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+2288:[03:04:47] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+2289:[03:04:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+2290:[03:04:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+2291:[03:04:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+2292:[03:04:47] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+2293:[03:04:47] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-23,4, 394,7), length=395,4, ActionState=Ready
+2294:[03:04:47] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+2315:[03:04:53] [INFO] [GameManager] restart_scene() — starting scene reload
+2322:[03:04:53] [INFO] [CinemaEffects] Scene changed to: Tutorial
+2324:[03:04:53] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+2333:[03:04:53] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+2334:[03:04:53] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+2336:[03:04:53] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+2361:[03:04:53] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+2380:[03:04:53] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+2392:[03:04:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(217.3333, 360), source=PLAYER (Revolver), range=681, listeners=0
+2398:[03:04:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(575.6152, 282.2182), source=PLAYER (Revolver), range=681, listeners=0
+2401:[03:04:56] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+2402:[03:04:56] [INFO] [Player] Revolver: cylinder opened (R key)
+2406:[03:04:57] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2407:[03:04:57] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2410:[03:04:58] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9999998, 2.0000002), target=(-4, 2), base=(16, 6)
+2411:[03:04:58] [INFO] [Player.Reload.Anim] RightArm: pos=(4.0000005, 6), target=(4, 6), base=(4, 6)
+2413:[03:04:58] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+2416:[03:04:58] [INFO] [Player] Revolver: cylinder closed (R key), reload complete
+2417:[03:04:58] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+2421:[03:05:01] [INFO] [GameManager] restart_scene() — starting scene reload
+2428:[03:05:01] [INFO] [CinemaEffects] Scene changed to: Tutorial
+2430:[03:05:01] [INFO] [BlackMetalEffectsManager] Scene changed to: Tutorial
+2439:[03:05:01] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+2440:[03:05:01] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+2442:[03:05:01] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+2467:[03:05:01] [INFO] [Player.AutoReload] Auto-reload not selected in ActiveItemManager
+2486:[03:05:01] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+2498:[03:05:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(206.3333, 360), source=PLAYER (Revolver), range=681, listeners=0
+2503:[03:05:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(418.1694, 340.2906), source=PLAYER (Revolver), range=681, listeners=0
+2506:[03:05:03] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+2507:[03:05:03] [INFO] [Player] Revolver: cylinder opened (R key)
+2508:[03:05:04] [INFO] [Player.Reload.Anim] LeftArm: pos=(-3.9936802, 2.0012326), target=(-4, 2), base=(16, 6)
+2509:[03:05:04] [INFO] [Player.Reload.Anim] RightArm: pos=(3.999843, 6), target=(4, 6), base=(4, 6)
+2511:[03:05:05] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+2514:[03:05:05] [INFO] [Player] Revolver: cylinder closed (R key), reload complete
+2515:[03:05:05] [INFO] [Player.Reload.Anim] LeftArm: pos=(13.330322, 5.4660645), target=(16, 6), base=(16, 6)
+2516:[03:05:05] [INFO] [Player.Reload.Anim] RightArm: pos=(3.9999998, 6), target=(4, 6), base=(4, 6)
+2517:[03:05:05] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
