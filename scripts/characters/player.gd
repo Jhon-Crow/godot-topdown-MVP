@@ -1930,6 +1930,10 @@ func _throw_simple_grenade() -> void:
 	# Unfreeze and throw the grenade
 	_active_grenade.freeze = false
 
+	# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
+	if _active_grenade.has_method("set_aim_point"):
+		_active_grenade.set_aim_point(target_pos)
+
 	# Use the simple throw method for direct speed control
 	# This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
 	if _active_grenade.has_method("throw_grenade_simple"):
@@ -2090,6 +2094,10 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	# Raycast from player to intended spawn position to check for walls
 	var spawn_position := _get_safe_grenade_spawn_position(global_position, intended_spawn_position, throw_direction)
+
+	# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
+	if _active_grenade.has_method("set_aim_point"):
+		_active_grenade.set_aim_point(drag_end)
 
 	# Use direction-based throwing (FIX for issue #313)
 	# Priority: throw_grenade_with_direction > throw_grenade_velocity_based > throw_grenade > direct physics

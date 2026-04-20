@@ -661,3 +661,62 @@ func test_casing_kick_does_not_reach_listener_beyond_range() -> void:
 		"Casing kick should not reach listener at 1000 pixels (beyond 900 range)")
 
 	listener.queue_free()
+
+
+# =====================================================
+# Issue #1897: Silenced pistol reload range (100px)
+# =====================================================
+
+func test_silenced_pistol_reload_uses_custom_100px_range() -> void:
+	# Listener at 150px should NOT hear silenced pistol reload (custom 100px range)
+	var far_listener := MockListener.new()
+	far_listener.global_position = Vector2(150, 0)
+	add_child(far_listener)
+
+	_sound_propagation.register_listener(far_listener)
+
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null, 100.0)
+
+	assert_eq(far_listener.get_sound_count(), 0,
+		"Silenced pistol reload (100px) should not reach listener at 150px")
+
+	far_listener.queue_free()
+
+
+func test_silenced_pistol_reload_heard_within_100px() -> void:
+	# Listener at 50px SHOULD hear silenced pistol reload (custom 100px range)
+	var close_listener := MockListener.new()
+	close_listener.global_position = Vector2(50, 0)
+	add_child(close_listener)
+
+	_sound_propagation.register_listener(close_listener)
+
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null, 100.0)
+
+	assert_eq(close_listener.get_sound_count(), 1,
+		"Silenced pistol reload (100px) should reach listener at 50px")
+
+	close_listener.queue_free()
+
+
+func test_silenced_pistol_reload_not_heard_at_default_reload_range() -> void:
+	# Listener at 700px would hear a normal 900px reload, but not the 100px silenced one
+	var listener := MockListener.new()
+	listener.global_position = Vector2(700, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	# Default reload (900px) - listener hears it
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null)
+	assert_eq(listener.get_sound_count(), 1,
+		"Default reload (900px) should reach listener at 700px")
+
+	listener.clear_sounds()
+
+	# Silenced pistol reload (100px) - listener does NOT hear it
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null, 100.0)
+	assert_eq(listener.get_sound_count(), 0,
+		"Silenced pistol reload (100px) should not reach listener at 700px")
+
+	listener.queue_free()

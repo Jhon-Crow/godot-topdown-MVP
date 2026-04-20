@@ -342,8 +342,9 @@ func _check_blood_puddle_by_distance() -> void:
 				return
 
 
-## Extracts the color from a blood puddle node.
-## Returns the visual color of the puddle, or default red if not available.
+## Extracts the blood color from a puddle node for use as a tint on snow prints.
+## BloodDecal.tscn stores the actual blood color in its GradientTexture2D while
+## keeping modulate white — so we read the gradient for Sprite2D nodes.
 func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node == null:
 		return DEFAULT_BLOOD_COLOR
@@ -360,24 +361,17 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 					texture_color, texture_color.r, texture_color.g, texture_color.b])
 			return texture_color
 
-	# If it's a tinted CanvasItem, get its modulate color. BloodDecal.tscn uses a
-	# white modulate with a red GradientTexture2D, so untinted white is not a blood
-	# color and must fall through to the default red fallback.
 	if puddle_node is CanvasItem:
 		var color := (puddle_node as CanvasItem).modulate
-		if not _is_untinted_modulate(color):
-			if debug_logging:
-				_log_info("Puddle modulate color: %s (R=%.2f, G=%.2f, B=%.2f)" % [
-					color, color.r, color.g, color.b])
-			return color
 		if debug_logging:
 			_log_info("Puddle color: %s (R=%.2f, G=%.2f, B=%.2f)" % [color, color.r, color.g, color.b])
+		return color
 
 	return DEFAULT_BLOOD_COLOR
 
 
-## Reads the strongest visible color from a Sprite2D GradientTexture2D.
-## BloodDecal.tscn keeps modulate white and stores the red puddle color in this texture.
+## Reads the dominant color from a Sprite2D's GradientTexture2D.
+## BloodDecal stores the actual red blood color in the gradient; modulate stays white.
 func _get_sprite_gradient_blood_color(sprite: Sprite2D) -> Color:
 	var gradient_texture := sprite.texture as GradientTexture2D
 	if gradient_texture == null or gradient_texture.gradient == null:
@@ -392,21 +386,11 @@ func _get_sprite_gradient_blood_color(sprite: Sprite2D) -> Color:
 		if color.a > strongest_color.a:
 			strongest_color = color
 
-	# Preserve the sprite's alpha and RGB tint while keeping the texture's red hue.
 	strongest_color.r *= sprite.modulate.r
 	strongest_color.g *= sprite.modulate.g
 	strongest_color.b *= sprite.modulate.b
 	strongest_color.a = sprite.modulate.a
 	return strongest_color
-
-
-## Returns true when modulate only means "show the texture as-is".
-func _is_untinted_modulate(color: Color) -> bool:
-	return (
-		is_equal_approx(color.r, 1.0)
-		and is_equal_approx(color.g, 1.0)
-		and is_equal_approx(color.b, 1.0)
-	)
 
 
 ## Called when the character contacts a blood puddle.
@@ -539,7 +523,10 @@ func _spawn_footprint() -> void:
 	# On snow levels, SnowyFeetComponent handles all footprint rendering (both normal
 	# white and red blood-snow prints). This component only tracks the blood level so
 	# SnowyFeetComponent can read it via has_bloody_feet() and _blood_color (Issue #1627).
-	if on_snow:
+	# Also defer to SnowyFeetComponent if one exists as a sibling — this covers the case
+	# where on_snow wasn't set before the first blood contact (Issue #1909: enemies).
+	var has_snowy_feet: bool = _parent_body != null and _parent_body.get_node_or_null("SnowyFeetComponent") != null
+	if on_snow or has_snowy_feet:
 		if debug_logging:
 			_log_info("On snow — SnowyFeetComponent handles prints (blood steps remaining: %d)" % _blood_level)
 		return
@@ -586,14 +573,9 @@ func _spawn_footprint() -> void:
 	footprint.global_position += perpendicular * foot_offset
 	_is_left_foot = not _is_left_foot
 
-	# Set the blood color (same or darker than puddle)
-	if footprint.has_method("set_blood_color"):
-		footprint.set_blood_color(_blood_color)
-	else:
-		# Fallback: apply color directly to modulate
-		footprint.modulate.r = _blood_color.r
-		footprint.modulate.g = _blood_color.g
-		footprint.modulate.b = _blood_color.b
+	# Regular boot-print textures already contain the red blood color as pixels.
+	# Applying _blood_color (extracted from the puddle gradient) as a modulate tint
+	# would darken them further — keep modulate white so the texture shows naturally.
 
 	# Set alpha using the footprint's method (after color to preserve alpha)
 	if footprint.has_method("set_alpha"):
