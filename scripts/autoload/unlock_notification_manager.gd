@@ -9,7 +9,8 @@ extends CanvasLayer
 const DISPLAY_DURATION: float = 4.0
 const SLIDE_DURATION: float = 0.35
 const SLIDE_OUT_REPEAT_COUNT: int = 1
-const TOAST_WIDTH: float = 460.0
+const TOAST_MAX_WIDTH: float = 460.0
+const TOAST_MIN_WIDTH: float = 200.0
 const TOAST_HEIGHT: float = 78.0
 const TOAST_TOP_MARGIN: float = 18.0
 const TOAST_SIDE_MARGIN: float = 18.0
@@ -17,7 +18,7 @@ const TOAST_CONTENT_LEFT_MARGIN: float = 16.0
 const TOAST_CONTENT_TOP_MARGIN: float = 10.0
 const TOAST_CONTENT_RIGHT_MARGIN: float = 18.0
 const TOAST_CONTENT_BOTTOM_MARGIN: float = 10.0
-const ARMORY_ICON_TEXT_GAP: float = 24.0
+const ARMORY_ICON_TEXT_GAP: float = 12.0
 const ARMORY_ICON_PATH: String = "res://assets/sprites/ui/menu_icons/icon_armory.svg"
 const GOLD_SHINE_SHADER_PATH: String = "res://scripts/shaders/gold_shine.gdshader"
 const NOTIFICATION_TEMPLATE_KEY: String = "UNLOCK_NOTIFICATION_OPENED"
@@ -223,7 +224,7 @@ func _build_ui() -> void:
 
 	_toast = Control.new()
 	_toast.name = "UnlockToast"
-	_toast.custom_minimum_size = Vector2(TOAST_WIDTH, TOAST_HEIGHT)
+	_toast.custom_minimum_size = Vector2(TOAST_MIN_WIDTH, TOAST_HEIGHT)
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_toast.modulate = Color.WHITE
 	_root_control.add_child(_toast)
@@ -584,11 +585,26 @@ func _on_current_notification_finished() -> void:
 	_show_next_notification()
 
 
+func _measure_text_width() -> float:
+	var font_size_header: int = 20
+	var font_size_item: int = 15
+	var header_text: String = _message_label.text if _message_label else ""
+	var item_text: String = _item_name_label.text if _item_name_label else ""
+	var font: Font = ThemeDB.fallback_font
+	var header_width: float = font.get_string_size(header_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size_header).x
+	var item_width: float = font.get_string_size(item_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size_item).x
+	var text_width: float = maxf(header_width, item_width)
+	var icon_width: float = 42.0
+	return TOAST_CONTENT_LEFT_MARGIN + icon_width + ARMORY_ICON_TEXT_GAP + text_width + TOAST_CONTENT_RIGHT_MARGIN
+
+
 func _position_toast(visible_position: bool) -> void:
 	if _toast == null:
 		return
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	var toast_width: float = minf(TOAST_WIDTH, maxf(260.0, viewport_size.x - TOAST_SIDE_MARGIN * 2.0))
+	var content_width: float = _measure_text_width()
+	var max_allowed: float = minf(TOAST_MAX_WIDTH, viewport_size.x - TOAST_SIDE_MARGIN * 2.0)
+	var toast_width: float = clampf(content_width, TOAST_MIN_WIDTH, max_allowed)
 	_toast.size = Vector2(toast_width, TOAST_HEIGHT)
 	_toast.custom_minimum_size = Vector2(toast_width, TOAST_HEIGHT)
 	_toast.position = Vector2(

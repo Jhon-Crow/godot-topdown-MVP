@@ -211,8 +211,8 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Fallback item name label should render above the shine overlay in exported builds")
 	assert_eq(row_gap, int(manager.ARMORY_ICON_TEXT_GAP),
 		"Content row should use the configured Armory icon/text gap")
-	assert_ge(row_gap, 24,
-		"Armory icon and text should have a larger readable gap")
+	assert_ge(row_gap, 8,
+		"Armory icon and text should have a readable gap")
 	assert_gt(content_margin.size.x, 0.0,
 		"Content margin should have explicit width so exported builds lay out the label")
 	assert_gt(content_row.size.x, 0.0,
