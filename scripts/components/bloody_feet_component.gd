@@ -342,8 +342,9 @@ func _check_blood_puddle_by_distance() -> void:
 				return
 
 
-## Extracts the color from a blood puddle node.
-## Returns the modulate color of the puddle, or default red if not available.
+## Extracts the blood color from a puddle node for use as a tint on snow prints.
+## BloodDecal.tscn stores the actual blood color in its GradientTexture2D while
+## keeping modulate white — so we read the gradient for Sprite2D nodes.
 func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node == null:
 		return DEFAULT_BLOOD_COLOR
@@ -352,6 +353,14 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node is Area2D and parent != null and parent.is_in_group("blood_puddle"):
 		return _get_puddle_color(parent)
 
+	if puddle_node is Sprite2D:
+		var texture_color := _get_sprite_gradient_blood_color(puddle_node as Sprite2D)
+		if texture_color.a >= 0.0:
+			if debug_logging:
+				_log_info("Puddle gradient color: %s (R=%.2f, G=%.2f, B=%.2f)" % [
+					texture_color, texture_color.r, texture_color.g, texture_color.b])
+			return texture_color
+
 	if puddle_node is CanvasItem:
 		var color := (puddle_node as CanvasItem).modulate
 		if debug_logging:
@@ -359,6 +368,29 @@ func _get_puddle_color(puddle_node: Node) -> Color:
 		return color
 
 	return DEFAULT_BLOOD_COLOR
+
+
+## Reads the dominant color from a Sprite2D's GradientTexture2D.
+## BloodDecal stores the actual red blood color in the gradient; modulate stays white.
+func _get_sprite_gradient_blood_color(sprite: Sprite2D) -> Color:
+	var gradient_texture := sprite.texture as GradientTexture2D
+	if gradient_texture == null or gradient_texture.gradient == null:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var colors: PackedColorArray = gradient_texture.gradient.colors
+	if colors.size() == 0:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var strongest_color: Color = colors[0]
+	for color in colors:
+		if color.a > strongest_color.a:
+			strongest_color = color
+
+	strongest_color.r *= sprite.modulate.r
+	strongest_color.g *= sprite.modulate.g
+	strongest_color.b *= sprite.modulate.b
+	strongest_color.a = sprite.modulate.a
+	return strongest_color
 
 
 ## Called when the character contacts a blood puddle.
@@ -538,14 +570,9 @@ func _spawn_footprint() -> void:
 	footprint.global_position += perpendicular * foot_offset
 	_is_left_foot = not _is_left_foot
 
-	# Set the blood color (same or darker than puddle)
-	if footprint.has_method("set_blood_color"):
-		footprint.set_blood_color(_blood_color)
-	else:
-		# Fallback: apply color directly to modulate
-		footprint.modulate.r = _blood_color.r
-		footprint.modulate.g = _blood_color.g
-		footprint.modulate.b = _blood_color.b
+	# Regular boot-print textures already contain the red blood color as pixels.
+	# Applying _blood_color (extracted from the puddle gradient) as a modulate tint
+	# would darken them further — keep modulate white so the texture shows naturally.
 
 	# Set alpha using the footprint's method (after color to preserve alpha)
 	if footprint.has_method("set_alpha"):
