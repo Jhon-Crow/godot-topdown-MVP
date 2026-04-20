@@ -140,7 +140,6 @@ func _spawn_chemical_cloud() -> void:
 func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
 	var cloud := ChemicalCloudScript.new()
 	cloud.name = "ChemicalCloud"
-	cloud.global_position = global_position
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
 	cloud.illusion_duration = illusion_duration
@@ -148,6 +147,7 @@ func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
 		cloud.grow_in_duration = grow_duration
 
 	get_tree().current_scene.add_child(cloud)
+	cloud.global_position = global_position
 
 	FileLogger.info("[ChemicalGasGrenade] Chemical cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
 		str(global_position), effect_radius, cloud_duration, grow_duration

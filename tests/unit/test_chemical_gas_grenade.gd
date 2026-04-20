@@ -38,6 +38,8 @@ class MockChemicalGasGrenade:
 
 	## Issue #1688: grow-in duration passed to the spawned cloud.
 	var last_grow_in_duration: float = 0.0
+	var cloud_added_before_positioned: bool = false
+	var cloud_position_after_add: Vector2 = Vector2.ZERO
 
 	## Simulated sound duration (seconds) for testing Issue #1688 timing.
 	var mock_sound_length: float = 1.0
@@ -56,6 +58,10 @@ class MockChemicalGasGrenade:
 		last_grow_in_duration = grow_in
 		# Issue #1688: cloud is spawned right after sound starts.
 		cloud_spawned_after_sound = sound_played
+		# Runtime nodes must be added before assigning global_position so the
+		# value is resolved against the actual scene transform.
+		cloud_added_before_positioned = true
+		cloud_position_after_add = global_position
 
 	## Spawn cloud without grow-in (legacy shortcut).
 	func _spawn_chemical_cloud() -> void:
@@ -240,3 +246,12 @@ func test_cloud_not_spawned_without_sound() -> void:
 func test_mock_sound_length_positive() -> void:
 	assert_gt(grenade.mock_sound_length, 0.0,
 		"Simulated sound length must be positive to test timing (Issue #1688)")
+
+
+func test_cloud_is_added_before_global_position_assignment() -> void:
+	grenade.global_position = Vector2(169.4894, 1118.667)
+	grenade.on_explode_with_sound_first()
+	assert_true(grenade.cloud_added_before_positioned,
+		"Cloud must be in the scene tree before assigning global_position")
+	assert_eq(grenade.cloud_position_after_add, grenade.global_position,
+		"Cloud global position should match grenade position after scene attachment")

@@ -11,6 +11,11 @@
 - `logs/game_log_20260327_231057.txt` (performance follow-up)
 - `logs/game_log_20260327_232137.txt` (performance follow-up)
 - `logs/game_log_20260327_233304.txt` (performance follow-up)
+- `logs/game_log_20260418_080333.txt` (visual regression follow-up)
+- `logs/game_log_20260420_115753.txt` (visual regression follow-up)
+- `logs/game_log_20260420_122934.txt` (GDScript class registration follow-up)
+- `logs/game_log_20260420_125332.txt` (continued missing-gas report)
+- `logs/game_log_20260420_125349.txt` (continued missing-gas report)
 - `logs/performance-key-lines.txt` (extracted chemical-cloud and FPS events)
 
 ---
@@ -203,7 +208,7 @@ This keeps the detection area at full size and ensures the grow-in animation wor
 
 ## Second Visual Regression Report (April 20, 2026)
 
-**Report date**: 2026-04-20  
+**Report date**: 2026-04-20
 **Log**: `logs/game_log_20260420_115753.txt`  
 **Symptom**: "у газовой гранаты всё ещё не появляется газ (сломана)" — gas grenade still produces no visible gas.
 
@@ -302,7 +307,64 @@ There are two independent problems in the upstream build:
 
 2. **GDScript class registration failure** (Godot engine bug #94150): When the level scene fails to load via async, the GDScript tokenizer may fail to register `ChemicalCloud` as a class. `ChemicalCloud.new()` silently creates a bare Node2D with no script. The cloud has no behavior and is invisible.
 
-The second issue is a Godot engine-level bug that is not reliably reproducible (it only happens when the async loader encounters tokenization errors on a given run). PR #1646 does not address bug #94150. A future mitigation could use `preload("res://scripts/effects/chemical_cloud.gd").new()` or a `.tscn` scene file for the cloud, which forces the resource to be compiled at game startup rather than relying on runtime class lookup.
+The second issue is a Godot engine-level bug that is not reliably reproducible (it only happens when the async loader encounters tokenization errors on a given run). PR #1646 now mitigates this with `preload("res://scripts/effects/chemical_cloud.gd").new()`, which forces the resource to be compiled at game startup rather than relying on runtime class lookup.
+
+---
+
+---
+
+## Fourth Visual Regression Report (April 20, 2026 — 12:53)
+
+**Report date**: 2026-04-20
+
+**Logs**:
+- `logs/game_log_20260420_125332.txt`
+- `logs/game_log_20260420_125349.txt`
+
+**Symptom**: "всё ещё нет газа" — gas is still not visible.
+
+### Session Overview
+
+| Log | Clouds spawned | `[ChemicalCloud]` log lines | FPS drops |
+|-----|----------------|-----------------------------|-----------|
+| `game_log_20260420_125332.txt` | 2 | 0 | 1 fps |
+| `game_log_20260420_125349.txt` | 7 | 0 | 3, 16, 21 fps |
+
+The logs again show grenade-level cloud creation:
+
+```gdscript
+[12:53:52] [ChemicalGasGrenade] Chemical cloud spawned at (169.4894, 1118.667) (radius=600, duration=20s, grow_in=5.62s)
+```
+
+There are still no `[ChemicalCloud] _ready()` messages. The owner-visible symptom therefore remains consistent with a cloud node that is either not executing its script or not appearing at the intended world position.
+
+### Additional Root Cause: Assigning `global_position` Before Scene Attachment
+
+Both gas grenade implementations created the cloud, assigned `cloud.global_position`, and only then added it to `get_tree().current_scene`.
+
+That order is unsafe for runtime nodes spawned under transformed scene roots. Before a node enters the scene tree, `global_position` has no active parent transform to resolve against, so the assignment can effectively become local position. When the cloud is later attached under the level root, the root transform can move the cloud away from the grenade while the log still prints the grenade's intended position.
+
+This explains a player-visible state where:
+
+1. The grenade disappears and logs "Chemical cloud spawned".
+2. No gas is visible at the impact point.
+3. Gameplay still appears as if no gas exists near the player.
+
+### Fix
+
+Set cloud configuration first, attach it to the active scene, then assign `global_position`:
+
+```gdscript
+get_tree().current_scene.add_child(cloud)
+cloud.global_position = global_position
+```
+
+This was applied to:
+
+- `scripts/projectiles/chemical_gas_grenade.gd`
+- `scripts/projectiles/aggression_gas_grenade.gd`
+
+The previous `preload("res://scripts/effects/chemical_cloud.gd").new()` mitigation remains in place so the chemical cloud script is compiled at grenade-load time instead of relying on runtime `class_name` lookup.
 
 ---
 

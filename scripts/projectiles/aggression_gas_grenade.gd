@@ -142,7 +142,6 @@ func _spawn_aggression_cloud() -> void:
 func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
 	var cloud := AggressionCloud.new()
 	cloud.name = "AggressionCloud"
-	cloud.global_position = global_position
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
 	cloud.aggression_effect_duration = aggression_duration
@@ -151,6 +150,7 @@ func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
 
 	# Add to current scene (not as child of grenade, since grenade will be freed)
 	get_tree().current_scene.add_child(cloud)
+	cloud.global_position = global_position
 
 	FileLogger.info("[AggressionGasGrenade] Gas cloud spawned at %s (radius=%.0f, duration=%.0fs, grow_in=%.2fs)" % [
 		str(global_position), effect_radius, cloud_duration, grow_duration
