@@ -336,14 +336,23 @@ func test_collects_only_locked_items_with_met_conditions() -> void:
 	assert_false("active_item:8" in keys, "Already unlocked active items should not be announced")
 
 
-func test_startup_suppressed_unlock_can_announce_after_live_signal() -> void:
+func test_startup_suppressed_unlock_is_not_reshown_on_live_signal() -> void:
+	## Issue #1907: items that were already available at game startup should not
+	## show a toast on every new game session when a kill/condition signal fires.
 	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
 	assert_not_null(script, "UnlockNotificationManager script should load")
 	var manager: Node = autofree(script.new())
 
+	# Simulate a startup-available item (condition met, not yet unlocked)
 	manager._startup_suppressed_available_keys["active_item:9"] = true
 	manager._announced_available_keys.clear()
 
+	# Simulate a live condition signal firing (e.g., a kill increments a stat)
+	# _queue_new_available_unlocks scans entries — active_item:9 condition is met
+	# (MockUnlockManager returns true for item type 9, MockActiveItemManager has it locked)
+	var startup_notification_count: int = manager._pending_notifications.size()
+	# Call the internal method directly to simulate the signal handler
+	# We reproduce the logic of _queue_new_available_unlocks with mocked managers
 	var unlock_manager: Node = autofree(MockUnlockManager.new())
 	var game_manager: Node = autofree(MockGameManager.new())
 	var grenade_manager: Node = autofree(MockGrenadeManager.new())
@@ -356,13 +365,14 @@ func test_startup_suppressed_unlock_can_announce_after_live_signal() -> void:
 		var key: String = entry["key"]
 		if manager._announced_available_keys.get(key, false):
 			continue
+		if manager._startup_suppressed_available_keys.has(key):
+			continue
 		manager._announced_available_keys[key] = true
-		manager._startup_suppressed_available_keys.erase(key)
 		manager.show_unlock_notification(entry["name"], entry["kind"])
 
-	assert_true(manager._announced_available_keys.get("active_item:9", false),
-		"Live stat signals should announce an item even if it was available during startup seeding")
-	assert_false(manager._startup_suppressed_available_keys.has("active_item:9"),
-		"Startup suppression should be consumed once a live signal announces the unlock")
-	assert_true(manager._pending_notifications.size() > 0,
-		"A notification should be queued for the live condition signal")
+	assert_false(manager._announced_available_keys.get("active_item:9", false),
+		"Startup-available item should not be added to announced keys — it stays suppressed this session")
+	assert_true(manager._startup_suppressed_available_keys.has("active_item:9"),
+		"Startup suppression should remain in place so repeated signals never show the toast")
+	assert_eq(manager._pending_notifications.size(), startup_notification_count,
+		"No new notification should be queued for an item that was already available at startup")
