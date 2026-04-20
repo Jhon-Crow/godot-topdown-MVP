@@ -532,3 +532,41 @@ func test_shotgun_full_reload_dismisses_after_shell_loaded_then_closed() -> void
 
 	assert_true(comp._animating_hints.has(WeaponHintsComp.HINT_KEY_BOLT_CYCLE),
 		"Closing after loading a shell should dismiss the shotgun full reload hint")
+
+
+func test_auto_dismiss_timer_does_not_dismiss_active_grenade_hint() -> void:
+	# Regression test for Issue #1889: grenade tutorial must not disappear via the
+	# auto-dismiss timer — only the grenade_thrown signal should dismiss it.
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._hints_active = true
+
+	# Simulate grenade hint active alongside another hint
+	comp._hint_labels[WeaponHintsComp.HINT_KEY_GRENADE] = RichTextLabel.new()
+	comp._hint_labels["other"] = RichTextLabel.new()
+	comp._animating_hints.clear()
+
+	# Fire the auto-dismiss callback directly (simulates timer expiry)
+	comp._on_dismiss_timer_timeout()
+
+	assert_true(comp._hint_labels.has(WeaponHintsComp.HINT_KEY_GRENADE),
+		"Grenade hint must survive auto-dismiss timer (Issue #1889)")
+	assert_false(comp._hint_labels.has("other"),
+		"Non-grenade hints should be dismissed by the auto-dismiss timer")
+
+
+func test_auto_dismiss_timer_dismisses_all_hints_when_no_grenade_hint() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._hints_active = true
+
+	comp._hint_labels["reload"] = RichTextLabel.new()
+	comp._hint_labels["fire_mode"] = RichTextLabel.new()
+	comp._animating_hints.clear()
+
+	comp._on_dismiss_timer_timeout()
+
+	assert_false(comp._hint_labels.has("reload"),
+		"Reload hint should be dismissed when no grenade hint is active")
+	assert_false(comp._hint_labels.has("fire_mode"),
+		"Fire-mode hint should be dismissed when no grenade hint is active")
