@@ -145,6 +145,12 @@ public partial class Player : BaseCharacter
     private bool _isTutorialLevel = false;
 
     /// <summary>
+    /// Whether the player is currently piloting a drone grenade (Issue #1628 / #1895).
+    /// When true, movement and shooting are suppressed but model rotation still runs.
+    /// </summary>
+    private bool _isDronePiloting = false;
+
+    /// <summary>
     /// Grenade state machine states.
     /// 2-step mechanic:
     /// Step 1: G + RMB drag right → timer starts (pin pulled)
@@ -1463,6 +1469,17 @@ public partial class Player : BaseCharacter
         if (!IsAlive)
             return;
 
+        // Issue #1895: While piloting the drone the player body should stay still,
+        // but the model must keep rotating toward the mouse so that weapon aim,
+        // laser sight, and flashlight all track the cursor correctly.
+        if (_isDronePiloting)
+        {
+            Velocity = Velocity.MoveToward(Vector2.Zero, 2000.0f * (float)delta);
+            MoveAndSlide();
+            UpdatePlayerModelRotation();
+            return;
+        }
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -2517,6 +2534,18 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Enables or disables drone-piloting mode (Issue #1628 / #1895).
+    /// When active the player body freezes but the model keeps rotating toward the cursor
+    /// so that weapon aim, laser sight, and flashlight track correctly.
+    /// Called by DroneGrenade via GDScript's call("SetDronePiloting", ...).
+    /// </summary>
+    public void SetDronePiloting(bool active)
+    {
+        _isDronePiloting = active;
+        LogToFile($"[Player] Drone piloting mode: {active}");
+    }
+
+    /// <summary>
     /// Fires the player's current weapon (or spawns a bullet) aimed from the drone's
     /// position toward the mouse cursor. Called by DroneGrenade while the player is
     /// piloting the drone (Issue #1895).
@@ -2564,6 +2593,27 @@ public partial class Player : BaseCharacter
         HandleExperimentalSampleInput();
         HandleDrillingBulletsInput();
         HandleFineMotorSkillsInput();
+        HandleDashInput();
+    }
+
+    /// <summary>
+    /// Fires the AKGL underbarrel grenade launcher toward the mouse cursor when RMB is
+    /// pressed while piloting the drone (Issue #1895).
+    /// Called by DroneGrenade on grenade_throw (RMB just-pressed).
+    /// </summary>
+    public void FireAKGLFromDrone()
+    {
+        var akgl = CurrentWeapon as AKGL;
+        if (akgl == null)
+            return;
+        if (!akgl.GrenadeAvailable)
+        {
+            LogToFile("[Player] AKGL grenade launcher empty - no grenade available");
+            return;
+        }
+        Vector2 direction = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+        akgl.FireGrenadeLauncher(direction);
+        LogToFile("[Player] AKGL grenade launcher fired from drone!");
     }
 
     /// <summary>
