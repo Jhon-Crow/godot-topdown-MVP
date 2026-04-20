@@ -2260,14 +2260,15 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 func _estimate_hint_height(text: String) -> float:
 	const LINE_HEIGHT := 26.0
 	const AVG_CHAR_WIDTH := 10.0  # conservative estimate at font size 20
-	# Strip BBCode tags to get plain text length
+	# Strip only known BBCode tags (e.g. [color=#...], [/color], [b], [/b]).
+	# Action labels like "[hold G+RMB]" use literal square brackets that are NOT BBCode —
+	# they render as-is in RichTextLabel and must be counted toward line length.
+	# Naively stripping all "[...]" would remove those labels, yielding 1-line estimates
+	# for 4-line grenade hints and causing persistent overlap of the player sprite.
 	var plain := text
-	while "[" in plain:
-		var start := plain.find("[")
-		var end := plain.find("]", start)
-		if end < 0:
-			break
-		plain = plain.substr(0, start) + plain.substr(end + 1)
+	var known_bbcode := RegEx.new()
+	known_bbcode.compile("\\[/?(?:color(?:=#[0-9a-fA-F]{3,8})?|b|i|u|s|center|right|left|indent|code|url(?:=[^\\]]*)?|img(?:=[^\\]]*)?|font(?:=[^\\]]*)?|size=\\d+|bgcolor(?:=#[0-9a-fA-F]{3,8})?|fgcolor(?:=#[0-9a-fA-F]{3,8})?)\\]")
+	plain = known_bbcode.sub(plain, "", true)
 	var chars_per_line := int(HINT_WIDTH / AVG_CHAR_WIDTH)
 	var lines := maxi(1, int(ceil(float(plain.length()) / float(chars_per_line))))
 	return lines * LINE_HEIGHT
@@ -2293,6 +2294,8 @@ func _update_all_hint_positions() -> void:
 			var measured: float = label.get_content_height()
 			if measured > HINT_MIN_HEIGHT:
 				_hint_heights[hint_key] = measured
+				# Update label.size.y to match real content so Godot layout stays consistent.
+				label.size = Vector2(HINT_WIDTH, measured)
 			var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
 			label.position = screen_pos + Vector2(
 				-HINT_WIDTH * 0.5,
@@ -2321,6 +2324,7 @@ func _update_hint_position(hint_key: String, label: RichTextLabel) -> void:
 	var measured: float = label.get_content_height()
 	if measured > HINT_MIN_HEIGHT:
 		_hint_heights[hint_key] = measured
+		label.size = Vector2(HINT_WIDTH, measured)
 	var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
 	label.position = screen_pos + Vector2(
 		-HINT_WIDTH * 0.5,

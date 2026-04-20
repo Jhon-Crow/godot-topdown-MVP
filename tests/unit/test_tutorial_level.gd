@@ -2601,3 +2601,10 @@ func test_tutorial_hint_height_tracked_to_avoid_stale_zero_from_layout_engine() 
 		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
 	assert_true(content.contains("label.size = Vector2(HINT_WIDTH"),
 		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
+	# Verify the estimate function does NOT strip all bracket content (it would remove grenade action labels).
+	# Grenade hint uses literal "[hold G+RMB]" etc. that are NOT BBCode — stripping them yields 1-line
+	# estimate instead of the real 4 lines, placing the hint bottom on top of the player.
+	assert_false(content.contains("while \"[\" in plain"),
+		"_estimate_hint_height must not strip all [..] content — grenade action labels use literal brackets that are NOT BBCode (Issue #1881 session 4)")
+	assert_true(content.contains("known_bbcode"),
+		"_estimate_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881 session 4)")
