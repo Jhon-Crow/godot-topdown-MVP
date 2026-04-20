@@ -27,6 +27,10 @@ var no_damage_levels_completed: int = 0
 ## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
 var levels_completed_rank_a_or_higher: int = 0
 
+## Cumulative unique maps completed at rank S.
+## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1892).
+var levels_completed_rank_s: int = 0
+
 ## Cumulative kills made through walls (using Drilling Bullets or any wall-piercing effect).
 ## Persists across sessions — used as the unlock condition for Drilling Bullets (Issue #1624).
 var kills_through_wall: int = 0
@@ -131,6 +135,10 @@ signal levels_completed_rank_a_or_higher_updated(new_count: int)
 ## Signal emitted when kills_through_wall changes (for wall-kill unlock checks).
 ## Issue #1624.
 signal kills_through_wall_updated(new_count: int)
+
+## Signal emitted when levels_completed_rank_s changes (for S-rank unlock checks).
+## Issue #1892.
+signal levels_completed_rank_s_updated(new_count: int)
 
 ## Signal emitted when levels_completed_with_silenced_pistol changes.
 ## Issue #1624.
@@ -915,6 +923,18 @@ func _on_score_calculated(score_data: Dictionary) -> void:
 			_log_to_file("Rank-A level completed (new unique map) — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
 		else:
 			_log_to_file("Rank-A level completed (already counted for this map) — levels_completed_rank_a_or_higher unchanged: %d" % levels_completed_rank_a_or_higher)
+	# Track unique maps completed at rank S for Breaker Bullets unlock (Issue #1892).
+	if rank == "S":
+		var already_counted_s: bool = false
+		var progress_manager_s: Node = get_node_or_null("/root/ProgressManager")
+		if progress_manager_s and progress_manager_s.has_method("is_level_completed_rank_s_any_difficulty"):
+			var current_scene_s: Node = get_tree().current_scene
+			if current_scene_s and not current_scene_s.scene_file_path.is_empty():
+				already_counted_s = progress_manager_s.is_level_completed_rank_s_any_difficulty(current_scene_s.scene_file_path)
+		if not already_counted_s:
+			levels_completed_rank_s += 1
+			levels_completed_rank_s_updated.emit(levels_completed_rank_s)
+			_log_to_file("Rank-S level completed (new unique map) — levels_completed_rank_s: %d" % levels_completed_rank_s)
 	# Track levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
 	if selected_weapon == "silenced_pistol":
 		levels_completed_with_silenced_pistol += 1
