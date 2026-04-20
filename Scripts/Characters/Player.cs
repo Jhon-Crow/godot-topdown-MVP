@@ -2517,6 +2517,56 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Fires the player's current weapon (or spawns a bullet) aimed from the drone's
+    /// position toward the mouse cursor. Called by DroneGrenade while the player is
+    /// piloting the drone (Issue #1895).
+    /// </summary>
+    /// <param name="dronePosition">World position of the drone used to compute aim direction.</param>
+    public void ShootFromDrone(Vector2 dronePosition)
+    {
+        Vector2 mousePos = GetGlobalMousePosition();
+        Vector2 shootDirection = (mousePos - dronePosition).Normalized();
+
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.Fire(shootDirection);
+            return;
+        }
+
+        // Fallback: direct bullet spawn from drone position.
+        if (BulletScene == null)
+            return;
+        var bullet = BulletScene.Instantiate<Node2D>();
+        bullet.GlobalPosition = dronePosition + shootDirection * BulletSpawnOffset;
+        if (bullet.HasMethod("SetDirection"))
+            bullet.Call("SetDirection", shootDirection);
+        GetTree().CurrentScene?.AddChild(bullet);
+    }
+
+    /// <summary>
+    /// Delegates active-item (Space key) input handling to the player while the drone
+    /// is being piloted (Issue #1895). The player's position stays frozen; the drone
+    /// camera ensures the mouse cursor is in the right place for aim-based items.
+    /// </summary>
+    /// <param name="delta">Physics frame delta from the drone's _physics_process.</param>
+    public void TriggerActiveItemFromDrone(float delta)
+    {
+        HandleFlashlightInput();
+        HandleTeleportBracersInput();
+        HandleHomingBulletsInput(delta);
+        HandleBffPendantInput();
+        HandleInvisibilitySuitInput();
+        HandleForceFieldInput(delta);
+        HandleTrajectoryGlassesInput();
+        HandleBreachingChargesInput();
+        HandleLoudspeakerInput(delta);
+        HandleRecoilCompensatorInput(delta);
+        HandleExperimentalSampleInput();
+        HandleDrillingBulletsInput();
+        HandleFineMotorSkillsInput();
+    }
+
+    /// <summary>
     /// Spawns a bullet directly without using the weapon system.
     /// Preserves the original template behavior.
     /// </summary>

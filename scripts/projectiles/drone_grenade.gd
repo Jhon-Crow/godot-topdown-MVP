@@ -239,6 +239,20 @@ func _physics_process(delta: float) -> void:
 			_enemy_targeting_active = true
 			FileLogger.info("[DroneGrenade] Enemy targeting now active (delay elapsed)")
 
+	# Issue #1895: while piloting the drone the player can fire their weapon and
+	# use their active item.  We detect the inputs here (the player's own
+	# _physics_process is suspended) and delegate to the player's public helpers.
+	if _player != null and is_instance_valid(_player):
+		# Shoot: support both automatic (held) and semi-automatic (just-pressed).
+		var shoot_just_pressed: bool = Input.is_action_just_pressed("shoot")
+		var shoot_held: bool = Input.is_action_pressed("shoot")
+		if shoot_just_pressed or shoot_held:
+			if _player.has_method("ShootFromDrone"):
+				_player.call("ShootFromDrone", global_position)
+		# Active item (Space key) — delegate every frame so hold-based items work.
+		if _player.has_method("TriggerActiveItemFromDrone"):
+			_player.call("TriggerActiveItemFromDrone", delta)
+
 	# Read WASD / arrow key input.
 	var input_dir := Vector2.ZERO
 	if Input.is_action_pressed("move_right"):
