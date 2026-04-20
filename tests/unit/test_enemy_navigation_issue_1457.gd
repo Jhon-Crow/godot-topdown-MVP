@@ -96,3 +96,58 @@ func test_wall_min_slide_angle_zero_is_less_restrictive_issue_1457() -> void:
 	var fixed_dead_zone_rad := 0.0
 	assert_lt(fixed_dead_zone_rad, default_dead_zone_rad,
 		"Issue #1457: zero wall_min_slide_angle removes the default 15 degree slide threshold")
+
+
+func test_nav_target_cache_reset_on_ai_state_transitions_issue_1457() -> void:
+	# Issue #1457 follow-up (PR #1856 comment 4272867394): stale cached nav target from a
+	# previous state must not survive COMBAT/PURSUING/FLANKING/SEEKING_COVER/SEARCHING entry.
+	var source := _read_enemy_source()
+	var transitions := [
+		"_transition_to_combat",
+		"_transition_to_pursuing",
+		"_transition_to_flanking",
+		"_transition_to_seeking_cover",
+		"_transition_to_searching",
+	]
+	for func_name in transitions:
+		var start := source.find("func %s" % func_name)
+		assert_gt(start, -1, "enemy.gd must still define %s" % func_name)
+		if start < 0:
+			continue
+		var next := source.find("\nfunc ", start + 1)
+		if next < 0:
+			next = source.length()
+		var body := source.substr(start, next - start)
+		assert_true(body.contains("_nav_has_target = false"),
+			"Issue #1457: %s must reset _nav_has_target so the new state re-paths once on entry" % func_name)
+
+
+func test_reset_seeds_global_stuck_last_position_to_current_issue_1457() -> void:
+	# Issue #1457 follow-up: _reset() seeded _global_stuck_last_position = Vector2.ZERO, which
+	# masks the first tick of the stuck detector after respawn because distance_to(ZERO) is huge.
+	var source := _read_enemy_source()
+	assert_true(source.contains("_global_stuck_last_position = global_position"),
+		"Issue #1457: _reset() must seed _global_stuck_last_position to current global_position, not Vector2.ZERO")
+
+
+func test_combat_approach_stall_recovery_exists_issue_1457() -> void:
+	# Issue #1457 follow-up: ranged COMBAT approach phase must not silently rub a wall forever.
+	var source := _read_enemy_source()
+	assert_true(source.contains("COMBAT_APPROACH_STUCK_MAX_TIME"),
+		"Issue #1457: COMBAT approach phase must have a hard stall cap constant")
+	assert_true(source.contains("_combat_approach_stuck_timer"),
+		"Issue #1457: COMBAT approach phase must track a stall timer")
+	assert_true(source.contains("COMBAT approach stall"),
+		"Issue #1457: COMBAT approach stall must emit a diagnostic log line")
+	assert_true(source.contains("_transition_to_pursuing"),
+		"Issue #1457: COMBAT approach stall must recover by transitioning to PURSUING")
+
+
+func test_combat_approach_stall_cap_is_short_enough_issue_1457() -> void:
+	# A 2s cap is short enough to be noticeable to a player but long enough to avoid
+	# interrupting legitimate aim/fire micro-pauses in COMBAT.
+	const CAP_SECONDS: float = 2.0
+	assert_lt(CAP_SECONDS, 4.0,
+		"Issue #1457: COMBAT approach stall cap must be shorter than the navigation stuck cap")
+	assert_gt(CAP_SECONDS, 0.5,
+		"Issue #1457: COMBAT approach stall cap must not interrupt normal aim pauses")

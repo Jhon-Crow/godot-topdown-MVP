@@ -274,6 +274,8 @@ var _global_stuck_timer: float = 0.0; var _global_stuck_last_position: Vector2 =
 const GLOBAL_STUCK_MAX_TIME: float = 4.0; const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0; const NAV_MOVEMENT_STUCK_MAX_TIME: float = 4.0  ## #1457: hard cap for nav movement stalls even when debug stuck time is raised.
 var _machete_combat_stuck_timer: float = 0.0; var _machete_combat_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1107: Stuck detection for machete COMBAT state
 const MACHETE_COMBAT_STUCK_MAX_TIME: float = 0.8; const MACHETE_COMBAT_STUCK_DIST_THRESHOLD: float = 20.0  ## Reroute after 0.8s stuck within 20px
+var _combat_approach_stuck_timer: float = 0.0; var _combat_approach_stuck_last_pos: Vector2 = Vector2.ZERO  ## Issue #1457: stall detector for ranged COMBAT approach/clear-shot phases.
+const COMBAT_APPROACH_STUCK_MAX_TIME: float = 2.0; const COMBAT_APPROACH_STUCK_DIST_THRESHOLD: float = 30.0  ## Issue #1457: reroute to PURSUING after 2.0s without progress while rubbing a wall in COMBAT without LOS.
 var _debug_draw_timer: float = 0.0; const DEBUG_DRAW_INTERVAL: float = 0.1  ## Issue #1220: throttle F7 debug redraw to 10 Hz to reduce FOV raycast overhead
 var _assault_wait_timer: float = 0.0; const ASSAULT_WAIT_DURATION: float = 5.0  ## Assault wait timer / pre-assault wait (sec)
 var _assault_ready: bool = false; var _in_assault: bool = false  ## Assault wait complete / in assault flag
@@ -1594,6 +1596,26 @@ func _process_combat_state(delta: float) -> void:
 		velocity = move_direction * combat_move_speed
 		_rotate_body_toward(direction_to_player.angle(), delta)  # Issue #1242: shield respects rotation modifier
 
+		# Issue #1457: COMBAT approach stall recovery — if we're rubbing a wall while closing in
+		# without line of sight, fall back to PURSUING so the NavigationAgent can route around.
+		# Only arms during the approach phase (not exposed/clear-shot-seeking) and only when we
+		# have no clear shot; otherwise a legitimate stationary fire would trip the timer.
+		if not _can_see_player and not has_clear_shot:
+			if global_position.distance_to(_combat_approach_stuck_last_pos) < COMBAT_APPROACH_STUCK_DIST_THRESHOLD:
+				_combat_approach_stuck_timer += delta
+				if _combat_approach_stuck_timer >= COMBAT_APPROACH_STUCK_MAX_TIME:
+					_log_to_file("[#1457] COMBAT approach stall (%.1fs) at %s — transitioning to PURSUING" % [_combat_approach_stuck_timer, global_position])
+					_combat_approach_stuck_timer = 0.0
+					_combat_approach_stuck_last_pos = global_position
+					_transition_to_pursuing()
+					return
+			else:
+				_combat_approach_stuck_timer = 0.0
+				_combat_approach_stuck_last_pos = global_position
+		else:
+			_combat_approach_stuck_timer = 0.0
+			_combat_approach_stuck_last_pos = global_position
+
 		# Can shoot while approaching (only after detection delay and if have clear shot)
 		if has_clear_shot and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_aim_at_player()
@@ -2648,6 +2670,8 @@ func _transition_to_combat() -> void:
 	# Issue #409: Clear witnessed ally death flag when engaging player
 	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false; _machete_combat_stuck_timer = 0.0; _machete_combat_stuck_last_pos = global_position  # Issue #1107
+	_combat_approach_stuck_timer = 0.0; _combat_approach_stuck_last_pos = global_position  # Issue #1457: seed COMBAT approach stall timer.
+	_nav_has_target = false  # Issue #1457: drop stale cover-point cache so COMBAT re-paths once on entry.
 	if _is_rpg_weapon and not _rpg_fired: _shoot_timer = shoot_cooldown  # Issue #583
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
@@ -2661,6 +2685,7 @@ func _transition_to_seeking_cover() -> void:
 	_has_left_idle = true
 	_seeking_cover_entry_time = Time.get_ticks_msec() / 1000.0  # Issue #997 RCA-17
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
+	_nav_has_target = false  # Issue #1457: re-path on SEEKING_COVER entry so we follow the newly chosen cover, not a stale COMBAT waypoint.
 	_find_cover_position()
 
 func _transition_to_in_cover() -> void:
@@ -2729,6 +2754,7 @@ func _transition_to_flanking() -> bool:
 	# Reset global stuck detection
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	_nav_has_target = false  # Issue #1457: re-path on FLANKING entry with the fresh flank target.
 	if _tactical_movement: _tactical_movement.reset_yield()  # Issue #1249: clear yield on state entry
 	if _nav_agent: _nav_agent.path_desired_distance = _nav_default_path_desired_distance  # #1289
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
@@ -2767,6 +2793,7 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	_nav_has_target = false  # Issue #1457: re-path on PURSUING entry so cached COMBAT cover target isn't re-used.
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -2800,6 +2827,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	# Issue #354: Initialize stuck detection. #1249: clear yield on SEARCHING entry.
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position; if _tactical_movement: _tactical_movement.reset_yield()
+	_nav_has_target = false  # Issue #1457: drop cached navigation target so SEARCHING waypoints re-path.
 	_using_predefined_search_path = _load_predefined_search_path(center_position)  # Issue #1225
 	if not _using_predefined_search_path: _generate_search_waypoints()
 	var msg := "SEARCHING started (%s): center=%s, radius=%.0f, waypoints=%d" % ["predefined" if _using_predefined_search_path else "spiral", _search_center, _search_radius, _search_waypoints.size()]
@@ -4421,9 +4449,11 @@ func _reset() -> void:
 	_avoidance_velocity = Vector2.ZERO
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.set_velocity_forced(Vector2.ZERO)
-	# Reset global stuck detection (Issue #367)
+	# Reset global stuck detection (Issue #367, Issue #1457)
 	_global_stuck_timer = 0.0
-	_global_stuck_last_position = Vector2.ZERO
+	_global_stuck_last_position = global_position  # Issue #1457: seed to current pos so the first tick isn't a false "progress" sample.
+	_combat_approach_stuck_timer = 0.0
+	_combat_approach_stuck_last_pos = global_position
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
