@@ -1,0 +1,2 @@
+data/*.diff -whitespace
+logs/*.log -whitespace

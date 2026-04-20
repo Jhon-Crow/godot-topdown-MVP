@@ -116,6 +116,10 @@ func initialize_drone(operator: Node2D) -> void:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+	if _operator_is_pacifist():
+		FileLogger.info("[Drone] Operator became pacifist — neutralizing drone (Issue #1868)")
+		_die(false, false, false)
+		return
 
 	_rotor_angle += 20.0 * delta
 	_animate_rotors()
@@ -418,7 +422,7 @@ func on_hit_with_info(_dir: Vector2, _cal: Resource) -> void:
 	on_hit()
 
 
-func on_hit_with_bullet_info(_dir: Vector2, _cal: Resource, ricocheted: bool, penetrated: bool, dmg: float = 1.0, from_player: bool = false) -> void:
+func on_hit_with_bullet_info(_dir: Vector2, _cal: Resource, ricocheted: bool, penetrated: bool, dmg: float = 1.0, from_player: bool = false, _attacker_node: Node2D = null) -> void:
 	if not _is_alive:
 		return
 	hit.emit()
@@ -448,6 +452,10 @@ func is_alive() -> bool:
 
 func is_in_combat() -> bool:
 	return _state == DroneState.COMBAT
+
+
+func _operator_is_pacifist() -> bool:
+	return _operator != null and is_instance_valid(_operator) and _operator.has_method("is_pacifist") and _operator.is_pacifist()
 
 
 ## Called by NavigationAgent2D.velocity_computed when ORCA avoidance is enabled.

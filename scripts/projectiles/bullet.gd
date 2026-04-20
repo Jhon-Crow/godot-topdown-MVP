@@ -153,7 +153,7 @@ var _homing_shooter_origin: Vector2 = Vector2.ZERO
 var _homing_aim_direction: Vector2 = Vector2.ZERO
 
 ## Whether this bullet uses breaker behavior (Issue #678).
-## Breaker bullets explode 60px before hitting a wall or enemy, spawning shrapnel in a forward cone.
+## Breaker bullets explode 95px before hitting a wall or enemy, spawning shrapnel in a forward cone.
 var is_breaker_bullet: bool = false
 
 ## Whether this bullet ignores walls (Issue #751).
@@ -252,7 +252,7 @@ var _penetrated_enemy_bodies: Array = []
 var _passed_through_enemy_bodies: Array = []
 
 ## Distance in pixels ahead of the bullet at which to trigger breaker detonation.
-const BREAKER_DETONATION_DISTANCE: float = 60.0
+const BREAKER_DETONATION_DISTANCE: float = 95.0
 
 ## Explosion damage radius for breaker bullet detonation (in pixels).
 const BREAKER_EXPLOSION_RADIUS: float = 15.0
@@ -261,7 +261,9 @@ const BREAKER_EXPLOSION_RADIUS: float = 15.0
 const BREAKER_EXPLOSION_DAMAGE: float = 1.0
 
 ## Half-angle of the shrapnel cone in degrees (total cone = 2 * half_angle).
-const BREAKER_SHRAPNEL_HALF_ANGLE: float = 30.0
+## Widened to 45° (Issue #1634) so the proximity fuse triggers over a broader arc,
+## giving shrapnel a better chance to hit targets that are slightly off-axis.
+const BREAKER_SHRAPNEL_HALF_ANGLE: float = 45.0
 
 ## Damage per breaker shrapnel piece.
 const BREAKER_SHRAPNEL_DAMAGE: float = 0.1
@@ -272,8 +274,16 @@ const BREAKER_SHRAPNEL_COUNT_MULTIPLIER: float = 10.0
 ## Breaker shrapnel scene path.
 const BREAKER_SHRAPNEL_SCENE_PATH: String = "res://scenes/projectiles/BreakerShrapnel.tscn"
 
+## Minimum travel distance (pixels) before the enemy-cone proximity fuse can trigger (Issue #1634).
+## Prevents immediate detonation when enemies are within the cone at the moment of firing.
+## The wall check is still active from spawn — only the enemy cone is gated.
+const BREAKER_ARMING_DISTANCE: float = 40.0
+
 ## Cached breaker shrapnel scene (loaded once).
 var _breaker_shrapnel_scene: PackedScene = null
+
+## Distance traveled since spawn (used to arm the enemy-cone fuse after BREAKER_ARMING_DISTANCE).
+var _breaker_distance_traveled: float = 0.0
 
 ## Enable/disable debug logging for breaker bullet behavior.
 var _debug_breaker: bool = false
@@ -442,6 +452,10 @@ func _physics_process(delta: float) -> void:
 		# Note: body_exited signal also triggers _exit_penetration for reliability
 		if not _is_still_inside_obstacle():
 			_exit_penetration()
+
+	# Track distance traveled for breaker arming (Issue #1634)
+	if is_breaker_bullet and not _is_penetrating:
+		_breaker_distance_traveled += movement.length()
 
 	# Check for breaker detonation (raycast ahead for walls)
 	if is_breaker_bullet and not _is_penetrating:
@@ -702,12 +716,15 @@ func _on_area_entered(area: Area2D) -> void:
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
 		var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source
+		var attacker_node := _get_shooter_node()
 		if area.has_method("on_hit_with_bullet_info_and_damage"):
 			# Pass full bullet information including damage amount and player kill source
-			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player)
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
+		elif area.has_method("on_hit_with_bullet_info") and _supports_explicit_bullet_damage(area):
+			# Legacy path - preserve damage and pass source data in the correct slots.
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage, from_player, attacker_node)
 		elif area.has_method("on_hit_with_bullet_info"):
-			# Legacy path - pass bullet info without explicit damage (will use default)
-			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player)
+			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated, from_player, attacker_node)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
@@ -987,6 +1004,23 @@ func _is_player_bullet() -> bool:
 		return true
 
 	return false
+
+func _get_shooter_node() -> Node2D:
+	if shooter_id == -1: return null
+	var shooter: Object = instance_from_id(shooter_id)
+	return shooter as Node2D
+
+
+## Returns true for bullet-info receivers that accept an explicit damage argument.
+## Legacy hit areas keep the old six-argument shape where the fifth argument is source data.
+func _supports_explicit_bullet_damage(target: Node) -> bool:
+	if target.has_method("on_hit_with_bullet_info_and_damage"):
+		return true
+	var script := target.get_script()
+	if script == null:
+		return false
+	var path: String = script.resource_path
+	return path.ends_with("player.gd") or path.ends_with("enemy.gd") or path.ends_with("drone.gd")
 
 
 ## Triggers hit effects via the HitEffectsManager autoload.
@@ -1336,8 +1370,13 @@ func set_stun_duration(duration: float) -> void:
 
 ## Sets whether this bullet uses breaker behavior.
 ## NOTE: Call this BEFORE AddChild() so _ready() loads the shrapnel scene.
+## When called on a pooled bullet (after pool_activate), also loads the shrapnel scene
+## because _ready() does not run again on reused pool bullets (Issue #1634).
 func set_is_breaker_bullet(is_breaker: bool) -> void:
 	is_breaker_bullet = is_breaker
+	if is_breaker and _breaker_shrapnel_scene == null:
+		if ResourceLoader.exists(BREAKER_SHRAPNEL_SCENE_PATH):
+			_breaker_shrapnel_scene = load(BREAKER_SHRAPNEL_SCENE_PATH)
 
 
 ## Sets whether this bullet ignores walls (Issue #751).
@@ -1571,49 +1610,79 @@ func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
 # ============================================================================
 
 
-## Checks if a wall or enemy is within BREAKER_DETONATION_DISTANCE ahead.
-## If so, triggers the breaker detonation and returns true.
+## Checks if a wall is within BREAKER_DETONATION_DISTANCE ahead, or if an alive enemy
+## is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
+## when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
 ## @return: True if detonation occurred, false otherwise.
 func _check_breaker_detonation() -> bool:
 	var space_state := get_world_2d().direct_space_state
 	if space_state == null:
 		return false
 
-	# Raycast forward from bullet position
+	# 1. Raycast forward for wall detection (straight ahead only).
 	var ray_start := global_position
 	var ray_end := global_position + direction * BREAKER_DETONATION_DISTANCE
 
-	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
-	# Check against walls/obstacles and characters (enemies)
-	query.collision_mask = collision_mask
-	query.exclude = [self]
+	var wall_query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	wall_query.collision_mask = collision_mask
+	wall_query.exclude = [self]
 
-	var result := space_state.intersect_ray(query)
+	var wall_result := space_state.intersect_ray(wall_query)
 
-	if result.is_empty():
-		return false  # Nothing ahead within detonation distance
-
-	# Check if the hit is a wall (StaticBody2D/TileMap) or an alive enemy (CharacterBody2D)
-	var collider: Object = result.collider
-	if collider is StaticBody2D or collider is TileMap:
-		# Wall detected within range — trigger detonation!
-		var detonation_pos := global_position
-		if _debug_breaker:
-			FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating at %s" % [
-				global_position.distance_to(result.position), detonation_pos])
-		_breaker_detonate(detonation_pos)
-		return true
-	elif collider is CharacterBody2D:
-		# Enemy detected — check if alive
-		if collider.has_method("is_alive") and collider.is_alive():
-			var detonation_pos := global_position
+	if not wall_result.is_empty():
+		var collider: Object = wall_result.collider
+		if collider is StaticBody2D or collider is TileMap:
+			# Wall detected within range — trigger detonation!
 			if _debug_breaker:
-				FileLogger.info("[Bullet.Breaker] Enemy %s detected at distance %.1f, detonating at %s" % [
-					collider.name, global_position.distance_to(result.position), detonation_pos])
-			_breaker_detonate(detonation_pos)
+				FileLogger.info("[Bullet.Breaker] Wall detected at distance %.1f, detonating" % [
+					global_position.distance_to(wall_result.position)])
+			_breaker_detonate(global_position)
 			return true
 
-	return false  # Hit something we don't detonate for
+	# 2. Cone sector check for enemies (Issue #1634).
+	# Detonate when an alive enemy is inside the shrapnel cone sector:
+	# distance <= BREAKER_DETONATION_DISTANCE AND angle from bullet direction <= BREAKER_SHRAPNEL_HALF_ANGLE.
+	# Gated by arming distance: the enemy-cone fuse only activates after the bullet has traveled
+	# BREAKER_ARMING_DISTANCE pixels, preventing immediate detonation when enemies are close to the player.
+	if _breaker_distance_traveled >= BREAKER_ARMING_DISTANCE:
+		if _check_enemy_in_shrapnel_cone():
+			return true
+
+	return false  # Nothing triggering detonation
+
+
+## Returns true if any alive enemy is within the shrapnel cone sector ahead
+## AND has clear line of sight from the bullet (no wall in between).
+## The cone is defined by BREAKER_DETONATION_DISTANCE (radius) and
+## BREAKER_SHRAPNEL_HALF_ANGLE (half-angle from the bullet's travel direction).
+## Optimization: uses dot product comparison instead of acos for the angle check.
+## LOS check prevents premature detonation against enemies through walls (Issue #1634).
+func _check_enemy_in_shrapnel_cone() -> bool:
+	var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not (enemy is Node2D):
+			continue
+		var enemy_node := enemy as Node2D
+		if not (enemy_node.has_method("is_alive") and enemy_node.is_alive()):
+			continue
+		var to_enemy: Vector2 = enemy_node.global_position - global_position
+		var dist: float = to_enemy.length()
+		if dist > BREAKER_DETONATION_DISTANCE:
+			continue
+		# Dot product of normalized vectors: equals cos(angle_between).
+		# If cos(angle) >= cos(half_angle), the angle is within the cone.
+		if dist > 0.0 and (to_enemy / dist).dot(direction) >= cos_half_angle:
+			# Only detonate if there is no wall between the bullet and the enemy.
+			# Without this check, bullets detonate against enemies through walls.
+			if not _breaker_has_line_of_sight(global_position, enemy_node.global_position):
+				continue
+			if _debug_breaker:
+				FileLogger.info("[Bullet.Breaker] Enemy %s in shrapnel cone at distance %.1f, detonating" % [
+					enemy_node.name, dist])
+			_breaker_detonate(global_position)
+			return true
+	return false
 
 
 ## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.
@@ -1667,9 +1736,10 @@ func _breaker_apply_explosion_damage(center: Vector2) -> void:
 func _breaker_apply_damage_to(target: Node2D, amount: float) -> void:
 	var hit_direction := (target.global_position - global_position).normalized()
 	var from_player: bool = _is_player_bullet()  # Issue #1196: track kill source for unlock conditions
+	var attacker_node := _get_shooter_node()
 
 	if target.has_method("on_hit_with_bullet_info_and_damage"):
-		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player)
+		target.on_hit_with_bullet_info_and_damage(hit_direction, null, false, false, amount, from_player, attacker_node)
 	elif target.has_method("on_hit_with_info"):
 		target.on_hit_with_info(hit_direction, null)
 	elif target.has_method("on_hit"):
@@ -1770,9 +1840,14 @@ func _is_position_inside_wall(pos: Vector2) -> bool:
 ## Shrapnel count is capped for performance (Issue #678 optimization).
 ## Validates spawn positions to prevent shrapnel spawning behind walls (Issue #740).
 func _breaker_spawn_shrapnel(center: Vector2) -> void:
-	if _breaker_shrapnel_scene == null:
+	# Check if we have a scene OR a pool manager that can provide shrapnel.
+	# When a pooled bullet is reused as a breaker bullet, _reset_state() clears
+	# _breaker_shrapnel_scene. set_is_breaker_bullet() reloads it, but if that
+	# also fails, the pool manager is the last fallback (Issue #1634).
+	var pool_manager_available := get_node_or_null("/root/ProjectilePoolManager") != null
+	if _breaker_shrapnel_scene == null and not pool_manager_available:
 		if _debug_breaker:
-			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null")
+			FileLogger.info("[Bullet.Breaker] Cannot spawn shrapnel: scene is null and no pool manager")
 		return
 
 	# Check global concurrent shrapnel limit
@@ -1823,15 +1898,23 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 		if pool_manager and pool_manager.has_method("get_breaker_shrapnel"):
 			shrapnel = pool_manager.get_breaker_shrapnel()
 			if shrapnel and shrapnel.has_method("pool_activate"):
-				shrapnel.pool_activate(spawn_pos, shrapnel_direction, shooter_id)
-				shrapnel.damage = BREAKER_SHRAPNEL_DAMAGE
-				shrapnel.speed = randf_range(1400.0, 2200.0)
+				shrapnel.pool_activate(
+					spawn_pos,
+					shrapnel_direction,
+					shooter_id,
+					BREAKER_SHRAPNEL_DAMAGE,
+					randf_range(1400.0, 2200.0)
+				)
 				spawned_count += 1
 				continue  # Shrapnel is ready, skip to next
 
 		# Fallback to instantiation
+		if _breaker_shrapnel_scene == null:
+			skipped_count += 1
+			continue
 		shrapnel = _breaker_shrapnel_scene.instantiate()
 		if shrapnel == null:
+			skipped_count += 1
 			continue
 
 		# Set shrapnel properties
@@ -1860,6 +1943,9 @@ func _breaker_spawn_shrapnel(center: Vector2) -> void:
 ## Whether this bullet is currently pooled (inactive).
 var _is_pooled: bool = false
 
+## Whether this bullet was created by ProjectilePoolManager.
+var _pool_managed: bool = false
+
 ## Original speed value for reset.
 var _original_speed: float = 2500.0
 
@@ -1871,6 +1957,8 @@ var _original_speed: float = 2500.0
 ## @param shooter: Instance ID of the shooter (for self-damage prevention).
 ## @param caliber: Optional caliber data resource.
 func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource = null) -> void:
+	_pool_managed = true
+
 	# Reset all state to defaults
 	_reset_state()
 
@@ -1900,7 +1988,7 @@ func pool_activate(pos: Vector2, dir: Vector2, shooter: int, caliber: Resource =
 
 ## Deactivates the bullet and prepares it for return to the pool.
 ## Call this instead of queue_free() when using pooling.
-func pool_deactivate() -> void:
+func pool_deactivate(return_to_manager: bool = true) -> void:
 	if _is_pooled:
 		return
 
@@ -1923,9 +2011,10 @@ func pool_deactivate() -> void:
 	_position_history.clear()
 
 	# Return to pool manager
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager and pool_manager.has_method("return_bullet"):
-		pool_manager.return_bullet(self)
+	if return_to_manager and _pool_managed:
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("return_bullet"):
+			pool_manager.return_bullet(self)
 
 
 ## Resets all bullet state to defaults for reuse.
@@ -1960,6 +2049,7 @@ func _reset_state() -> void:
 	# Reset breaker state
 	is_breaker_bullet = false
 	_breaker_shrapnel_scene = null
+	_breaker_distance_traveled = 0.0
 
 	# Reset stun
 	stun_duration = 0.0
@@ -1977,15 +2067,25 @@ func is_pooled() -> bool:
 	return _is_pooled
 
 
+## Marks this projectile as owned by ProjectilePoolManager.
+func set_pool_managed(managed: bool) -> void:
+	_pool_managed = managed
+
+
+## Returns whether this projectile belongs to ProjectilePoolManager.
+func is_pool_managed() -> bool:
+	return _pool_managed
+
+
 ## Destroys the bullet using pooling when available, otherwise queue_free.
 ## This method should be used instead of direct queue_free() calls for proper pooling.
 func _destroy() -> void:
 	if _is_pooled:
 		return  # Already pooled
 
-	# Try to use pooling if pool manager is available
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager:
+	# Only bullets created by ProjectilePoolManager can return to the generic pool.
+	# Weapon-instantiated bullets such as Bullet9mm.tscn must be freed normally.
+	if _pool_managed and get_node_or_null("/root/ProjectilePoolManager"):
 		pool_deactivate()
 	else:
 		queue_free()
@@ -2205,7 +2305,8 @@ func on_hit_with_info(_hit_direction: Vector2, _caliber: Resource) -> void:
 
 ## RPG rocket: variant accepting full bullet info including damage amount (Issue #1133).
 func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
-		_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
+		_ricocheted: bool, _penetrated: bool, _dmg: float, _from_player: bool = false,
+		_attacker_node: Node2D = null) -> void:
 	on_hit()
 
 

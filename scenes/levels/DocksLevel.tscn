@@ -919,43 +919,13 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="LoadingDock_Rifle1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(3650, 1550)
-behavior_mode = 0
-weapon_type = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="LoadingDock_Rifle2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(4050, 1600)
+[node name="LoadingDock_ArmoredSkin" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(3950, 1650)
 behavior_mode = 1
-weapon_type = 0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
-
-[node name="LoadingDock_UZI" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(4350, 1700)
-behavior_mode = 0
-weapon_type = 2
-patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="LoadingDock_Machete" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(3850, 1800)
-behavior_mode = 1
-weapon_type = 3
-move_speed = 250.0
-combat_move_speed = 380.0
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-min_health = 3
-max_health = 5
+has_armored_skin = true
 
 [node name="ContainerYardB_Rifle" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(350, 2850)
@@ -1015,23 +985,6 @@ enable_flanking = true
 enable_cover = true
 grenade_throw_cooldown = 3.0
 
-[node name="OpenArea_Patrol1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1800, 700)
-behavior_mode = 0
-weapon_type = 0
-patrol_offsets = Array[Vector2]([Vector2(300, 0), Vector2(-300, 0)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="OpenArea_Patrol2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2200, 2700)
-behavior_mode = 0
-weapon_type = 0
-patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
 
 [node name="RainEffect" parent="." instance=ExtResource("6_rain_effect")]
 z_index = 100
@@ -1081,7 +1034,7 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 20"
+text = "Enemies: 15"
 horizontal_alignment = 2
 
 [node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]

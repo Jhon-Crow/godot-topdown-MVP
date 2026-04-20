@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/LabyrinthLevel.tscn"
 ## Labyrinth level scene for the Godot Top-Down Template.
 ##
 ## This scene is a labyrinth of technical rooms (enclosed spaces).
@@ -40,6 +42,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -152,6 +156,18 @@ const TUTORIAL_HINT_SCOPE := "scope"  ## Sniper scope RMB hint (Issue #998)
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const TUTORIAL_HINT_SPACING: float = 60.0
 
+## Fixed width of the hint RichTextLabel (Issue #1881).
+## Setting an explicit width is required so Godot's RichTextLabel computes word-wrap
+## and content height correctly — without it get_content_height() returns 0.
+const TUTORIAL_HINT_WIDTH: float = 300.0
+
+## Minimum hint label height in pixels before measured content is known (Issue #1881).
+const TUTORIAL_HINT_MIN_HEIGHT: float = 30.0
+
+## Clearance in pixels between the player sprite and the bottom of the lowest hint (Issue #1881).
+## Ensures hints never cover the player even when the grenade hint wraps to 4 lines.
+const TUTORIAL_HINT_PLAYER_CLEARANCE: float = 120.0
+
 ## Issue #944: Animation timing constants for hint fade-in, strikethrough, and fade-out.
 const TUTORIAL_HINT_FADE_IN_DURATION := 0.3
 const TUTORIAL_HINT_STRIKETHROUGH_DURATION := 0.4
@@ -168,6 +184,9 @@ var _tutorial_hint_strike_lines: Dictionary = {}
 ## Progress increases as each step completes; used to animate Line2D extension.
 var _tutorial_hint_strike_progress: Dictionary = {}
 
+## Active strikethrough tween per hint, so rollback can cancel an older forward animation.
+var _tutorial_hint_strike_tweens: Dictionary = {}
+
 ## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
 ## Multi-line hints need multiple Line2D segments, one per line.
 var _tutorial_hint_line_counts: Dictionary = {}
@@ -176,6 +195,12 @@ var _tutorial_hint_line_counts: Dictionary = {}
 ## Each entry is the rendered pixel width of the corresponding text line,
 ## so strikethrough lines match the actual text length instead of the label width.
 var _tutorial_hint_line_widths: Dictionary = {}
+
+## Issue #1881: Track last observed rendered height of each hint (hint_key -> float).
+## Seeded from _estimate_tutorial_hint_height() at creation so the first-frame placement
+## is realistic even before layout runs; updated from get_content_height() every frame
+## so multi-line hints (e.g. the 4-line grenade hint) don't overlap hints below them.
+var _tutorial_hint_heights: Dictionary = {}
 
 ## Number of shots fired (Issue #945: reload hint appears after 2 shots).
 var _tutorial_shots_fired: int = 0
@@ -192,11 +217,18 @@ var _tutorial_shotgun_full_reload_active: bool = false
 ## Whether M16 fire-mode [B] hint should appear after grenade training (Bug fix round 5).
 var _tutorial_m16_needs_fire_mode_hint: bool = false
 
-## Grenade hint step (Bug fix round 5): 0=arm, 1=G held, 2=G released.
+## Grenade hint step (Issue #1818 / PR review feedback): 0..5 map to the effective actions.
 var _tutorial_grenade_hint_step: int = 0
 
 ## Whether G key was held last frame (for grenade hint step tracking).
 var _tutorial_grenade_g_was_held: bool = false
+var _tutorial_grenade_drag_completed: bool = false
+var _tutorial_grenade_rmb_held_after_release: bool = false
+var _tutorial_grenade_rmb_was_pressed: bool = false
+var _tutorial_grenade_hint_drag_start: Vector2 = Vector2.ZERO
+
+## Whether the shotgun full-reload tutorial reached the shell-loading phase.
+var _tutorial_shotgun_reload_started: bool = false
 
 ## Unique colors per hint type (Issue #945: simultaneously displayed hints should be different colors).
 const TUTORIAL_HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green — reload
@@ -231,9 +263,6 @@ func _ready() -> void:
 	print("Clear all rooms to win!")
 	print("Press Q for quick restart")
 
-	# Setup navigation mesh for enemy pathfinding
-	_setup_navigation()
-
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
 
@@ -243,6 +272,9 @@ func _ready() -> void:
 
 	# Find and setup player tracking
 	_setup_player_tracking()
+
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 
 	# Setup debug UI
 	_setup_debug_ui()
@@ -272,6 +304,10 @@ func _ready() -> void:
 
 	# Start replay recording
 	_start_replay_recording()
+
+	# Build the navigation mesh after HUD/player/enemy setup so expensive baking
+	# cannot leave startup counters at their default values.
+	call_deferred("_setup_navigation")
 
 
 ## Initialize the ScoreManager for this level.
@@ -660,15 +696,26 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Returns a color based on the current combo count.
@@ -690,6 +737,33 @@ func _get_combo_color(combo: int) -> Color:
 
 
 ## Setup the navigation mesh for enemy pathfinding.
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## LabyrinthLevel map: ~2016x1176 px playfield framed by 32 px walls.
+##   WallTop    (1008,   32), h=16  → bottom edge y=48   → limit_top    = 48
+##   WallBottom (1008, 1144), h=16  → top edge   y=1128  → limit_bottom = 1128
+##   WallLeft   (  32,  588), w=16  → right edge x=48    → limit_left   = 48
+##   WallRight  (1984,  588), w=16  → left edge  x=1968  → limit_right  = 1968
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[LabyrinthLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   48   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 1128   # WallBottom top edge
+	const LIMIT_LEFT: int   =   48   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 1968   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
+
+
 func _setup_navigation() -> void:
 	var nav_region: NavigationRegion2D = get_node_or_null("NavigationRegion2D")
 	if nav_region == null:
@@ -702,6 +776,8 @@ func _setup_navigation() -> void:
 	# Issue #1289: wait for physics frame so CollisionShape2D nodes are registered
 	# with PhysicsServer2D before parsing source geometry for navmesh carving.
 	await get_tree().physics_frame
+	if not is_inside_tree() or not is_instance_valid(nav_region):
+		return
 	# Issue #1289: explicit parse+bake so all wall StaticBody2D nodes are found.
 	print("Baking navigation mesh...")
 	var source_geometry: NavigationMeshSourceGeometryData2D = NavigationMeshSourceGeometryData2D.new()
@@ -723,6 +799,9 @@ func _setup_player_tracking() -> void:
 	# Setup realistic visibility component
 	_setup_realistic_visibility()
 
+	# Find the ammo label before selected weapon setup so config-time HUD refreshes work.
+	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
 
@@ -730,30 +809,13 @@ func _setup_player_tracking() -> void:
 	if GameManager:
 		GameManager.set_player(_player)
 
-	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
-
 	# Connect to player death signal
 	if _player.has_signal("died"):
 		_player.died.connect(_on_player_died)
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	# Try to get the player's weapon for C# Player
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
@@ -768,8 +830,9 @@ func _setup_player_tracking() -> void:
 			weapon.ShotFired.connect(_on_tutorial_weapon_fired)
 		if weapon.has_signal("ShellCountChanged"):
 			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+		if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
@@ -887,20 +950,69 @@ func _setup_enemy_tracking() -> void:
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else "makarov_pm"
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "MakarovPM")
+	return _player.get_node_or_null(expected_name)
+
+
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
+
+
 ## Configure silenced pistol ammo based on enemy count.
 func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			print("[LabyrinthLevel] Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
+		print("[LabyrinthLevel] Configured silenced pistol ammo for %d enemies" % enemy_count)
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "silenced pistol config")
 
 
 ## Configure Makarov PM ammo - 2.5x magazines (Issue #636).
@@ -916,16 +1028,16 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 		starting_magazines = weapon.StartingMagazineCount
 
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		print("[LabyrinthLevel] Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		print("[LabyrinthLevel] 2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
 
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+		_refresh_weapon_hud(weapon, "makarov config")
 
 	# Reapply auto-reload magazine size reduction if active (Issue #1067).
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
@@ -936,6 +1048,16 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 ## Silenced pistol: exactly as many bullets as enemies.
 ## Mini UZI and rifles: 2 magazines to match level difficulty.
 ## Shotgun, sniper, revolver: defaults are sufficient for 5 enemies.
+##
+## Issue #1774 fix: magazine sizes are now passed explicitly to ReinitializeMagazines so
+## that ammo initialisation succeeds even when WeaponData is null (first-load C# resource
+## race where the [GlobalClass] WeaponData type is not yet registered by Godot).
+const _MAGAZINE_SIZES: Dictionary = {
+	"mini_uzi": 32,   ## MiniUziData.tres MagazineSize = 32
+	"m16": 30,        ## AssaultRifleData.tres MagazineSize = 30
+	"ak_gl": 30,      ## AKGLData.tres MagazineSize = 30
+}
+
 func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 	if weapon == null:
 		return
@@ -951,17 +1073,17 @@ func _configure_labyrinth_weapon_ammo(weapon: Node, weapon_id: String) -> void:
 				base_magazines *= ammo_multiplier
 				print("[LabyrinthLevel] Power Fantasy mode - %s magazines multiplied by %dx" % [weapon.name, ammo_multiplier])
 		if weapon.has_method("ReinitializeMagazines"):
-			weapon.ReinitializeMagazines(base_magazines, true)
-			print("[LabyrinthLevel] %s magazines reinitialized to %d" % [weapon.name, base_magazines])
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
+			# Issue #1774: pass explicit magazine size so ReinitializeMagazines works even when
+			# WeaponData is null due to first-load C# resource race condition.
+			var mag_size: int = _MAGAZINE_SIZES.get(weapon_id, 30)
+			weapon.ReinitializeMagazines(base_magazines, mag_size, true)
+			print("[LabyrinthLevel] %s magazines reinitialized to %d x %d rounds" % [weapon.name, base_magazines, mag_size])
+		_refresh_weapon_hud(weapon, "labyrinth ammo config")
 
 	if _player != null and _player.has_method("ApplyAutoReloadAfterLevelAmmoConfig"):
 		_player.ApplyAutoReloadAfterLevelAmmoConfig()
 		_log_to_file("Re-applied auto-reload magazine reduction after ammo config for %s" % weapon_id)
+	_refresh_weapon_hud(weapon, "post level ammo config")
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -969,10 +1091,12 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -982,7 +1106,7 @@ func _setup_debug_ui() -> void:
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -990,17 +1114,22 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -1026,7 +1155,7 @@ func _update_debug_ui() -> void:
 		return
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Called when an enemy dies.
@@ -1044,7 +1173,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -1256,7 +1385,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1271,7 +1400,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -1286,39 +1415,20 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
+	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
-		else:
-			parts.append("%d" % ammo)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Show death message when player dies.
@@ -1997,12 +2107,14 @@ func _setup_tutorial_hints() -> void:
 	if _tutorial_has_revolver:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK, "[color=#ff4444][ПКМ][/color] Взведи курок", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_HAMMER_COCK,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"), canvas_layer)
 	# Issue #998: Show scope hint from the very start for sniper rifle.
 	if _tutorial_has_sniper_rifle:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if canvas_layer:
-			_add_tutorial_hint(TUTORIAL_HINT_SCOPE, "[color=#ff4444][ПКМ][/color] Прицелься через оптику", canvas_layer)
+			_add_tutorial_hint(TUTORIAL_HINT_SCOPE,
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"), canvas_layer)
 
 
 ## Called when player's weapon fires a shot (Issue #945).
@@ -2044,7 +2156,7 @@ func _reveal_tutorial_bolt_cycle_hint() -> void:
 		# Bug fix round 4: show pump-action hint (open/close bolt between shots), NOT full reload.
 		if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 			_add_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE,
-				"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор",
+				_build_tutorial_shotgun_pump_hint_bbcode(1),
 				canvas_layer)
 
 
@@ -2103,37 +2215,39 @@ func _build_tutorial_reload_hint_bbcode(step: int, total: int) -> String:
 		return ""
 
 	if _tutorial_has_makarov_pm or (not _tutorial_has_sniper_rifle and total <= 2):
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Makarov PM / 2-step reload: R -> R
 		# step=0 → next is R (first); step=1 → next is R (second); step=2 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to 25%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.25)
-				return "[color=#888888][R][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to cover both [R] keys (~50%)
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [R][/color] Перезарядись"
+				return "[color=#888888][R] [R][/color] " + reload_word
 	else:
+		var reload_word := tr("HINT_RELOAD_WORD")
 		# Standard 3-step reload: R -> F -> R
 		# step=0 → next is R; step=1 → next is F; step=2 → next is R (final); step=3 → done
 		match step:
 			0:
-				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] Перезарядись"
+				return "[color=#ff4444][R][/color] [color=#888888][F] [R][/color] " + reload_word
 			1:
 				# Step 1 completed: extend strikethrough to ~17%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.17)
-				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] Перезарядись"
+				return "[color=#888888][R][/color] [color=#ff4444][F][/color] [color=#888888][R][/color] " + reload_word
 			2:
 				# Step 2 completed: extend strikethrough to ~33%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.33)
-				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] Перезарядись"
+				return "[color=#888888][R] [F][/color] [color=#ff4444][R][/color] " + reload_word
 			_:
 				# All steps done: extend strikethrough to ~50%
 				_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_RELOAD, 0.5)
-				return "[color=#888888][R] [F] [R][/color] Перезарядись"
+				return "[color=#888888][R] [F] [R][/color] " + reload_word
 
 
 ## Get the unique color for a tutorial hint by its key (Issue #945).
@@ -2176,9 +2290,7 @@ func _add_tutorial_reload_hints(canvas_layer: Node) -> void:
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 3), canvas_layer)
 	elif _tutorial_has_revolver:
 		# Revolver: cylinder reload hint. Hammer-cock hint is shown from start (Bug fix #3).
-		_add_tutorial_hint(TUTORIAL_HINT_RELOAD,
-			"[color=#ff4444][R открыть][/color] [color=#888888][ПКМ↑ патрон] [скролл] [R закрыть][/color]",
-			canvas_layer)
+		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_revolver_reload_hint_bbcode(0), canvas_layer)
 	elif _tutorial_has_makarov_pm:
 		# Makarov PM uses simplified R->R reload. Initial text = step 0.
 		_add_tutorial_hint(TUTORIAL_HINT_RELOAD, _build_tutorial_reload_hint_bbcode(0, 2), canvas_layer)
@@ -2293,6 +2405,7 @@ func _on_tutorial_reload_completed() -> void:
 		if _tutorial_has_shotgun:
 			_dismiss_tutorial_hint(TUTORIAL_HINT_BOLT_CYCLE)
 			_tutorial_shotgun_full_reload_active = false  # Bug fix round 5: reset flag
+			_tutorial_shotgun_reload_started = false
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		# Bug fix round 5: M16 fire-mode [B] hint should appear after grenade, not now.
 		if _tutorial_assault_rifle != null and not _tutorial_has_ak_gl:
@@ -2302,7 +2415,7 @@ func _on_tutorial_reload_completed() -> void:
 		# This prevents the GL hint and grenade hint from appearing simultaneously (overlap bug).
 		if _tutorial_has_ak_gl and canvas_layer and _tutorial_ak_gl_has_round_loaded():
 			_add_tutorial_hint(TUTORIAL_HINT_GRENADE_LAUNCHER,
-				"[color=#ff4444][ПКМ][/color] Выстрели подствольным гранатомётом", canvas_layer)
+				"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"), canvas_layer)
 			# Do NOT advance to THROW_GRENADE yet — wait for GL to fire (_on_tutorial_grenade_launcher_fired).
 			return
 		if _tutorial_has_thrown_grenade:
@@ -2314,8 +2427,7 @@ func _on_tutorial_reload_completed() -> void:
 			# Bug fix #9 (round 4 fix): use GetCurrentGrenades() method for reliable check.
 			if _tutorial_player_has_grenades():
 				if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-					_tutorial_grenade_hint_step = 0
-					_tutorial_grenade_g_was_held = false
+					_reset_tutorial_grenade_hint_tracking()
 					_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 						_build_tutorial_grenade_hint_bbcode(0),
 						canvas_layer)
@@ -2342,8 +2454,7 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 		var canvas_layer := get_node_or_null("CanvasLayer")
 		if _tutorial_player_has_grenades():
 			if canvas_layer and not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-				_tutorial_grenade_hint_step = 0
-				_tutorial_grenade_g_was_held = false
+				_reset_tutorial_grenade_hint_tracking()
 				_add_tutorial_hint(TUTORIAL_HINT_GRENADE,
 					_build_tutorial_grenade_hint_bbcode(0),
 					canvas_layer)
@@ -2353,40 +2464,128 @@ func _on_tutorial_grenade_launcher_fired() -> void:
 			_dismiss_all_tutorial_hints()
 
 
-## Build BBCode for the grenade throw hint with step-based highlighting (Bug fix round 5).
-## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
+## Build BBCode for the grenade throw hint with the reviewed issue #1818 steps.
+func _get_tutorial_grenade_hint_actions() -> Array:
+	return [
+		"[%s]" % tr("HINT_GRENADE_HOLD_G_RMB"),
+		"[%s]" % tr("HINT_GRENADE_DRAG_RIGHT"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_RMB"),
+		"[%s]" % tr("HINT_GRENADE_HOLD_RMB"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_G"),
+		"[%s]" % tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+	]
+
+
+func _get_tutorial_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+	if completed_actions <= 0 or actions.is_empty():
+		return 0.0
+	var all_actions := PackedStringArray()
+	for action in actions:
+		all_actions.append(str(action))
+	var total_text := " ".join(all_actions)
+	if total_text.is_empty():
+		return 0.0
+
+	var completed := PackedStringArray()
+	var completed_count := mini(completed_actions, actions.size())
+	for i in range(completed_count):
+		completed.append(str(actions[i]))
+	return float(" ".join(completed).length()) / float(total_text.length())
+
+
 func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
-	match step:
-		0:
-			return "[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]"
-		1:
-			# First step completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.25)
-			return "[color=#888888][G+ПКМ вправо][/color] [color=#ff4444][G+ПКМ→отпусти G][/color] [color=#888888][ПКМ бросок][/color]"
-		2:
-			# First two steps completed
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.6)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G][/color] [color=#ff4444][ПКМ бросок][/color]"
-		_:
-			# All steps done
-			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE, 0.85)
-			return "[color=#888888][G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок][/color]"
+	var parts := _get_tutorial_grenade_hint_actions()
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	_extend_tutorial_hint_strikethrough(
+		TUTORIAL_HINT_GRENADE,
+		_get_tutorial_grenade_hint_strikethrough_progress(clamped_step, parts)
+	)
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
 
 
-## Update the grenade hint step based on current input (Bug fix round 5).
+func _reset_tutorial_grenade_hint_tracking() -> void:
+	_tutorial_grenade_g_was_held = false
+	_tutorial_grenade_hint_step = 0
+	_tutorial_grenade_drag_completed = false
+	_tutorial_grenade_rmb_held_after_release = false
+	_tutorial_grenade_rmb_was_pressed = false
+	_tutorial_grenade_hint_drag_start = Vector2.ZERO
+
+
+func _reset_tutorial_grenade_hint_to_start() -> void:
+	_reset_tutorial_grenade_hint_tracking()
+	if _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
+		var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
+		if is_instance_valid(label):
+			label.text = _build_tutorial_grenade_hint_bbcode(0)
+	_reset_tutorial_hint_strikethrough(TUTORIAL_HINT_GRENADE)
+
+
+## Update the grenade hint step based on current input (Issue #1818).
 func _update_tutorial_grenade_hint_step() -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_GRENADE):
-		_tutorial_grenade_g_was_held = false
-		_tutorial_grenade_hint_step = 0
+		_reset_tutorial_grenade_hint_tracking()
 		return
 
+	var grenade_state := 0
+	if _player != null and _player.has_method("GetGrenadeState"):
+		grenade_state = int(_player.GetGrenadeState())
 	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := get_global_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _tutorial_grenade_rmb_was_pressed
 
-	if _tutorial_grenade_hint_step == 0 and g_pressed:
+	if grenade_state == 0 and _tutorial_grenade_hint_step > 0:
+		var awaiting_pin_state := (
+			_tutorial_grenade_hint_step == 2
+			and g_pressed
+			and not rmb_pressed
+			and _tutorial_grenade_drag_completed
+			and _tutorial_grenade_rmb_was_pressed
+		)
+		if not ((g_pressed and rmb_pressed and _tutorial_grenade_hint_step <= 2) or awaiting_pin_state):
+			_reset_tutorial_grenade_hint_to_start()
+	elif grenade_state == 1 and _tutorial_grenade_hint_step > 3:
+		_reset_tutorial_grenade_hint_to_start()
+	elif _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _tutorial_grenade_rmb_was_pressed:
+			_reset_tutorial_grenade_hint_to_start()
+	elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _tutorial_grenade_drag_completed:
+		_reset_tutorial_grenade_hint_to_start()
+	elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_to_start()
+	elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_tutorial_grenade_hint_to_start()
+	elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _tutorial_grenade_rmb_held_after_release:
+		_reset_tutorial_grenade_hint_to_start()
+
+	if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+		_tutorial_grenade_drag_completed = false
+		_tutorial_grenade_hint_drag_start = current_mouse_pos
+
+	if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
+		if current_mouse_pos.x - _tutorial_grenade_hint_drag_start.x > 20.0:
+			_tutorial_grenade_drag_completed = true
+			_tutorial_grenade_hint_step = 2
+
+	if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
 		_tutorial_grenade_hint_step = 1
 		_tutorial_grenade_g_was_held = true
-	elif _tutorial_grenade_hint_step == 1 and not g_pressed and _tutorial_grenade_g_was_held:
-		_tutorial_grenade_hint_step = 2
+	elif _tutorial_grenade_hint_step == 2 and _tutorial_grenade_drag_completed and not rmb_pressed and grenade_state >= 1:
+		_tutorial_grenade_hint_step = 3
+	elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed and grenade_state >= 1:
+		_tutorial_grenade_rmb_held_after_release = true
+		_tutorial_grenade_hint_step = 4
+	elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _tutorial_grenade_rmb_held_after_release and grenade_state >= 2:
+		_tutorial_grenade_hint_step = 5
 		_tutorial_grenade_g_was_held = false
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_GRENADE]
@@ -2394,6 +2593,8 @@ func _update_tutorial_grenade_hint_step() -> void:
 		var new_text := _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 		if label.text != new_text:
 			label.text = new_text
+
+	_tutorial_grenade_rmb_was_pressed = rmb_pressed
 
 
 ## Called when player throws a grenade — dismisses grenade hint (Issue #808).
@@ -2470,7 +2671,7 @@ func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
 		var progress := float(step) * 0.125  # 12.5% per step
 		_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, progress)
 
-	return " ".join(parts) + " Передёрни затвор"
+	return " ".join(parts) + " " + tr("HINT_BOLT_ACTION_WORD")
 
 
 ## Build BBCode for shotgun reload hint with dynamic shell count (Bug fix #7).
@@ -2547,16 +2748,17 @@ func _on_tutorial_shotgun_action_state_changed(new_state: int) -> void:
 ## state=1 (NeedsPumpUp): highlight drag-up; state=2 (NeedsPumpDown): highlight drag-down.
 ## Issue #944: Strikethrough is now animated via Line2D, not BBCode [s] tags.
 func _build_tutorial_shotgun_pump_hint_bbcode(state: int) -> String:
+	var bolt_word := tr("HINT_BOLT_ACTION_WORD")
 	match state:
 		1:  # NeedsPumpUp (nothing completed yet)
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
 		2:  # NeedsPumpDown (pump-up completed)
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
 		_:
 			# Both completed
 			_extend_tutorial_hint_strikethrough(TUTORIAL_HINT_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] Передёрни затвор"
+			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
 
 
 ## Called when the shotgun's reload state changes (full shell-by-shell reload).
@@ -2570,10 +2772,21 @@ func _on_tutorial_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _tutorial_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
 		return
 
-	# state=0 means reload is fully complete (bolt closed) — treat as reload done.
+	if new_state >= 2:
+		_tutorial_shotgun_reload_started = true
+
+	# state=0 is only a completed reload if the player actually reached the shell-loading phase.
+	# If the state returns to 0 from the initial open-bolt step, the player canceled the reload and
+	# the hint should roll back to its initial state instead of completing the tutorial.
 	if new_state == 0:
-		print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
-		_on_tutorial_reload_completed()
+		if _tutorial_shotgun_reload_started:
+			print("[LabyrinthLevel] Shotgun reload completed via ReloadStateChanged(0)")
+			_on_tutorial_reload_completed()
+		else:
+			var label_reset: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
+			if is_instance_valid(label_reset):
+				label_reset.text = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+		_tutorial_shotgun_reload_started = false
 		return
 
 	var label: RichTextLabel = _tutorial_hints[TUTORIAL_HINT_BOLT_CYCLE]
@@ -2622,14 +2835,17 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	label.name = "TutorialHint_" + hint_key
 	label.bbcode_enabled = true
 	label.text = text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("normal_font_size", 20)
 	# Issue #945: unique color per hint type for easy differentiation
 	label.add_theme_color_override("default_color", _get_tutorial_hint_color(hint_key))
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.custom_minimum_size = Vector2(300, 30)
+	label.custom_minimum_size = Vector2(TUTORIAL_HINT_WIDTH, TUTORIAL_HINT_MIN_HEIGHT)
+	# Issue #1881: set explicit width so RichTextLabel computes word-wrap and content height
+	# before the first layout frame — otherwise get_content_height() returns 0 and multi-line
+	# hints (grenade: 4 lines) are placed as if they were 1 line, overlapping the player sprite.
+	label.size = Vector2(TUTORIAL_HINT_WIDTH, TUTORIAL_HINT_MIN_HEIGHT)
 	label.fit_content = true
 	label.scroll_active = false
 
@@ -2643,17 +2859,20 @@ func _add_tutorial_hint(hint_key: String, text: String, canvas_layer: Node) -> v
 	_tutorial_hint_strike_lines[hint_key] = []
 	_tutorial_hint_strike_progress[hint_key] = 0.0
 
+	# Issue #1881: Seed tracked height from a BBCode-aware text estimate so the first-frame
+	# placement is realistic before layout runs. Avoids stale-zero from get_content_height().
+	_tutorial_hint_heights[hint_key] = maxf(_estimate_tutorial_hint_height(text), TUTORIAL_HINT_MIN_HEIGHT)
+
 	# Session 5: Calculate line count and create one Line2D per text line after layout.
 	# Font size 20 with default line spacing gives ~26px per line.
 	# We need to wait a frame for RichTextLabel to calculate its content size.
 	_setup_tutorial_strikethrough_lines.call_deferred(hint_key, label)
 
-	# Position immediately
-	var index := _tutorial_hints.size() - 1
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
-	var screen_pos: Vector2 = canvas_transform * (_player.global_position if _player else Vector2.ZERO)
-	label.custom_minimum_size = Vector2(300, 30)
-	label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
+	# Issue #1881: bottom-align the new hint above the player using the tracked heights of all
+	# already-shown hints, so a multi-line hint grows upward instead of overlapping the player.
+	_update_tutorial_hint_positions()
+	# Re-position once layout has run so content heights are accurate for multi-line hints.
+	_update_tutorial_hint_positions.call_deferred()
 
 	# Issue #944: Animate fade-in
 	var tween := create_tween()
@@ -2669,12 +2888,11 @@ func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel)
 	if not is_instance_valid(label):
 		return
 
-	# Get font metrics. Font size is 20, typical line height with spacing is ~26px.
-	const LINE_HEIGHT := 26.0  # Font size + default line spacing
-
-	# Calculate number of lines based on content height vs line height.
+	# Issue #1890: Use get_line_count() for the actual rendered line count instead of
+	# estimating from content_height / constant, which overcounts when the real line
+	# height differs from the hard-coded value and shifts strikethroughs above the text.
 	var content_height := label.get_content_height()
-	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	var line_count := maxi(1, label.get_line_count())
 	_tutorial_hint_line_counts[hint_key] = line_count
 
 	# Issue #1080: Compute per-line text widths using font metrics.
@@ -2708,10 +2926,11 @@ func _setup_tutorial_strikethrough_lines(hint_key: String, label: RichTextLabel)
 	_tutorial_hint_line_widths[hint_key] = line_widths
 
 	# Create one Line2D per text line to avoid diagonal connectors between lines.
+	var actual_line_height := float(content_height) / float(line_count)
 	var lines: Array = []
 	for line_idx in range(line_count):
-		# Vertical center of each line: ~55% of line height.
-		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		# Vertical center of each line: 50% of actual line height.
+		var line_y := line_idx * actual_line_height + actual_line_height * 0.5
 		var seg := Line2D.new()
 		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
 		seg.width = 1.5
@@ -2739,8 +2958,10 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 		return
 
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
-	if target_progress <= current_progress:
-		return  # Already at or past this progress
+	if is_equal_approx(target_progress, current_progress):
+		return  # Already at this progress
+	if target_progress < current_progress and hint_key != TUTORIAL_HINT_GRENADE:
+		return  # Existing non-grenade hints only advance forward.
 
 	# Issue #1080: Use per-line widths if available, otherwise fall back to content width.
 	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
@@ -2761,15 +2982,43 @@ func _extend_tutorial_hint_strikethrough(hint_key: String, target_progress: floa
 	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
 
 	# Animate the line extension from current position to new position.
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+
 	var tween := create_tween()
+	_tutorial_hint_strike_tweens[hint_key] = tween
 	tween.tween_method(
 		func(progress: float):
 			_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, progress),
 		current_progress, target_progress, TUTORIAL_HINT_STRIKETHROUGH_DURATION * 0.5
 	).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func():
+		if _tutorial_hint_strike_tweens.get(hint_key) == tween:
+			_tutorial_hint_strike_tweens.erase(hint_key)
+	)
 
 	_tutorial_hint_strike_progress[hint_key] = target_progress
 	print("[LabyrinthLevel] Strikethrough extended for '%s': %.0f%% -> %.0f%%" % [hint_key, current_progress * 100, target_progress * 100])
+
+
+func _reset_tutorial_hint_strikethrough(hint_key: String) -> void:
+	if not _tutorial_hint_strike_progress.has(hint_key):
+		return
+
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_tutorial_hint_strike_tweens.erase(hint_key)
+
+	_tutorial_hint_strike_progress[hint_key] = 0.0
+	var strike_lines: Array = _tutorial_hint_strike_lines.get(hint_key, [])
+	var line_count: int = _tutorial_hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _tutorial_hint_line_widths.get(hint_key, [])
+	if not strike_lines.is_empty():
+		_update_tutorial_strikethrough_points(strike_lines, line_count, line_widths, 0.0)
 
 
 ## Issue #944 Session 5: Update per-line Line2D end points for multi-line strikethrough.
@@ -2849,6 +3098,12 @@ func _animate_tutorial_hint_strikethrough_and_fade(hint_key: String, label: Rich
 	var current_progress: float = _tutorial_hint_strike_progress.get(hint_key, 0.0)
 
 	# Animate the lines from current position to full width (100%)
+	if _tutorial_hint_strike_tweens.has(hint_key):
+		var previous_tween: Tween = _tutorial_hint_strike_tweens[hint_key]
+		if is_instance_valid(previous_tween):
+			previous_tween.kill()
+		_tutorial_hint_strike_tweens.erase(hint_key)
+
 	var tween := create_tween()
 
 	if not strike_lines.is_empty():
@@ -2869,14 +3124,20 @@ func _finalize_tutorial_hint_dismiss(hint_key: String, label: RichTextLabel) -> 
 	_tutorial_hints.erase(hint_key)
 	_tutorial_hint_strike_lines.erase(hint_key)
 	_tutorial_hint_strike_progress.erase(hint_key)
+	_tutorial_hint_strike_tweens.erase(hint_key)
 	_tutorial_hint_line_counts.erase(hint_key)
 	_tutorial_hint_line_widths.erase(hint_key)
+	_tutorial_hint_heights.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
+	# Issue #1881: Re-pack remaining hints so the vacated slot closes and later hints bubble down.
+	_update_tutorial_hint_positions()
 	print("[LabyrinthLevel] Hint '%s' dismissed (animation complete)" % hint_key)
 
 
 ## Update tutorial hint positions to float above the player.
+## Issue #1881: Stacks hints above the player using tracked content heights so multi-line
+## hints (e.g. the grenade tutorial) never overlap hints below them or the player sprite.
 func _update_tutorial_hint_positions() -> void:
 	if _player == null or _tutorial_hints.is_empty():
 		return
@@ -2884,13 +3145,48 @@ func _update_tutorial_hint_positions() -> void:
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
 
-	var index := 0
+	var cumulative_y: float = 0.0
 	for hint_key in _tutorial_hints:
 		var label: RichTextLabel = _tutorial_hints[hint_key]
 		if is_instance_valid(label):
-			label.custom_minimum_size = Vector2(300, 30)
-			label.position = screen_pos + Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)
-			index += 1
+			label.custom_minimum_size = Vector2(TUTORIAL_HINT_WIDTH, TUTORIAL_HINT_MIN_HEIGHT)
+			# Keep the width fixed so word-wrap is stable frame-to-frame.
+			label.size = Vector2(TUTORIAL_HINT_WIDTH, label.size.y)
+			# Refresh tracked height from measured content once layout has run. Keep the
+			# larger of tracked and measured so transient zeros during animation don't
+			# collapse the stack.
+			var measured: float = label.get_content_height()
+			if measured > TUTORIAL_HINT_MIN_HEIGHT:
+				_tutorial_hint_heights[hint_key] = measured
+				label.size = Vector2(TUTORIAL_HINT_WIDTH, measured)
+			var h: float = _tutorial_hint_heights.get(hint_key, TUTORIAL_HINT_MIN_HEIGHT)
+			label.position = screen_pos + Vector2(
+				-TUTORIAL_HINT_WIDTH * 0.5,
+				-TUTORIAL_HINT_PLAYER_CLEARANCE - cumulative_y - h
+			)
+			cumulative_y += h + TUTORIAL_HINT_SPACING
+
+
+## Estimate rendered height of a hint text before Godot has laid out the RichTextLabel.
+## Issue #1881: RichTextLabel.get_content_height() returns 0 until after the first layout
+## frame because the label must know its width to compute word-wrap. We approximate the
+## wrapped line count from character count so the first-frame position is realistic.
+##
+## Important: only known Godot BBCode tags are stripped — action labels like "[hold G+RMB]"
+## and "[flick mouse right]" used in the grenade hint are LITERAL brackets (not BBCode) and
+## must be counted toward line length. Stripping them would turn the 91-character grenade
+## hint into ~5 characters, yielding a 1-line (26 px) estimate instead of the real 4 lines
+## (~104 px), placing the hint bottom on top of the player sprite.
+func _estimate_tutorial_hint_height(text: String) -> float:
+	const LINE_HEIGHT := 26.0
+	const AVG_CHAR_WIDTH := 10.0  # conservative estimate at font size 20
+	var plain := text
+	var known_bbcode := RegEx.new()
+	known_bbcode.compile("\\[/?(?:color(?:=#[0-9a-fA-F]{3,8})?|b|i|u|s|center|right|left|indent|code|url(?:=[^\\]]*)?|img(?:=[^\\]]*)?|font(?:=[^\\]]*)?|size=\\d+|bgcolor(?:=#[0-9a-fA-F]{3,8})?|fgcolor(?:=#[0-9a-fA-F]{3,8})?)\\]")
+	plain = known_bbcode.sub(plain, "", true)
+	var chars_per_line := int(TUTORIAL_HINT_WIDTH / AVG_CHAR_WIDTH)
+	var lines := maxi(1, int(ceil(float(plain.length()) / float(chars_per_line))))
+	return lines * LINE_HEIGHT
 
 
 ## Log a message to the file logger if available.

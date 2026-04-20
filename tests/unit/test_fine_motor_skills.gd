@@ -32,7 +32,9 @@ class MockActiveItemManager:
 		RECOIL_COMPENSATOR = 16,
 		COMBAT_DISPOSITION = 17,
 		EXPERIMENTAL_SAMPLE = 18,
-		FINE_MOTOR_SKILLS = 19
+		FINE_MOTOR_SKILLS = 19,
+		DASH = 20,
+		GRENADE_BAG = 21
 	}
 
 	var current_active_item: int = ActiveItemType.NONE

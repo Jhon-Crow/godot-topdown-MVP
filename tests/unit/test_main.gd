@@ -3,6 +3,10 @@ extends GutTest
 ##
 ## Tests that the main script follows the expected Node2D pattern
 ## using a mock class.
+##
+## Note: Main.tscn is NOT the startup scene — the project's run/main_scene is
+## LabyrinthLevel.tscn. First-launch difficulty selection (Issue #1734) lives in
+## PersistManager, which runs as an autoload on every startup.
 
 
 # ============================================================================

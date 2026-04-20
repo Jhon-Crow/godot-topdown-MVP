@@ -53,9 +53,6 @@ func _ready() -> void:
 	if _debug:
 		FileLogger.info("[BreakerShrapnel] Spawned at %s, direction: %s, source_id: %d" % [
 			global_position, direction, source_id])
-	# Add to group for global shrapnel count tracking (Issue #678 optimization)
-	add_to_group("breaker_shrapnel")
-
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
@@ -218,15 +215,32 @@ func _get_surface_normal(body: Node2D) -> Vector2:
 ## Whether this shrapnel is currently pooled (inactive).
 var _is_pooled: bool = false
 
+## Whether this shrapnel was created by ProjectilePoolManager.
+var _pool_managed: bool = false
+
 ## Original speed value for reset.
 var _original_speed: float = 1800.0
+
+
+func _set_collision_enabled(enabled: bool) -> void:
+	monitoring = enabled
+	monitorable = enabled
+	set_deferred("monitoring", enabled)
+	set_deferred("monitorable", enabled)
+
+
+func _queue_collision_enabled(enabled: bool) -> void:
+	set_deferred("monitoring", enabled)
+	set_deferred("monitorable", enabled)
 
 
 ## Activates the breaker shrapnel from the pool with the given parameters.
 ## @param pos: Global position to spawn at.
 ## @param dir: Direction of travel.
 ## @param source: Instance ID of the source (bullet shooter) for self-damage prevention.
-func pool_activate(pos: Vector2, dir: Vector2, source: int) -> void:
+func pool_activate(pos: Vector2, dir: Vector2, source: int, shrapnel_damage: float = 0.1, shrapnel_speed: float = 1800.0) -> void:
+	_pool_managed = true
+
 	# Reset all state to defaults
 	_reset_state()
 
@@ -234,6 +248,8 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int) -> void:
 	global_position = pos
 	direction = dir.normalized()
 	source_id = source
+	damage = shrapnel_damage
+	speed = shrapnel_speed
 
 	# Randomize trail noise for unique look
 	_trail_noise_offset = randf() * 100.0
@@ -246,16 +262,15 @@ func pool_activate(pos: Vector2, dir: Vector2, source: int) -> void:
 	visible = true
 	set_physics_process(true)
 	set_process(true)
-
-	# Re-enable collision detection
-	monitoring = true
-	monitorable = true
+	add_to_group("breaker_shrapnel")
 
 	_is_pooled = false
+	_set_collision_enabled(true)
+	call_deferred("_queue_collision_enabled", true)
 
 
 ## Deactivates the breaker shrapnel and prepares it for return to the pool.
-func pool_deactivate() -> void:
+func pool_deactivate(return_to_manager: bool = true) -> void:
 	if _is_pooled:
 		return
 
@@ -267,10 +282,11 @@ func pool_deactivate() -> void:
 
 	# Hide shrapnel
 	visible = false
+	remove_from_group("breaker_shrapnel")
 
-	# Disable collision detection
-	monitoring = false
-	monitorable = false
+	# Disable collision detection after the current physics step. Directly toggling
+	# Area2D monitoring from an overlap callback can corrupt Godot's physics flush.
+	_set_collision_enabled(false)
 
 	# Clear trail
 	if _trail:
@@ -278,9 +294,10 @@ func pool_deactivate() -> void:
 	_position_history.clear()
 
 	# Return to pool manager
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager and pool_manager.has_method("return_breaker_shrapnel"):
-		pool_manager.return_breaker_shrapnel(self)
+	if return_to_manager and _pool_managed:
+		var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
+		if pool_manager and pool_manager.has_method("return_breaker_shrapnel"):
+			pool_manager.return_breaker_shrapnel(self)
 
 
 ## Destroys the breaker shrapnel using pooling when available, otherwise queue_free.
@@ -288,8 +305,7 @@ func _destroy() -> void:
 	if _is_pooled:
 		return
 
-	var pool_manager: Node = get_node_or_null("/root/ProjectilePoolManager")
-	if pool_manager:
+	if _pool_managed and get_node_or_null("/root/ProjectilePoolManager"):
 		pool_deactivate()
 	else:
 		queue_free()
@@ -319,6 +335,16 @@ func _reset_state() -> void:
 ## Returns whether this breaker shrapnel is currently pooled (inactive).
 func is_pooled() -> bool:
 	return _is_pooled
+
+
+## Marks this projectile as owned by ProjectilePoolManager.
+func set_pool_managed(managed: bool) -> void:
+	_pool_managed = managed
+
+
+## Returns whether this projectile belongs to ProjectilePoolManager.
+func is_pool_managed() -> bool:
+	return _pool_managed
 
 
 ## Convenience method to get a breaker shrapnel from the pool.

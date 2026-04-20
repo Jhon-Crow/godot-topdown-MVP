@@ -45,7 +45,7 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Settings"
+text = "SETTINGS_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
@@ -55,32 +55,37 @@ layout_mode = 2
 [node name="ControlsButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Controls"
+text = "CONTROLS"
 
 [node name="DifficultyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Difficulty"
+text = "DIFFICULTY"
 
 [node name="SoundButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Sound"
+text = "SOUND"
 
 [node name="GameplayButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Gameplay"
+text = "GAMEPLAY"
 
 [node name="PerformanceButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Performance"
+text = "PERFORMANCE"
 
 [node name="ExperimentalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "Experimental"
+text = "EXPERIMENTAL"
+
+[node name="LanguageButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "LANGUAGE"
 
 [node name="HSeparator2" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -89,4 +94,4 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Back"
+text = "BACK"

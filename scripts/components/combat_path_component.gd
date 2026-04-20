@@ -64,12 +64,23 @@ func _collect_markers_from(node: Node, out: Array[Vector2]) -> void:
 ## Keeps the fallback local so enemies don't navigate across rooms to escape corners.
 const FALLBACK_MAX_DIST: float = 350.0
 
+## Only allow non-progress fallback when the enemy is already close enough to
+## the target that a local corner escape is more important than pure approach.
+const FALLBACK_TARGET_DISTANCE: float = 120.0
+
 ## Maximum straight-line travel distance to a candidate waypoint.
 ## Prevents enemies from being routed to waypoints in other rooms that are
 ## reachable on the scoring map but blocked by walls on the nav mesh.
 ## E.g., corridor enemies (x≈1200) must not route to Security Room (x≈620)
 ## through Room2_WallRight (x=912–936, no doorway, nav-mesh impassable).
 const MAX_TRAVEL_DIST: float = 400.0
+
+## Reject waypoints whose nav path is much longer than the straight-line travel.
+## Building-style layouts have a single large nav polygon with interior obstacle
+## bodies, so Euclidean scoring alone can pick a waypoint in the "right" general
+## direction but behind several walls and door turns.
+const MAX_PATH_DETOUR_RATIO: float = 2.5
+const MAX_PATH_DETOUR_DISTANCE: float = 550.0
 
 ## Return the nearest attacking waypoint that makes progress toward [toward_pos].
 ## [from_pos] is the enemy's current position.
@@ -82,6 +93,7 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 	if _attacking_waypoints.is_empty():
 		return Vector2.ZERO
 
+	var nav_map := _get_nav_map()
 	var my_dist_to_target := from_pos.distance_to(toward_pos)
 	var best := Vector2.ZERO
 	var best_score := -INF
@@ -91,18 +103,21 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 
 	for wp in _attacking_waypoints:
 		var dist_from_me := from_pos.distance_to(wp)
+		var wp_dist_to_target := wp.distance_to(toward_pos)
 		# Skip waypoints that are essentially where we already are
 		if dist_from_me < 20.0:
 			continue
 		# Track the raw-nearest nearby waypoint as a local fallback
-		if dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
+		var fallback_makes_sense := wp_dist_to_target < my_dist_to_target or my_dist_to_target <= FALLBACK_TARGET_DISTANCE
+		if fallback_makes_sense and dist_from_me < nearest_fallback_dist and dist_from_me <= FALLBACK_MAX_DIST:
 			nearest_fallback_dist = dist_from_me
 			nearest_fallback = wp
 		# Skip waypoints that are too far away; they likely require navigating around
 		# walls that make the straight-line score misleading (cross-room false positives).
 		if dist_from_me > MAX_TRAVEL_DIST:
 			continue
-		var wp_dist_to_target := wp.distance_to(toward_pos)
+		if not _is_waypoint_reachable(nav_map, from_pos, wp, dist_from_me):
+			continue
 		# Only score waypoints that bring us closer to the target
 		if wp_dist_to_target >= my_dist_to_target:
 			continue
@@ -117,7 +132,9 @@ func get_nearest_attacking_waypoint(from_pos: Vector2, toward_pos: Vector2) -> V
 
 	# If no progress waypoint found, use the nearest local one as a corner-escape anchor
 	if best == Vector2.ZERO:
-		return nearest_fallback
+		if nearest_fallback != Vector2.ZERO and _is_waypoint_reachable(nav_map, from_pos, nearest_fallback, nearest_fallback_dist):
+			return nearest_fallback
+		return Vector2.ZERO
 	return best
 
 
@@ -149,3 +166,35 @@ func get_nearest_retreat_waypoint(from_pos: Vector2, away_from_pos: Vector2) -> 
 			best = wp
 
 	return best
+
+
+func _get_nav_map() -> RID:
+	var tree := get_tree()
+	if tree == null:
+		return RID()
+	for enemy in tree.get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		var nav_agent := enemy.get_node_or_null("NavigationAgent2D") as NavigationAgent2D
+		if nav_agent == null:
+			continue
+		var nav_map := nav_agent.get_navigation_map()
+		if nav_map.is_valid():
+			return nav_map
+	return RID()
+
+
+func _is_waypoint_reachable(nav_map: RID, from_pos: Vector2, waypoint: Vector2, straight_distance: float) -> bool:
+	if not nav_map.is_valid():
+		return true
+	var path: PackedVector2Array = NavigationServer2D.map_get_path(nav_map, from_pos, waypoint, true)
+	if path.size() < 2:
+		return false
+	var path_distance := 0.0
+	for i in range(1, path.size()):
+		path_distance += path[i - 1].distance_to(path[i])
+	if path_distance <= 0.0:
+		return false
+	if path_distance > straight_distance * MAX_PATH_DETOUR_RATIO and path_distance > MAX_PATH_DETOUR_DISTANCE:
+		return false
+	return true

@@ -45,7 +45,7 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Sound Settings"
+text = "SOUND_SETTINGS_TITLE"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
@@ -54,7 +54,7 @@ layout_mode = 2
 
 [node name="EffectsLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Effects Volume"
+text = "EFFECTS_VOLUME"
 
 [node name="EffectsContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -79,7 +79,7 @@ layout_mode = 2
 
 [node name="MusicLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Music Volume"
+text = "MUSIC_VOLUME"
 
 [node name="MusicContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -106,4 +106,4 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Back"
+text = "BACK"

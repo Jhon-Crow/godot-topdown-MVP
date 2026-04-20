@@ -30,8 +30,10 @@ const MIN_EFFECT_SCALE: float = 0.2
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-## Set to 0 for unlimited decals (puddles should never disappear per issue #293, #370).
-## CRITICAL: Must remain 0 - do not change without explicit user approval.
+## Issue #1747: Set to 0 (unlimited) per owner request — blood puddles must never be deleted.
+## The previous cap of 200 (Issue #1693) caused visible puddles to disappear during combat.
+## Owner confirmed that accumulation is acceptable and puddles should persist indefinitely.
+## 0 = unlimited, no cleanup performed.
 const MAX_BLOOD_DECALS: int = 0
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
@@ -730,15 +732,81 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Track decal for cleanup
 	_blood_decals.append(decal)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	# Remove oldest off-screen decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #1747: prefer culling decals outside the player's viewport first.
 	if MAX_BLOOD_DECALS > 0:
 		while _blood_decals.size() > MAX_BLOOD_DECALS:
-			var oldest := _blood_decals.pop_front() as Node2D
-			if oldest and is_instance_valid(oldest):
-				oldest.queue_free()
+			_remove_oldest_offscreen_decal()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Removes one blood decal that is outside the player's viewport.
+## Issue #1747: Prefer culling off-screen decals so that decals visible to the
+## player are never removed first.  Only falls back to removing the oldest
+## on-screen decal when every tracked decal is currently inside a viewport
+## (e.g. very small map with camera covering the whole level).
+## Returns true if a decal was removed, false if the list is now empty.
+func _remove_oldest_offscreen_decal() -> bool:
+	# Build the visible world-space rectangle from the active Camera2D.
+	var viewport_rects: Array[Rect2] = []
+	var camera: Camera2D = null
+	var current_scene := get_tree().current_scene if get_tree() else null
+	if current_scene:
+		# Try the "camera" group first (fast path used by PlayerCamera and others).
+		var cameras := get_tree().get_nodes_in_group("camera") if get_tree() else []
+		if cameras.is_empty():
+			# Fallback: walk the scene tree to find any Camera2D.
+			cameras = []
+			_collect_cameras(current_scene, cameras)
+		for cam in cameras:
+			if cam is Camera2D and cam.enabled and is_instance_valid(cam):
+				camera = cam as Camera2D
+				break
+
+	if camera:
+		var viewport_size: Vector2 = camera.get_viewport_rect().size
+		var cam_center: Vector2 = camera.get_screen_center_position()
+		var half: Vector2 = viewport_size * 0.5
+		viewport_rects.append(Rect2(cam_center - half, viewport_size))
+
+	# Walk front-to-back to find the oldest off-screen decal.
+	for i in range(_blood_decals.size()):
+		var decal: Node2D = _blood_decals[i] as Node2D
+		if decal == null or not is_instance_valid(decal):
+			_blood_decals.remove_at(i)
+			return true
+		var on_screen := false
+		if viewport_rects.is_empty():
+			on_screen = false  # no camera info → treat as off-screen (safe to remove)
+		else:
+			for rect in viewport_rects:
+				if rect.has_point(decal.global_position):
+					on_screen = true
+					break
+		if not on_screen:
+			_blood_decals.remove_at(i)
+			decal.queue_free()
+			return true
+
+	# All decals are on-screen — fall back to removing the oldest one to honour the cap.
+	if _blood_decals.size() > 0:
+		var oldest := _blood_decals.pop_front() as Node2D
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+		return true
+
+	return false
+
+
+## Recursively collects all Camera2D nodes under a parent node.
+func _collect_cameras(parent: Node, result: Array) -> void:
+	for child in parent.get_children():
+		if child is Camera2D:
+			result.append(child)
+		if child.get_child_count() > 0:
+			_collect_cameras(child, result)
 
 
 ## Clears all blood decals from the scene.
@@ -829,12 +897,11 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Track as blood decal for cleanup
 	_blood_decals.append(splatter)
 
-	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	# Remove oldest off-screen decals if limit exceeded (0 = unlimited, no cleanup).
+	# Issue #1747: prefer culling decals outside the player's viewport first.
 	if MAX_BLOOD_DECALS > 0:
 		while _blood_decals.size() > MAX_BLOOD_DECALS:
-			var oldest := _blood_decals.pop_front() as Node2D
-			if oldest and is_instance_valid(oldest):
-				oldest.queue_free()
+			_remove_oldest_offscreen_decal()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Wall blood splatter spawned at ", wall_hit_pos)
@@ -1214,7 +1281,7 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 ## Performance optimization (Issue #724):
 ## - PointLight2D objects are pooled and reused instead of created/destroyed
 ## - Maximum concurrent lights is limited (beyond limit, effects are skipped)
-## - Shadows are disabled (brief flashes don't need accurate shadow casting)
+## - Lights stay pooled even though shadows are enabled, so brief flashes can respect occluders
 ##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for visual size.
@@ -1434,7 +1501,9 @@ func _create_pooled_explosion_light() -> PointLight2D:
 	var light := PointLight2D.new()
 	light.visible = false
 	light.z_index = 10
-	light.shadow_enabled = false  # Shadows are expensive, brief flashes don't need them
+	# Issue #1825: flash and explosion lights must respect LightOccluder2D blockers in the level.
+	# Keep the nodes pooled to limit the runtime cost of enabling shadows.
+	light.shadow_enabled = true
 	light.texture = _get_cached_light_texture()
 
 	# Add to scene tree (as child of autoload so it persists)
@@ -1576,5 +1645,4 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
-
 

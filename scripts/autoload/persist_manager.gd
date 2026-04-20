@@ -32,6 +32,9 @@ const KEY_SHOTS_FIRED_SPECIAL_WEAPONS := "shots_fired_special_weapons"  # Issue 
 const KEY_TOTAL_DEATHS := "total_deaths"  # Issue #1389
 const KEY_NO_DAMAGE_LEVELS_COMPLETED := "no_damage_levels_completed"  # Issue #1389
 const KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER := "levels_completed_rank_a_or_higher"  # Issue #1589
+const KEY_LEVELS_COMPLETED_RANK_S := "levels_completed_rank_s"  # Issue #1892
+const KEY_KILLS_THROUGH_WALL := "kills_through_wall"  # Issue #1624
+const KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL := "levels_completed_with_silenced_pistol"  # Issue #1624
 
 ## Default level to load when no saved state exists.
 const DEFAULT_LEVEL := "res://scenes/levels/LabyrinthLevel.tscn"
@@ -66,7 +69,39 @@ var _startup_navigation_target: String = ""
 
 ## Navigate to the last played level if saved state exists.
 ## Called deferred so the default main scene finishes loading first.
+## Issue #1734: If this is a first launch (no difficulty_settings.cfg), show the
+## difficulty selection menu first and delay level navigation until the player picks.
 func _navigate_to_last_level() -> void:
+	# Issue #1734: Show difficulty picker on first launch before any level navigation.
+	# The check must live here (an autoload) because the project's run/main_scene is
+	# LabyrinthLevel.tscn — Main.tscn and main.gd are never the startup scene, so any
+	# check placed there is never executed.
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.is_first_launch():
+		if _is_gut_test_run():
+			_log_to_file("First launch detected during GUT test run - skipping difficulty menu pause")
+			_do_navigate_to_last_level()
+			return
+		_log_to_file("First launch detected - showing difficulty selection before level load")
+		_show_first_launch_difficulty_menu()
+		return  # Navigation resumes in _on_first_launch_difficulty_selected()
+
+	_do_navigate_to_last_level()
+
+
+## Returns true when the project is running under the GUT command-line runner.
+## The first-launch difficulty picker pauses the tree, which can deadlock await-based
+## unit tests before any gameplay scene is involved.
+func _is_gut_test_run() -> bool:
+	for argument in OS.get_cmdline_args():
+		if argument.find("gut_cmdln.gd") != -1 or argument.begins_with("-g"):
+			return true
+	return false
+
+
+## Perform the actual startup navigation to the last played level.
+## Extracted so it can be called both directly and after first-launch difficulty selection.
+func _do_navigate_to_last_level() -> void:
 	if not has_saved_state():
 		_log_to_file("No saved level — starting at default level")
 		_navigation_ready = true
@@ -97,6 +132,44 @@ func _navigate_to_last_level() -> void:
 		_navigation_ready = true
 
 
+## Path to the DifficultyMenu scene used for first-launch selection (Issue #1734).
+const DIFFICULTY_MENU_SCENE_PATH: String = "res://scenes/ui/DifficultyMenu.tscn"
+
+## Held reference while the first-launch difficulty picker is shown (Issue #1734).
+var _first_launch_menu: CanvasLayer = null
+
+
+## Instantiate and display the DifficultyMenu in first-launch mode (Issue #1734).
+## Added to the root so it appears over whatever the current scene is.
+func _show_first_launch_difficulty_menu() -> void:
+	var packed: PackedScene = load(DIFFICULTY_MENU_SCENE_PATH)
+	if packed == null:
+		push_error("[PersistManager] Could not load DifficultyMenu scene: " + DIFFICULTY_MENU_SCENE_PATH)
+		_do_navigate_to_last_level()
+		return
+	_first_launch_menu = packed.instantiate()
+	_first_launch_menu.first_launch_mode = true
+	_first_launch_menu.difficulty_selected_first_launch.connect(_on_first_launch_difficulty_selected)
+	get_tree().paused = true
+	get_tree().root.add_child(_first_launch_menu)
+	_log_to_file("First-launch difficulty menu shown")
+
+
+## Called when the player picks a difficulty during first launch (Issue #1734).
+## Removes the picker and resumes normal startup navigation.
+func _on_first_launch_difficulty_selected() -> void:
+	_log_to_file("First-launch difficulty selected — resuming level navigation")
+	if _first_launch_menu != null:
+		_first_launch_menu.queue_free()
+		_first_launch_menu = null
+	get_tree().paused = false
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("restart_scene"):
+		game_manager.restart_scene()
+	else:
+		_do_navigate_to_last_level()
+
+
 ## Connect to manager signals to auto-save on changes.
 func _connect_signals() -> void:
 	# Track scene changes to auto-save the current level (Issue #1456)
@@ -119,6 +192,12 @@ func _connect_signals() -> void:
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
 			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
+		if game_manager.has_signal("levels_completed_rank_s_updated"):
+			game_manager.levels_completed_rank_s_updated.connect(_on_levels_completed_rank_s_updated)
+		if game_manager.has_signal("kills_through_wall_updated"):
+			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
+		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
+			game_manager.levels_completed_with_silenced_pistol_updated.connect(_on_levels_completed_with_silenced_pistol_updated)
 
 	# GrenadeManager signals
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -211,6 +290,18 @@ func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
 	_save_state()
 
 
+func _on_levels_completed_rank_s_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_kills_through_wall_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_levels_completed_with_silenced_pistol_updated(_new_count: int) -> void:
+	_save_state()
+
+
 ## Called when the scene tree structure changes.
 ## Detects level scene changes and auto-saves the current level path (Issue #1456).
 ## During startup navigation, waits until current_scene has actually changed to the
@@ -299,6 +390,15 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save rank-A level stats (Issue #1589)
 		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER,
 				game_manager.get("levels_completed_rank_a_or_higher") if game_manager.get("levels_completed_rank_a_or_higher") != null else 0)
+		# Save rank-S level stats (Issue #1892)
+		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S,
+				game_manager.get("levels_completed_rank_s") if game_manager.get("levels_completed_rank_s") != null else 0)
+		# Save wall-kill stats (Issue #1624)
+		config.set_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL,
+				game_manager.get("kills_through_wall") if game_manager.get("kills_through_wall") != null else 0)
+		# Save silenced pistol level completion stats (Issue #1624)
+		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL,
+				game_manager.get("levels_completed_with_silenced_pistol") if game_manager.get("levels_completed_with_silenced_pistol") != null else 0)
 
 	# Save selected grenade type
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -383,6 +483,21 @@ func _load_state() -> void:
 			var saved_rank_a: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER, 0)
 			game_manager.levels_completed_rank_a_or_higher = saved_rank_a
 			_log_to_file("Restored levels_completed_rank_a_or_higher: %d" % saved_rank_a)
+		# Restore rank-S level stats (Issue #1892)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S):
+			var saved_rank_s: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S, 0)
+			game_manager.levels_completed_rank_s = saved_rank_s
+			_log_to_file("Restored levels_completed_rank_s: %d" % saved_rank_s)
+		# Restore wall-kill stats (Issue #1624)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL):
+			var saved_wall_kills: int = config.get_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL, 0)
+			game_manager.kills_through_wall = saved_wall_kills
+			_log_to_file("Restored kills_through_wall: %d" % saved_wall_kills)
+		# Restore silenced pistol level completion stats (Issue #1624)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL):
+			var saved_silenced: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL, 0)
+			game_manager.levels_completed_with_silenced_pistol = saved_silenced
+			_log_to_file("Restored levels_completed_with_silenced_pistol: %d" % saved_silenced)
 
 		# Restore selected weapon
 		if config.has_section_key(SECTION_GAME, KEY_SELECTED_WEAPON):
@@ -478,6 +593,9 @@ func clear_all_saves() -> void:
 		game_manager.total_deaths = 0  # Issue #1389
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.levels_completed_rank_s = 0  # Issue #1892
+		game_manager.kills_through_wall = 0  # Issue #1624
+		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
 	# Reset GrenadeManager to defaults
 	var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
@@ -489,9 +607,21 @@ func clear_all_saves() -> void:
 	# Reset ActiveItemManager to defaults
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager:
+		# Only reset condition-gated items to false.
+		# Items with no unlock condition (NONE, LOUDSPEAKER) keep their default true value
+		# so they remain available after a save clear (Issue #1691).
+		var unlock_manager_node: Node = get_node_or_null("/root/UnlockManager")
+		var condition_gated_items: Array = []
+		if unlock_manager_node and unlock_manager_node.has_method("get_active_items_with_conditions"):
+			condition_gated_items = unlock_manager_node.get_active_items_with_conditions()
 		for item_type in active_item_manager.unlocked_active_items.keys():
-			active_item_manager.unlocked_active_items[item_type] = item_type == active_item_manager.ActiveItemType.NONE
+			if item_type in condition_gated_items:
+				active_item_manager.unlocked_active_items[item_type] = false
+			# else: unconditionally-unlocked items (NONE, LOUDSPEAKER) keep their default value
 		active_item_manager.current_active_item = active_item_manager.ActiveItemType.NONE
+		# Emit active_item_changed so Player de-equips any active item (e.g. auto-reload)
+		# without triggering a level restart (Issue #1697).
+		active_item_manager.active_item_changed.emit(active_item_manager.ActiveItemType.NONE)
 		# Reset loudspeaker progress (Issue #959)
 		if active_item_manager.has_method("reset_loudspeaker_progress"):
 			active_item_manager.reset_loudspeaker_progress()
@@ -500,6 +630,13 @@ func clear_all_saves() -> void:
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	if progress_manager and progress_manager.has_method("clear_all_progress"):
 		progress_manager.clear_all_progress()
+
+	# Reset difficulty settings so the first-launch difficulty screen appears on next startup.
+	# Without this, difficulty_settings.cfg survives the save clear and is_first_launch()
+	# returns false, preventing the difficulty picker from showing (Issue #1734).
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("reset_to_default"):
+		difficulty_manager.reset_to_default()
 
 	_log_to_file("All saves cleared — game reset to first-launch state")
 

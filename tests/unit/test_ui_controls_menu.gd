@@ -136,7 +136,7 @@ class MockLevelsMenu:
 			"description": "Open training ground for testing weapons and practicing combat skills.",
 			"preview_color": Color(0.2, 0.3, 0.2, 1.0),
 			"preview_accent": Color(0.35, 0.5, 0.35, 1.0),
-			"enemy_count": 5,
+			"enemy_count": 12,
 			"map_size": "1280x720"
 		},
 		{
@@ -146,7 +146,7 @@ class MockLevelsMenu:
 			"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
 			"preview_color": Color(0.25, 0.25, 0.35, 1.0),
 			"preview_accent": Color(0.4, 0.4, 0.55, 1.0),
-			"enemy_count": 15,
+			"enemy_count": 13,
 			"map_size": "6000x2560"
 		},
 		{
@@ -1176,13 +1176,13 @@ func test_enemy_count_building_level() -> void:
 
 
 func test_enemy_count_polygon() -> void:
-	assert_eq(levels_menu.get_enemy_count("Polygon"), 5,
-		"Polygon should have 5 enemies")
+	assert_eq(levels_menu.get_enemy_count("Polygon"), 12,
+		"Polygon should have 12 enemies")
 
 
 func test_enemy_count_castle() -> void:
-	assert_eq(levels_menu.get_enemy_count("Castle"), 15,
-		"Castle should have 15 enemies")
+	assert_eq(levels_menu.get_enemy_count("Castle"), 13,
+		"Castle should have 13 enemies")
 
 
 func test_enemy_count_tutorial() -> void:

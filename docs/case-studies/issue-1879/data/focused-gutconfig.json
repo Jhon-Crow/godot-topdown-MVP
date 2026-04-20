@@ -1,0 +1,10 @@
+{
+  "dirs": [],
+  "include_subdirs": false,
+  "tests": [
+    "res://tests/unit/test_weapon_hints_component.gd",
+    "res://tests/unit/test_labyrinth_grenade_tutorial.gd"
+  ],
+  "log_level": 2,
+  "should_exit": true
+}

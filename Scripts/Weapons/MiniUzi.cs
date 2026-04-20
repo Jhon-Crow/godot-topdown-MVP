@@ -543,7 +543,9 @@ public partial class MiniUzi : BaseWeapon
 
         // Calculate maximum laser length based on viewport size
         Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        // Issue #1895: extend laser to reach mouse cursor during drone mode.
+        float distToMouse = GlobalPosition.DistanceTo(GetGlobalMousePosition());
+        float maxLaserLength = Mathf.Max(viewportSize.Length(), distToMouse + 200f);
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;

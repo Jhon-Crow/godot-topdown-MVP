@@ -201,6 +201,13 @@ public partial class AssaultRifle : BaseWeapon
                 LaserSightColor = blueColorVariant.AsColor();
                 GD.Print($"[AssaultRifle] Power Fantasy mode: laser color set to blue {LaserSightColor}");
             }
+            // Issue #1727: Gunslinger mode disables laser sight unless Laser Sight item is equipped
+            var shouldDisableLaser = difficultyManager.Call("should_disable_laser_sight");
+            if (shouldDisableLaser.AsBool())
+            {
+                LaserSightEnabled = false;
+                GD.Print("[AssaultRifle] Gunslinger mode: laser sight disabled");
+            }
         }
 
         // Check for Laser Sight active item - adds purple laser regardless of difficulty (Issue #947)
@@ -210,6 +217,7 @@ public partial class AssaultRifle : BaseWeapon
             var shouldForceLaser = activeItemManager.Call("should_force_laser_sight");
             if (shouldForceLaser.AsBool())
             {
+                LaserSightEnabled = true;  // Laser Sight item overrides Gunslinger disable
                 var purpleColorVariant = activeItemManager.Call("get_laser_sight_color");
                 LaserSightColor = purpleColorVariant.AsColor();
                 GD.Print($"[AssaultRifle] Laser Sight active item: laser color set to purple {LaserSightColor}");
@@ -382,8 +390,10 @@ public partial class AssaultRifle : BaseWeapon
         }
 
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
-        // Use diagonal of viewport to ensure laser reaches edge in any direction
-        float maxLaserLength = viewportSize.Length();
+        // Issue #1895: extend laser to reach mouse cursor during drone mode where the
+        // player can be far from the camera/target. Use whichever is larger.
+        float distToMouse = GlobalPosition.DistanceTo(GetGlobalMousePosition());
+        float maxLaserLength = Mathf.Max(viewportSize.Length(), distToMouse + 200f);
 
         // Calculate the end point of the laser using viewport-based length
         // Use laserDirection (with recoil) instead of base direction

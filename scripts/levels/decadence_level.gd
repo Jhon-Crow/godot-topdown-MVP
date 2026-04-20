@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/DecadenceLevel.tscn"
 ## Decadence level scene (Issue #1035).
 ##
 ## Hotline Miami "Chapter Three: Decadence" inspired level.
@@ -17,6 +19,8 @@ var _difficulty_label: Label = null
 var _magazines_label: Label = null
 var _saturation_overlay: ColorRect = null
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 var _exit_zone: Area2D = null
 var _level_cleared: bool = false
 var _score_shown: bool = false
@@ -48,6 +52,8 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	# Restrict camera so the border walls are never visible (Issue #1682).
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 	if GameManager:
@@ -145,14 +151,25 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if _combo_label == null:
 		return
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		_combo_label.add_theme_color_override("font_color", _get_combo_color(combo))
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 func _get_combo_color(combo: int) -> Color:
@@ -166,6 +183,33 @@ func _get_combo_color(combo: int) -> Color:
 		return Color(1.0, 0.8, 0.0, 1.0)
 	else:
 		return Color(1.0, 1.0, 1.0, 1.0)
+
+
+## Clamps the camera so the outer border walls are never visible (Issue #1682).
+##
+## DecadenceLevel map: 2528x2128 px playfield framed by 32 px walls.
+##   WallTop    (1264,   48), h=16  → bottom edge y=64   → limit_top    = 64
+##   WallBottom (1264, 2080), h=16  → top edge   y=2064  → limit_bottom = 2064
+##   WallLeft   (  48, 1064), w=16  → right edge x=64    → limit_left   = 64
+##   WallRight  (2480, 1064), w=16  → left edge  x=2464  → limit_right  = 2464
+func _configure_camera() -> void:
+	if _player == null:
+		return
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		push_warning("[DecadenceLevel] Camera2D not found on player — cannot set camera limits")
+		return
+	const LIMIT_TOP: int    =   64   # WallTop bottom edge
+	const LIMIT_BOTTOM: int = 2064   # WallBottom top edge
+	const LIMIT_LEFT: int   =   64   # WallLeft right edge
+	const LIMIT_RIGHT: int  = 2464   # WallRight left edge
+	camera.limit_top    = LIMIT_TOP
+	camera.limit_bottom = LIMIT_BOTTOM
+	camera.limit_left   = LIMIT_LEFT
+	camera.limit_right  = LIMIT_RIGHT
+	_log_to_file("Camera2D limits set — top=%d bottom=%d left=%d right=%d — Issue #1682" % [
+		LIMIT_TOP, LIMIT_BOTTOM, LIMIT_LEFT, LIMIT_RIGHT
+	])
 
 
 func _setup_navigation() -> void:
@@ -258,7 +302,12 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	if weapon.name != "SilencedPistol":
 		return
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
-		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		var enemy_count: int = _initial_enemy_count
+		var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+		if ammo_multiplier > 1:
+			enemy_count *= ammo_multiplier
+			_log_to_file("Gunslinger/PowerFantasy mode: silenced pistol enemy count multiplied by %dx" % ammo_multiplier)
+		weapon.ConfigureAmmoForEnemyCount(enemy_count)
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		if weapon.has_method("GetMagazineAmmoCounts"):
@@ -274,6 +323,10 @@ func _configure_makarov_pm_ammo(weapon: Node) -> void:
 	if weapon.get("StartingMagazineCount") != null:
 		starting_magazines = weapon.StartingMagazineCount
 	var pm_magazines: int = int(round(starting_magazines * 2.5))
+	var ammo_multiplier: int = DifficultyManager.get_ammo_multiplier()
+	if ammo_multiplier > 1:
+		pm_magazines *= ammo_multiplier
+		_log_to_file("Gunslinger/PowerFantasy mode: MakarovPM magazines multiplied by %dx" % ammo_multiplier)
 	if weapon.has_method("ReinitializeMagazines"):
 		weapon.ReinitializeMagazines(pm_magazines, true)
 		_log_to_file("2.5x ammo for MakarovPM: %d magazines (was %d)" % [pm_magazines, starting_magazines])
@@ -432,9 +485,11 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -443,24 +498,29 @@ func _setup_debug_ui() -> void:
 	ui.add_child(_difficulty_label)
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
 	_magazines_label.offset_right = 400
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -200
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.0, 0.8, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 	_update_debug_ui()
@@ -490,7 +550,7 @@ func _on_enemy_died() -> void:
 func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool, is_player_kill: bool = true) -> void:
 	# Register kill with GameManager (Issue #1196: pass player kill flag to count only player kills).
 	if GameManager:
-		GameManager.register_kill(is_player_kill)
+		GameManager.register_kill(is_player_kill, is_penetration_kill)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("register_kill"):
 		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
@@ -620,20 +680,20 @@ func _show_saturation_effect() -> void:
 
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 func _update_debug_ui() -> void:
 	if GameManager == null:
 		return
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
@@ -645,7 +705,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 	if current_mag <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current_mag <= 10:
@@ -657,33 +717,13 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
-	var weapon = null
-	if _player:
-		weapon = _player.get_node_or_null("Shotgun")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AssaultRifle")
-		if weapon == null:
-			weapon = _player.get_node_or_null("AKGL")
-		if weapon == null:
-			weapon = _player.get_node_or_null("Revolver")
-		if weapon == null:
-			weapon = _player.get_node_or_null("MakarovPM")
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
-	else:
-		_magazines_label.visible = true
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-	var parts: Array = []
-	for i in range(magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if i == 0:
-			parts.append("[%d]" % ammo)
-		else:
-			parts.append("%d" % ammo)
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	_magazines_label.visible = true
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 func _show_death_message() -> void:

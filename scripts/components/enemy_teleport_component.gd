@@ -28,9 +28,17 @@ var _reject_count: int = 0  ## Consecutive identical rejections.
 func _ready() -> void:
 	_parent = get_parent() as CharacterBody2D
 	_ready_flag = _parent != null
+	if _ready_flag:
+		FileLogger.info("[Teleporter] Component initialized on %s" % _parent.name)
+	else:
+		FileLogger.warning("[Teleporter] Component parent is not CharacterBody2D (parent=%s)" % str(get_parent()))
 
 ## Returns true when the teleport is off cooldown and ready to use.
+## Uses lazy parent resolution in case _ready() was deferred (Issue #1694).
 func is_ready() -> bool:
+	if not _ready_flag and _parent == null:
+		_parent = get_parent() as CharacterBody2D
+		_ready_flag = _parent != null
 	return _ready_flag and _cooldown_timer <= 0.0
 
 ## Advance cooldown timer each physics frame. Call from enemy _physics_process().
@@ -41,7 +49,11 @@ func update(delta: float) -> void:
 ## Attempt to teleport to target. Returns true if the teleport succeeded.
 ## Fails if on cooldown, target too close/far, or target is off the nav-map.
 func try_teleport(target: Vector2) -> bool:
-	if not is_ready() or _parent == null:
+	if not is_ready():
+		FileLogger.info("[Teleporter] try_teleport rejected: not ready (flag=%s, cooldown=%.2f)" % [_ready_flag, _cooldown_timer])
+		return false
+	if _parent == null:
+		FileLogger.warning("[Teleporter] try_teleport rejected: _parent is null")
 		return false
 	# Issue #1355: reject uninitialized (0,0) targets.
 	if target == Vector2.ZERO:
@@ -99,7 +111,11 @@ func _flush_reject_log() -> void:
 ## Bypasses the under_fire requirement — the enemy should teleport on first hit.
 ## Returns true if teleport succeeded.
 func try_damage_teleport(cover_position: Vector2, flank_target: Vector2) -> bool:
-	if not is_ready() or _parent == null:
+	if not is_ready():
+		FileLogger.info("[Teleporter] try_damage_teleport rejected: not ready (flag=%s, cooldown=%.2f)" % [_ready_flag, _cooldown_timer])
+		return false
+	if _parent == null:
+		FileLogger.warning("[Teleporter] try_damage_teleport rejected: _parent is null")
 		return false
 	# Try cover position first, then flank target.
 	if cover_position != Vector2.ZERO and try_teleport(cover_position):

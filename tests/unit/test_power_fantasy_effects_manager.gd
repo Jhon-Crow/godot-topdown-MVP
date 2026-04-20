@@ -51,8 +51,8 @@ class MockLastChanceEffectsManager:
 
 
 class MockPowerFantasyEffectsManager:
-	## Duration of the last chance effect when killing an enemy (300ms).
-	const KILL_EFFECT_DURATION_MS: float = 300.0
+	## Duration of the last chance effect when killing an enemy (600ms, 2x longer per Issue #1732).
+	const KILL_EFFECT_DURATION_MS: float = 600.0
 
 	## Duration of the special last chance effect when grenade explodes (2000ms).
 	const GRENADE_EFFECT_DURATION_MS: float = 2000.0
@@ -189,10 +189,10 @@ class MockPowerFantasyEffectsManager:
 		# time-freeze (e.g., from grenade explosion).
 		if last_chance_manager and last_chance_manager.has_method("is_effect_active"):
 			if last_chance_manager.is_effect_active():
-				_log("Enemy killed - skipping 300ms effect (LastChance time-freeze already active)")
+				_log("Enemy killed - skipping 600ms effect (LastChance time-freeze already active)")
 				return
 
-		_log("Enemy killed - triggering 300ms last chance effect")
+		_log("Enemy killed - triggering 600ms last chance effect")
 		_start_effect(KILL_EFFECT_DURATION_MS)
 
 	## Called when a grenade explodes in Power Fantasy mode.
@@ -235,9 +235,10 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_kill_effect_duration_ms_is_300() -> void:
-	assert_eq(MockPowerFantasyEffectsManager.KILL_EFFECT_DURATION_MS, 300.0,
-		"Kill effect duration should be 300ms")
+func test_kill_effect_duration_ms_is_600() -> void:
+	# Issue #1732: kill effect duration doubled from 300ms to 600ms
+	assert_eq(MockPowerFantasyEffectsManager.KILL_EFFECT_DURATION_MS, 600.0,
+		"Kill effect duration should be 600ms (2x longer per Issue #1732)")
 
 
 func test_grenade_effect_duration_ms_is_2000() -> void:

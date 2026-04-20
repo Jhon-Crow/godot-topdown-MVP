@@ -200,7 +200,7 @@ class MockLevelsMenu:
 			"name_ru": "Полигон",
 			"path": "res://scenes/levels/TestTier.tscn",
 			"description": "Open training ground for testing weapons and practicing combat skills.",
-			"enemy_count": 5,
+			"enemy_count": 12,
 			"map_size": "1280x720"
 		},
 		{
@@ -208,7 +208,7 @@ class MockLevelsMenu:
 			"name_ru": "Замок",
 			"path": "res://scenes/levels/CastleLevel.tscn",
 			"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
-			"enemy_count": 15,
+			"enemy_count": 13,
 			"map_size": "6000x2560"
 		},
 		{
@@ -714,8 +714,8 @@ func test_level_enemy_count() -> void:
 	levels_menu = MockLevelsMenu.new()
 	assert_eq(levels_menu.get_enemy_count("Labyrinth"), 5)
 	assert_eq(levels_menu.get_enemy_count("Building Level"), 10)
-	assert_eq(levels_menu.get_enemy_count("Polygon"), 5)
-	assert_eq(levels_menu.get_enemy_count("Castle"), 15)
+	assert_eq(levels_menu.get_enemy_count("Polygon"), 12)
+	assert_eq(levels_menu.get_enemy_count("Castle"), 13)
 
 
 func test_level_has_description() -> void:

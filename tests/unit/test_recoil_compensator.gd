@@ -37,7 +37,7 @@ class MockActiveItemManager:
 	const ACTIVE_ITEM_DATA: Dictionary = {
 		0: {"name": "None", "icon_path": "", "description": "No active item equipped."},
 		1: {"name": "Flashlight", "icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-			"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+			"description": "Tactical flashlight — hold Space to illuminate in weapon direction and blind enemies caught in the beam. Bright white light, turns off when released.",
 			"activation_hint": "Hold Space to activate"},
 		2: {"name": "Homing Bullets", "icon_path": "res://assets/sprites/weapons/homing_bullets_icon.png",
 			"description": "Press Space to activate — bullets steer toward the nearest enemy (up to 110° turn). 2 charges per battle, each lasts 1.2 seconds."},
@@ -61,7 +61,7 @@ class MockActiveItemManager:
 		9: {"name": "Laser Sight", "icon_path": "res://assets/sprites/weapons/laser_sight_icon.png",
 			"description": "Laser sight — passive: adds a purple laser sight to all weapons regardless of difficulty."},
 		10: {"name": "Loudspeaker", "icon_path": "res://assets/sprites/weapons/loudspeaker_icon.png",
-			"description": "Loudspeaker — press Space to emit sound cone. 2 charges per battle.",
+			"description": "???",
 			"activation_hint": "Press Space to activate"},
 		11: {"name": "Breaching Charges", "icon_path": "res://assets/sprites/weapons/breaching_charges_icon.png",
 			"description": "Breaching charges — hold Space near a wall to place a charge, release to attach it. Press Space to detonate.",

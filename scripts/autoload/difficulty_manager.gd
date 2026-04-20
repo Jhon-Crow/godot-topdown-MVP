@@ -13,7 +13,8 @@ enum Difficulty {
 	NORMAL,        ## Default difficulty - classic behavior
 	HARD,          ## Hard difficulty - enables distraction attack and reduced ammo
 	POWER_FANTASY, ## Power Fantasy mode - player has 10 HP, special abilities
-	BLACK_METAL    ## Black Metal mode - 25% less HP, 25% faster movement, B&W+red visual filter
+	BLACK_METAL,   ## Black Metal mode - 25% less HP, 25% faster movement, B&W+red visual filter
+	GUNSLINGER     ## Gunslinger mode - 2x less HP, 4x ammo, no laser sights, kill last-chance effect
 }
 
 ## Signal emitted when difficulty changes.
@@ -74,6 +75,11 @@ func is_black_metal_mode() -> bool:
 	return current_difficulty == Difficulty.BLACK_METAL
 
 
+## Check if the game is in gunslinger mode.
+func is_gunslinger_mode() -> bool:
+	return current_difficulty == Difficulty.GUNSLINGER
+
+
 ## Get the display name of the current difficulty.
 func get_difficulty_name() -> String:
 	match current_difficulty:
@@ -87,6 +93,8 @@ func get_difficulty_name() -> String:
 			return "Power Fantasy"
 		Difficulty.BLACK_METAL:
 			return "Black Metal"
+		Difficulty.GUNSLINGER:
+			return "Gunslinger"
 		_:
 			return "Unknown"
 
@@ -95,7 +103,7 @@ func get_difficulty_name() -> String:
 ## Use this as the single source of truth whenever iterating over all difficulties.
 ## @return: Array of all difficulty name strings in ascending order.
 func get_all_difficulty_names() -> Array[String]:
-	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal"]
+	return ["Easy", "Normal", "Hard", "Power Fantasy", "Black Metal", "Gunslinger"]
 
 
 ## Get the display name for a specific difficulty level.
@@ -111,6 +119,8 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 			return "Power Fantasy"
 		Difficulty.BLACK_METAL:
 			return "Black Metal"
+		Difficulty.GUNSLINGER:
+			return "Gunslinger"
 		_:
 			return "Unknown"
 
@@ -120,6 +130,7 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 ## Hard: 60 bullets (2 magazines)
 ## Power Fantasy: 270 bullets (9 magazines - 3x normal)
 ## Black Metal: 90 bullets (same as normal)
+## Gunslinger: 360 bullets (4x normal ammo)
 func get_max_ammo() -> int:
 	match current_difficulty:
 		Difficulty.EASY:
@@ -132,6 +143,8 @@ func get_max_ammo() -> int:
 			return 270  # 3x normal ammo
 		Difficulty.BLACK_METAL:
 			return 90  # Same as normal
+		Difficulty.GUNSLINGER:
+			return 360  # 4x normal ammo
 		_:
 			return 90
 
@@ -153,6 +166,7 @@ const NIGHT_MODE_REACTION_DELAY_MULTIPLIER: float = 1.3  # 30% longer reaction t
 ## Hard: 0.2s - quick reaction (hard mode uses other mechanics too)
 ## Power Fantasy: 0.8s - enemies react slower
 ## Black Metal: 0.3s - fast reaction (hard mode feel without distraction)
+## Gunslinger: 0.4s - slightly faster than normal (tense gunfight feel)
 ## In night mode, all delays are multiplied by 1.3 (30% longer) (Issue #825).
 func get_detection_delay() -> float:
 	var base_delay: float
@@ -167,6 +181,8 @@ func get_detection_delay() -> float:
 			base_delay = 0.8  # Enemies react slower in power fantasy
 		Difficulty.BLACK_METAL:
 			base_delay = 0.3  # Faster reaction - intense Black Metal atmosphere
+		Difficulty.GUNSLINGER:
+			base_delay = 0.4  # Slightly faster than normal - tense gunfight
 		_:
 			base_delay = 0.6
 	# Issue #825: In night mode, enemies react 30% slower (flashlight orientation delay)
@@ -228,6 +244,8 @@ func _get_grenade_difficulty_modifier() -> float:
 			return 0.3  # 30% of normal probability - fewer grenades
 		Difficulty.BLACK_METAL:
 			return 1.0  # Normal probability
+		Difficulty.GUNSLINGER:
+			return 0.8  # Slightly fewer grenades - gunfight focus
 		_:
 			return 1.0
 
@@ -311,6 +329,22 @@ func set_map_grenade_config(map_name: String, grenade_count: int, probability: f
 	])
 
 
+## Check whether this is the first launch of the game.
+## Returns true when no difficulty settings file exists yet (Issue #1734).
+## On first launch, the game should show a difficulty selection screen
+## with no option pre-selected so the player makes an explicit choice.
+func is_first_launch() -> bool:
+	return not FileAccess.file_exists(SETTINGS_PATH)
+
+
+## Reset difficulty to default and delete the settings file so the next launch
+## is treated as a first launch and shows the difficulty selection screen (Issue #1734).
+func reset_to_default() -> void:
+	current_difficulty = Difficulty.NORMAL
+	if FileAccess.file_exists(SETTINGS_PATH):
+		DirAccess.remove_absolute(SETTINGS_PATH)
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -327,7 +361,7 @@ func _load_settings() -> void:
 	if error == OK:
 		var saved_difficulty = config.get_value("difficulty", "level", Difficulty.NORMAL)
 		# Validate the saved value
-		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.BLACK_METAL:
+		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.GUNSLINGER:
 			current_difficulty = saved_difficulty as Difficulty
 		else:
 			current_difficulty = Difficulty.NORMAL
@@ -349,6 +383,7 @@ func _load_settings() -> void:
 ## Get the player's max health for current difficulty.
 ## Power Fantasy mode: 10 HP (instead of the usual 4 HP).
 ## Black Metal mode: uses same random health as normal but multiplied by 0.75 (25% less).
+## Gunslinger mode: 0.5 multiplier (2x less HP than normal).
 func get_player_max_health() -> int:
 	if current_difficulty == Difficulty.POWER_FANTASY:
 		return 10
@@ -358,17 +393,23 @@ func get_player_max_health() -> int:
 
 ## Get the HP multiplier for current difficulty.
 ## Black Metal mode: 0.75 (25% less HP for both player and enemies).
+## Gunslinger mode: 0.5 (2x less HP for the player).
 ## Other modes: 1.0 (no change).
 func get_hp_multiplier() -> float:
 	if current_difficulty == Difficulty.BLACK_METAL:
 		return 0.75
+	if current_difficulty == Difficulty.GUNSLINGER:
+		return 0.5  # 2x less HP
 	return 1.0
 
 
 ## Get the player speed multiplier for current difficulty.
+## Gunslinger mode: 1.5 (50% faster movement — Issue #1732).
 ## Black Metal mode: 1.25 (25% faster movement).
 ## Other modes: 1.0 (no change).
 func get_player_speed_multiplier() -> float:
+	if current_difficulty == Difficulty.GUNSLINGER:
+		return 1.5
 	if current_difficulty == Difficulty.BLACK_METAL:
 		return 1.25
 	return 1.0
@@ -396,9 +437,12 @@ func get_recoil_multiplier() -> float:
 
 ## Get ammo multiplier for weapons.
 ## Power Fantasy mode has 3x more ammo.
+## Gunslinger mode has 4x more ammo.
 func get_ammo_multiplier() -> int:
 	if current_difficulty == Difficulty.POWER_FANTASY:
 		return 3
+	if current_difficulty == Difficulty.GUNSLINGER:
+		return 4
 	return 1
 
 
@@ -408,14 +452,38 @@ func should_force_blue_laser_sight() -> bool:
 	return current_difficulty == Difficulty.POWER_FANTASY
 
 
+## Check if laser sights should be disabled on all weapons.
+## In Gunslinger mode, no weapon has a laser sight unless the Laser Sight item is equipped.
+func should_disable_laser_sight() -> bool:
+	return current_difficulty == Difficulty.GUNSLINGER
+
+
 ## Get blue laser sight color for Power Fantasy mode.
 func get_power_fantasy_laser_color() -> Color:
 	return Color(0.0, 0.5, 1.0, 0.6)  # Blue with some transparency
 
 
+## Check if the kill-triggered last chance effect is active.
+## In Power Fantasy and Gunslinger modes, killing an enemy triggers a brief slow-motion effect.
+func is_kill_last_chance_enabled() -> bool:
+	return current_difficulty == Difficulty.POWER_FANTASY or current_difficulty == Difficulty.GUNSLINGER
+
+
+## Check if the special last chance effect (time stop) is disabled.
+## In Gunslinger mode, the special time-stop last chance effect never triggers.
+func is_special_last_chance_disabled() -> bool:
+	return current_difficulty == Difficulty.GUNSLINGER
+
+
+## Check if enemies should have a bright red glow effect.
+## In Gunslinger mode, enemies are brighter and have a small red glow.
+func should_apply_gunslinger_enemy_glow() -> bool:
+	return current_difficulty == Difficulty.GUNSLINGER
+
+
 ## Duration (ms) of the last chance effect when player kills an enemy.
 ## Only in Power Fantasy mode.
-const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 300.0
+const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 600.0
 
 
 ## Duration (ms) of the special last chance effect when grenade explodes.

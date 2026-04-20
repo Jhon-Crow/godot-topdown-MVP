@@ -610,7 +610,10 @@ public partial class AKGL : BaseWeapon
         }
 
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        // Issue #1895: extend laser to reach mouse cursor during drone mode where the
+        // player can be far from the camera/target. Use whichever is larger.
+        float distToMouse = GlobalPosition.DistanceTo(GetGlobalMousePosition());
+        float maxLaserLength = Mathf.Max(viewportSize.Length(), distToMouse + 200f);
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;

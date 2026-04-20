@@ -38,10 +38,11 @@ class MockEnemy:
 	var last_penetrated: bool = false
 	var last_bullet_damage: float = 0.0
 	var last_is_from_player: bool = false
+	var last_attacker_node: Node2D = null
 	var hit_reaction_target: Vector2 = Vector2.ZERO
 	var hit_reaction_called: int = 0
 
-	func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool) -> void:
+	func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool, attacker_node: Node2D = null) -> void:
 		hit_called += 1
 		last_hit_direction = hit_direction
 		last_caliber_data = caliber_data
@@ -49,6 +50,7 @@ class MockEnemy:
 		last_penetrated = has_penetrated
 		last_bullet_damage = bullet_damage
 		last_is_from_player = is_from_player
+		last_attacker_node = attacker_node
 
 	func on_hit() -> void:
 		on_hit_called += 1
@@ -75,16 +77,16 @@ class MockShieldHitArea:
 	var shield_component = null
 	var enemy = null
 
-	func on_hit_with_bullet_info_and_damage(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool = false) -> void:
+	func on_hit_with_bullet_info_and_damage(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool = false, attacker_node: Node2D = null) -> void:
 		if shield_component and shield_component.is_active():
 			if shield_component.try_intercept_hit(caliber_data, bullet_damage, hit_direction):
 				if enemy and enemy.has_method("_set_hit_reaction_target"):
 					enemy._set_hit_reaction_target(-hit_direction.normalized())
 				return
-		_forward_to_enemy(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player)
+		_forward_to_enemy(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player, attacker_node)
 
-	func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, is_from_player: bool = false) -> void:
-		on_hit_with_bullet_info_and_damage(hit_direction, caliber_data, has_ricocheted, has_penetrated, 1.0, is_from_player)
+	func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, is_from_player: bool = false, attacker_node: Node2D = null) -> void:
+		on_hit_with_bullet_info_and_damage(hit_direction, caliber_data, has_ricocheted, has_penetrated, 1.0, is_from_player, attacker_node)
 
 	func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		on_hit_with_bullet_info_and_damage(hit_direction, caliber_data, false, false, 1.0, false)
@@ -92,9 +94,9 @@ class MockShieldHitArea:
 	func on_hit() -> void:
 		on_hit_with_bullet_info_and_damage(Vector2.RIGHT, null, false, false, 1.0, false)
 
-	func _forward_to_enemy(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool) -> void:
+	func _forward_to_enemy(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, bullet_damage: float, is_from_player: bool, attacker_node: Node2D = null) -> void:
 		if enemy and enemy.has_method("on_hit_with_bullet_info"):
-			enemy.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player)
+			enemy.on_hit_with_bullet_info(hit_direction, caliber_data, has_ricocheted, has_penetrated, bullet_damage, is_from_player, attacker_node)
 		elif enemy and enemy.has_method("on_hit"):
 			enemy.on_hit()
 

@@ -104,6 +104,13 @@ class MockLabyrinthTutorial:
 	var _shotgun_current_ammo: int = 0
 	## Fix 3rd#9: Grenade count
 	var _grenade_count: int = 3
+	var _tutorial_grenade_hint_step: int = 0
+	var _tutorial_grenade_g_was_held: bool = false
+	var _grenade_hint_drag_completed: bool = false
+	var _grenade_hint_rmb_held_after_release: bool = false
+	var _grenade_hint_rmb_was_pressed: bool = false
+	var _grenade_hint_drag_start_x: float = 0.0
+	var _tutorial_shotgun_reload_started: bool = false
 	## Fix 3rd#10: AK GL round
 	var _ak_gl_has_round: bool = true
 
@@ -120,6 +127,42 @@ class MockLabyrinthTutorial:
 	var _active_hints: Dictionary = {}
 	## Active hint colors: hint_key -> Color (Issue #945).
 	var _active_hint_colors: Dictionary = {}
+	var _hint_strike_progress: Dictionary = {}
+	var _locale: String = "ru"
+
+	const GRENADE_HINT_TRANSLATIONS := {
+		"HINT_GRENADE_HOLD_G_RMB": {
+			"en": "hold G+RMB",
+			"ru": "удерживать G+ПКМ",
+		},
+		"HINT_GRENADE_DRAG_RIGHT": {
+			"en": "flick mouse right",
+			"ru": "дёрнуть мышкой вправо",
+		},
+		"HINT_GRENADE_RELEASE_RMB": {
+			"en": "release RMB",
+			"ru": "отпустить ПКМ",
+		},
+		"HINT_GRENADE_HOLD_RMB": {
+			"en": "hold RMB",
+			"ru": "зажать ПКМ",
+		},
+		"HINT_GRENADE_RELEASE_G": {
+			"en": "release G",
+			"ru": "отпустить G",
+		},
+		"HINT_GRENADE_AIM_RELEASE_RMB": {
+			"en": "aim and release RMB",
+			"ru": "прицелиться и отпустить ПКМ",
+		},
+	}
+
+	func set_locale(locale: String) -> void:
+		_locale = locale
+
+	func _mock_tr(key: String) -> String:
+		var values: Dictionary = GRENADE_HINT_TRANSLATIONS.get(key, {})
+		return values.get(_locale, key)
 
 	func is_hint_active(hint_key: String) -> bool:
 		return _active_hints.has(hint_key)
@@ -132,6 +175,9 @@ class MockLabyrinthTutorial:
 
 	func get_hint_color(hint_key: String) -> Color:
 		return _active_hint_colors.get(hint_key, Color.WHITE)
+
+	func get_hint_strike_progress(hint_key: String) -> float:
+		return _hint_strike_progress.get(hint_key, 0.0)
 
 	func get_active_hint_count() -> int:
 		return _active_hints.size()
@@ -159,10 +205,52 @@ class MockLabyrinthTutorial:
 	func _add_hint(hint_key: String, text: String) -> void:
 		_active_hints[hint_key] = text
 		_active_hint_colors[hint_key] = _get_tutorial_hint_color(hint_key)
+		_hint_strike_progress[hint_key] = 0.0
+
+	func _get_tutorial_grenade_hint_actions() -> Array:
+		return [
+			"[%s]" % _mock_tr("HINT_GRENADE_HOLD_G_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_DRAG_RIGHT"),
+			"[%s]" % _mock_tr("HINT_GRENADE_RELEASE_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_HOLD_RMB"),
+			"[%s]" % _mock_tr("HINT_GRENADE_RELEASE_G"),
+			"[%s]" % _mock_tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+		]
+
+	func _get_tutorial_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+		if completed_actions <= 0 or actions.is_empty():
+			return 0.0
+		var all_actions := PackedStringArray()
+		for action in actions:
+			all_actions.append(str(action))
+		var total_text := " ".join(all_actions)
+		if total_text.is_empty():
+			return 0.0
+
+		var completed := PackedStringArray()
+		var completed_count := mini(completed_actions, actions.size())
+		for i in range(completed_count):
+			completed.append(str(actions[i]))
+		return float(" ".join(completed).length()) / float(total_text.length())
+
+	func _build_tutorial_grenade_hint_bbcode(step: int) -> String:
+		var parts := _get_tutorial_grenade_hint_actions()
+		var clamped_step := clampi(step, 0, parts.size() - 1)
+		_hint_strike_progress[TUTORIAL_HINT_GRENADE] = _get_tutorial_grenade_hint_strikethrough_progress(clamped_step, parts)
+		var styled: PackedStringArray = []
+		for i in range(parts.size()):
+			if i < clamped_step:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+			elif i == clamped_step:
+				styled.append("[color=#ff4444]%s[/color]" % parts[i])
+			else:
+				styled.append("[color=#888888]%s[/color]" % parts[i])
+		return " ".join(styled)
 
 	func _dismiss_hint(hint_key: String) -> void:
 		_active_hints.erase(hint_key)
 		_active_hint_colors.erase(hint_key)
+		_hint_strike_progress.erase(hint_key)
 
 	## Fix 3rd#4, 3rd#3: Build BBCode for sniper bolt-cycle hint with 4-step sequence.
 	func _build_tutorial_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -230,8 +318,18 @@ class MockLabyrinthTutorial:
 
 	## Called when shotgun reload state changes (Fix 4th#2).
 	func on_tutorial_shotgun_reload_state_changed(state: int) -> void:
-		if _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
-			_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
+		if not _active_hints.has(TUTORIAL_HINT_BOLT_CYCLE):
+			return
+		if state >= 2:
+			_tutorial_shotgun_reload_started = true
+		if state == 0:
+			if _tutorial_shotgun_reload_started:
+				on_tutorial_reload_completed()
+			else:
+				_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(0)
+			_tutorial_shotgun_reload_started = false
+			return
+		_active_hints[TUTORIAL_HINT_BOLT_CYCLE] = _build_tutorial_shotgun_full_reload_hint_bbcode(state)
 
 	## Build BBCode text for the reload hint based on current step (Issue #945).
 	## Bug fix #2: `step` is LAST COMPLETED step (0=nothing done, 1=first press done, etc.).
@@ -374,8 +472,7 @@ class MockLabyrinthTutorial:
 				# Fix 3rd#9: only show grenade hint if player has grenades
 				if _grenade_count > 0:
 					if not _active_hints.has(TUTORIAL_HINT_GRENADE):
-						_add_hint(TUTORIAL_HINT_GRENADE,
-							"[color=#ff4444][G+ПКМ вправо][/color] [color=#888888][G+ПКМ→отпусти G] [ПКМ бросок][/color]")
+						_add_hint(TUTORIAL_HINT_GRENADE, _build_tutorial_grenade_hint_bbcode(0))
 				else:
 					# Fix 3rd#9: no grenades — auto-complete tutorial
 					_tutorial_step = TutorialStep.COMPLETED
@@ -391,6 +488,69 @@ class MockLabyrinthTutorial:
 			_dismiss_hint(TUTORIAL_HINT_GRENADE)
 			_tutorial_step = TutorialStep.COMPLETED
 			_dismiss_all_hints()
+
+	func set_tutorial_grenade_hint_progress(g_and_rmb_held: bool, drag_completed: bool, rmb_held_after_release: bool) -> void:
+		if not _active_hints.has(TUTORIAL_HINT_GRENADE):
+			return
+		_grenade_hint_drag_completed = drag_completed
+		_grenade_hint_rmb_held_after_release = rmb_held_after_release
+		var step := 0
+		if g_and_rmb_held:
+			step = 2 if drag_completed else 1
+		else:
+			step = 4 if rmb_held_after_release else 3
+		_active_hints[TUTORIAL_HINT_GRENADE] = _build_tutorial_grenade_hint_bbcode(step)
+
+	func _reset_tutorial_grenade_hint_tracking() -> void:
+		_tutorial_grenade_hint_step = 0
+		_tutorial_grenade_g_was_held = false
+		_grenade_hint_drag_completed = false
+		_grenade_hint_rmb_held_after_release = false
+		_grenade_hint_rmb_was_pressed = false
+		_grenade_hint_drag_start_x = 0.0
+
+	func update_tutorial_grenade_hint_from_input(g_pressed: bool, rmb_pressed: bool, mouse_x: float) -> void:
+		if not _active_hints.has(TUTORIAL_HINT_GRENADE):
+			_reset_tutorial_grenade_hint_tracking()
+			return
+
+		var rmb_just_pressed := rmb_pressed and not _grenade_hint_rmb_was_pressed
+		var rmb_just_released := not rmb_pressed and _grenade_hint_rmb_was_pressed
+
+		if _tutorial_grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+			if g_pressed or rmb_pressed or _grenade_hint_rmb_was_pressed:
+				_reset_tutorial_grenade_hint_tracking()
+		elif _tutorial_grenade_hint_step == 1 and not g_pressed and not _grenade_hint_drag_completed:
+			_reset_tutorial_grenade_hint_tracking()
+		elif _tutorial_grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+			_reset_tutorial_grenade_hint_tracking()
+		elif _tutorial_grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+			_reset_tutorial_grenade_hint_tracking()
+		elif _tutorial_grenade_hint_step == 4 and not rmb_pressed and not _grenade_hint_rmb_held_after_release:
+			_reset_tutorial_grenade_hint_tracking()
+
+		if _tutorial_grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+			_grenade_hint_drag_completed = false
+			_grenade_hint_drag_start_x = mouse_x
+		if _tutorial_grenade_hint_step == 1 and g_pressed and rmb_pressed:
+			if mouse_x - _grenade_hint_drag_start_x > 20.0:
+				_grenade_hint_drag_completed = true
+				_tutorial_grenade_hint_step = 2
+
+		if _tutorial_grenade_hint_step == 0 and g_pressed and rmb_pressed:
+			_tutorial_grenade_hint_step = 1
+			_tutorial_grenade_g_was_held = true
+		elif _tutorial_grenade_hint_step == 2 and _grenade_hint_drag_completed and rmb_just_released:
+			_tutorial_grenade_hint_step = 3
+		elif _tutorial_grenade_hint_step == 3 and g_pressed and rmb_just_pressed:
+			_grenade_hint_rmb_held_after_release = true
+			_tutorial_grenade_hint_step = 4
+		elif _tutorial_grenade_hint_step == 4 and not g_pressed and rmb_pressed and _grenade_hint_rmb_held_after_release:
+			_tutorial_grenade_hint_step = 5
+			_tutorial_grenade_g_was_held = false
+
+		_grenade_hint_rmb_was_pressed = rmb_pressed
+		_active_hints[TUTORIAL_HINT_GRENADE] = _build_tutorial_grenade_hint_bbcode(_tutorial_grenade_hint_step)
 
 	## Simulate _on_tutorial_sniper_bolt_step_changed() (Issue #808).
 	## Fix 3rd#3: Dynamically update bolt-cycle hint text per step.
@@ -451,6 +611,21 @@ func test_no_hints_shown_at_level_start() -> void:
 		"Grenade hint must NOT be shown at Lab level start (Issue #945)")
 	assert_false(lab.is_any_hint_active(),
 		"No tutorial hints should be visible at Lab level start (Issue #945)")
+
+
+func test_labyrinth_tutorial_strings_have_translation_keys_for_english_locale() -> void:
+	var script := load("res://scripts/levels/labyrinth_level.gd") as GDScript
+	assert_not_null(script, "Labyrinth level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "tr(\"HINT_COCK_HAMMER\")",
+		"Labyrinth hammer-cock tutorial text should use a translation key for English locale support")
+	assert_string_contains(source, "tr(\"HINT_SCOPE\")",
+		"Labyrinth scope tutorial text should use a translation key for English locale support")
+	assert_false(source.contains("[color=#ff4444][ПКМ][/color] Взведи курок"),
+		"Labyrinth hammer-cock tutorial text should not be hardcoded in Russian")
+	assert_false(source.contains("[color=#ff4444][ПКМ][/color] Прицелься через оптику"),
+		"Labyrinth scope tutorial text should not be hardcoded in Russian")
 
 
 func test_reload_hint_not_shown_after_one_shot() -> void:
@@ -1121,6 +1296,213 @@ func test_lab_no_scope_hint_without_sniper() -> void:
 		"Scope hint must NOT appear without sniper rifle (Issue #998)")
 
 
+func test_lab_grenade_hint_uses_issue_1818_reviewed_text() -> void:
+	var grenade_lab := MockLabyrinthTutorial.new()
+	grenade_lab._tutorial_step = MockLabyrinthTutorial.TutorialStep.THROW_GRENADE
+	grenade_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE,
+		grenade_lab._build_tutorial_grenade_hint_bbcode(0)
+	)
+
+	var hint_text: String = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[удерживать G+ПКМ]"),
+		"Lab grenade hint should start with hold G+RMB text from issue #1818")
+	assert_true(hint_text.contains("[дёрнуть мышкой вправо]"),
+		"Lab grenade hint should include the drag-right action")
+	assert_true(hint_text.contains("[отпустить ПКМ]"),
+		"Lab grenade hint should include the RMB-release action")
+	assert_true(hint_text.contains("[зажать ПКМ]"),
+		"Lab grenade hint should include RMB hold step from issue #1818")
+	assert_true(hint_text.contains("[отпустить G]"),
+		"Lab grenade hint should include G release step from issue #1818")
+	assert_true(hint_text.contains("[прицелиться и отпустить ПКМ]"),
+		"Lab grenade hint should include final aim-and-release step from issue #1818")
+
+
+func test_lab_grenade_hint_uses_english_translation_when_locale_is_english() -> void:
+	var grenade_lab := MockLabyrinthTutorial.new()
+	grenade_lab.set_locale("en")
+	grenade_lab._tutorial_step = MockLabyrinthTutorial.TutorialStep.THROW_GRENADE
+	grenade_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE,
+		grenade_lab._build_tutorial_grenade_hint_bbcode(0)
+	)
+
+	var hint_text: String = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[hold G+RMB]"),
+		"Lab grenade hint should translate the first step to English")
+	assert_true(hint_text.contains("[flick mouse right]"),
+		"Lab grenade hint should translate the drag step to English")
+	assert_true(hint_text.contains("[release RMB]"),
+		"Lab grenade hint should translate the RMB-release step to English")
+	assert_true(hint_text.contains("[aim and release RMB]"),
+		"Lab grenade hint should translate the final throw step to English")
+	assert_false(hint_text.contains("ПКМ"),
+		"English lab grenade hint should not include Russian RMB text")
+
+
+func test_lab_grenade_hint_uses_translation_keys_in_source() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/labyrinth_level.gd")
+	assert_true(source.contains("tr(\"HINT_GRENADE_HOLD_G_RMB\")"),
+		"Lab grenade hint should use translation key for hold G+RMB")
+	assert_true(source.contains("tr(\"HINT_GRENADE_DRAG_RIGHT\")"),
+		"Lab grenade hint should use translation key for drag-right action")
+	assert_true(source.contains("tr(\"HINT_GRENADE_RELEASE_RMB\")"),
+		"Lab grenade hint should use translation key for RMB release")
+	assert_true(source.contains("tr(\"HINT_GRENADE_AIM_RELEASE_RMB\")"),
+		"Lab grenade hint should use translation key for final aim/release action")
+
+
+func test_lab_grenade_hint_progression_updates_next_reviewed_step() -> void:
+	var grenade_lab := MockLabyrinthTutorial.new()
+	grenade_lab._tutorial_step = MockLabyrinthTutorial.TutorialStep.THROW_GRENADE
+	grenade_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE,
+		grenade_lab._build_tutorial_grenade_hint_bbcode(0)
+	)
+
+	grenade_lab.set_tutorial_grenade_hint_progress(true, false, false)
+	var hint_text: String = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"After holding G+RMB the lab hint should highlight drag-right next")
+
+	grenade_lab.set_tutorial_grenade_hint_progress(true, true, false)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"After dragging right the lab hint should highlight RMB release next")
+
+	grenade_lab.set_tutorial_grenade_hint_progress(false, true, false)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"After releasing RMB, lab hint should highlight hold-RMB-again next")
+
+	grenade_lab.set_tutorial_grenade_hint_progress(false, true, true)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"After holding RMB again, lab hint should highlight release-G next")
+
+
+func test_lab_grenade_hint_requires_actual_input_transitions_for_reviewed_steps() -> void:
+	var grenade_lab := MockLabyrinthTutorial.new()
+	grenade_lab._tutorial_step = MockLabyrinthTutorial.TutorialStep.THROW_GRENADE
+	grenade_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE,
+		grenade_lab._build_tutorial_grenade_hint_bbcode(0)
+	)
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, false, 0.0)
+	var hint_text: String = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Holding G alone should not complete the first reviewed lab step")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 10.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][дёрнуть мышкой вправо][/color]"),
+		"Pressing G+RMB should advance to the lab drag-right action")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#888888][дёрнуть мышкой вправо][/color]"),
+		"Dragging right should mark only the lab right-flick action as completed")
+	assert_true(hint_text.contains("[color=#ff4444][отпустить ПКМ][/color]"),
+		"Dragging right should keep the lab RMB release action highlighted")
+	var progress_after_drag := grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, false, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"Releasing RMB should immediately complete that lab step and highlight RMB hold next")
+	assert_gt(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), progress_after_drag,
+		"Only releasing RMB should advance lab strikethrough past the RMB-release action")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(false, false, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Canceling preparation should roll the lab hint back to the first step")
+	assert_eq(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), 0.0,
+		"Canceling preparation should roll back lab strikethrough progress")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 40.0)
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 70.0)
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, false, 70.0)
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 70.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][отпустить G][/color]"),
+		"Holding G+RMB again should advance to the release-G lab step")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(false, true, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][прицелиться и отпустить ПКМ][/color]"),
+		"Releasing G while RMB stays held should immediately highlight the final lab throw step")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(false, false, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][прицелиться и отпустить ПКМ][/color]"),
+		"The final lab step should remain highlighted until the actual grenade throw dismisses the hint")
+
+
+func test_lab_grenade_hint_rolls_back_when_preparation_is_canceled() -> void:
+	var grenade_lab := MockLabyrinthTutorial.new()
+	grenade_lab._tutorial_step = MockLabyrinthTutorial.TutorialStep.THROW_GRENADE
+	grenade_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE,
+		grenade_lab._build_tutorial_grenade_hint_bbcode(0)
+	)
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 0.0)
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, true, 40.0)
+	grenade_lab.update_tutorial_grenade_hint_from_input(true, false, 40.0)
+
+	var hint_text := grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][зажать ПКМ][/color]"),
+		"After lab drag-right and RMB release the next step should be hold RMB again")
+
+	grenade_lab.update_tutorial_grenade_hint_from_input(false, false, 40.0)
+	hint_text = grenade_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE)
+	assert_true(hint_text.contains("[color=#ff4444][удерживать G+ПКМ][/color]"),
+		"Canceling grenade preparation should reset the lab hint to the first incomplete step")
+	assert_eq(grenade_lab.get_hint_strike_progress(MockLabyrinthTutorial.TUTORIAL_HINT_GRENADE), 0.0,
+		"Canceling grenade preparation should reset the lab strikethrough progress")
+
+
+func test_lab_shotgun_reload_hint_rolls_back_when_bolt_closes_without_loading_shells() -> void:
+	var shotgun_lab := MockLabyrinthTutorial.new()
+	shotgun_lab._tutorial_has_shotgun = true
+	shotgun_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE,
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0)
+	)
+
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(1)
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(0)
+
+	assert_true(shotgun_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		"Closing the shotgun bolt without loading shells must keep the reload hint active")
+	assert_eq(
+		shotgun_lab.get_hint_text(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0),
+		"Closing the shotgun bolt without loading shells should restore the initial full-reload hint")
+	assert_eq(shotgun_lab.get_step(), MockLabyrinthTutorial.TutorialStep.RELOAD,
+		"Closing the shotgun bolt without loading shells must not complete the reload tutorial")
+
+
+func test_lab_shotgun_reload_hint_completes_after_loading_phase_started() -> void:
+	var shotgun_lab := MockLabyrinthTutorial.new()
+	shotgun_lab._tutorial_has_shotgun = true
+	shotgun_lab._add_hint(
+		MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE,
+		shotgun_lab._build_tutorial_shotgun_full_reload_hint_bbcode(0)
+	)
+
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(2)
+	shotgun_lab.on_tutorial_shotgun_reload_state_changed(0)
+
+	assert_false(shotgun_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_BOLT_CYCLE),
+		"Returning to idle after entering the shell-loading phase should complete the shotgun reload hint")
+	assert_eq(shotgun_lab.get_step(), MockLabyrinthTutorial.TutorialStep.THROW_GRENADE,
+		"Completed shotgun reload should advance to grenade training")
+
+
 func test_lab_sniper_scope_hint_dismissed_when_scope_used() -> void:
 	## Issue #998: Scope hint is dismissed when player activates scope.
 	var sniper_lab := MockLabyrinthTutorial.new()
@@ -1187,3 +1569,60 @@ func test_lab_sniper_scope_hint_coexists_with_reload_hint() -> void:
 		"Scope hint still visible after 2 shots if not used yet (Issue #998)")
 	assert_true(sniper_lab.is_hint_active(MockLabyrinthTutorial.TUTORIAL_HINT_RELOAD),
 		"Reload hint also visible after 2 shots (Issue #998)")
+
+
+# ============================================================================
+# Issue #1881: Grenade tutorial hint must not cover the player on Labyrinth
+# ============================================================================
+
+
+func test_lab_hints_are_bottom_aligned_above_player() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("const TUTORIAL_HINT_PLAYER_CLEARANCE"),
+		"Labyrinth hints should use an explicit clearance above the player (Issue #1881)")
+	assert_true(content.contains("label.get_content_height()"),
+		"Labyrinth hints should account for wrapped grenade hint height (Issue #1881)")
+	assert_true(
+		content.contains("-TUTORIAL_HINT_PLAYER_CLEARANCE - cumulative_y - h"),
+		"Labyrinth hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
+
+
+func test_lab_hints_do_not_use_old_fixed_player_covering_offset() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("Vector2(-150, -80 - index * TUTORIAL_HINT_SPACING)"),
+		"Old fixed top-left offset can cover the player when grenade hint wraps on Lab map (Issue #1881)")
+	assert_false(content.contains("index * TUTORIAL_HINT_SPACING"),
+		"Fixed index*HINT_SPACING stacking ignores actual hint heights — grenade hint overlaps the reload hint (Issue #1881)")
+
+
+func test_lab_hint_stacking_uses_cumulative_content_heights() -> void:
+	var file := FileAccess.open("res://scripts/levels/labyrinth_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("labyrinth_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("cumulative_y"),
+		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints on Lab map (Issue #1881)")
+	assert_true(content.contains("_tutorial_hint_heights"),
+		"Hint heights should be tracked in a dictionary to survive stale get_content_height() (Issue #1881)")
+	assert_true(content.contains("_estimate_tutorial_hint_height"),
+		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
+	assert_true(content.contains("label.size = Vector2(TUTORIAL_HINT_WIDTH"),
+		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
+	assert_true(content.contains("known_bbcode"),
+		"_estimate_tutorial_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881)")
+
