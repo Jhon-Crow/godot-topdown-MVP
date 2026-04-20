@@ -397,9 +397,9 @@ func _queue_new_available_unlocks() -> void:
 		var key: String = entry["key"]
 		if _announced_available_keys.get(key, false):
 			continue
+		if _startup_suppressed_available_keys.has(key):
+			continue
 		_announced_available_keys[key] = true
-		if _startup_suppressed_available_keys.erase(key):
-			_log("Announcing previously startup-available unlock after live condition signal: %s" % key)
 		show_unlock_notification(entry["name"], entry["kind"])
 
 
