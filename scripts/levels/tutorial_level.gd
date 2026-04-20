@@ -2245,44 +2245,47 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 
 
 ## Update positions of all active hints to follow the player.
+## Stacks hints above the player using actual content heights so multi-line hints
+## (e.g. the grenade tutorial) never overlap hints below them.
 func _update_all_hint_positions() -> void:
 	if _player == null or _hint_labels.is_empty():
 		return
 
-	var index := 0
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * _player.global_position
+	var cumulative_y: float = 0.0
 	for hint_key in _hint_labels:
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if is_instance_valid(label):
-			_update_hint_position_indexed(label, index)
-			index += 1
+			label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
+			var h: float = maxf(label.get_content_height(), HINT_MIN_HEIGHT)
+			label.position = screen_pos + Vector2(
+				-HINT_WIDTH * 0.5,
+				-HINT_PLAYER_CLEARANCE - cumulative_y - h
+			)
+			cumulative_y += h + HINT_SPACING
 
 
 ## Update a single hint label's position.
 func _update_hint_position(hint_key: String, label: RichTextLabel) -> void:
-	# Find this hint's index among active hints
-	var index := 0
-	for key in _hint_labels:
-		if key == hint_key:
-			break
-		index += 1
-	_update_hint_position_indexed(label, index)
-
-
-## Position a hint label above the player at the given vertical index (0 = closest to player).
-func _update_hint_position_indexed(label: RichTextLabel, index: int) -> void:
 	if _player == null:
 		return
 
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
+	var cumulative_y: float = 0.0
+	for key in _hint_labels:
+		if key == hint_key:
+			break
+		var prev: RichTextLabel = _hint_labels[key]
+		if is_instance_valid(prev):
+			cumulative_y += maxf(prev.get_content_height(), HINT_MIN_HEIGHT) + HINT_SPACING
 
-	# Bottom-align each hint above the player so tall grenade instructions grow upward
-	# instead of covering the player sprite.
 	label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
-	var label_height: float = maxf(label.get_content_height(), HINT_MIN_HEIGHT)
+	var h: float = maxf(label.get_content_height(), HINT_MIN_HEIGHT)
 	label.position = screen_pos + Vector2(
 		-HINT_WIDTH * 0.5,
-		-HINT_PLAYER_CLEARANCE - label_height - index * HINT_SPACING
+		-HINT_PLAYER_CLEARANCE - cumulative_y - h
 	)
 
 

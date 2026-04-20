@@ -2548,7 +2548,9 @@ func test_tutorial_hints_are_bottom_aligned_above_player() -> void:
 		"Tutorial hints should use an explicit clearance above the player (Issue #1881)")
 	assert_true(content.contains("label.get_content_height()"),
 		"Tutorial hints should account for wrapped grenade hint height (Issue #1881)")
-	assert_true(content.contains("-HINT_PLAYER_CLEARANCE - label_height"),
+	assert_true(
+		content.contains("-HINT_PLAYER_CLEARANCE - cumulative_y - h") or
+		content.contains("-HINT_PLAYER_CLEARANCE - label_height"),
 		"Tutorial hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
 
 
@@ -2562,3 +2564,20 @@ func test_tutorial_hints_do_not_use_old_fixed_player_covering_offset() -> void:
 
 	assert_false(content.contains("Vector2(-150, -80 - index * HINT_SPACING)"),
 		"Old fixed top-left offset can cover the player when grenade hint wraps (Issue #1881)")
+
+
+func test_tutorial_grenade_hint_stacks_above_existing_hints_without_overlap() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	# Grenade tutorial can appear simultaneously with other hints (e.g. scope hint on AK GL).
+	# The stacking must use cumulative actual heights rather than a fixed index*HINT_SPACING
+	# offset so that a multi-line grenade hint does not overlap the hint below it (Issue #1881).
+	assert_true(content.contains("cumulative_y"),
+		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints (Issue #1881)")
+	assert_false(content.contains("index * HINT_SPACING"),
+		"Fixed index*HINT_SPACING stacking ignores actual hint heights causing overlap when grenade hint is multi-line (Issue #1881)")
