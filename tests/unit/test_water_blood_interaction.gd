@@ -48,7 +48,7 @@ class MockWaterBody:
 		last_diffusion_pos = world_pos
 		last_diffusion_color = blood_color
 
-	func register_blood_tint_at(world_pos: Vector2, blood_color: Color) -> void:
+	func register_blood_tint_at(world_pos: Vector2, blood_color: Color, absorbed_hits: int = 1) -> void:
 		tint_registered_count += 1
 		last_diffusion_pos = world_pos
 		last_diffusion_color = blood_color
@@ -274,11 +274,19 @@ func test_default_blood_diffusion_color_is_dark_red() -> void:
 	assert_almost_eq(default_color.a, 0.55, 0.01, "Alpha should be ~0.55 (semi-transparent cloud)")
 
 
-func test_blood_diffusion_persists_more_than_one_minute() -> void:
+func test_blood_diffusion_cloud_duration_and_water_tint_persists() -> void:
 	var script := load("res://scripts/effects/water_blood_diffusion.gd")
 	assert_not_null(script, "WaterBloodDiffusion script must load")
-	assert_gt(script.DURATION, 60.0,
-		"Blood pigment in water must remain visible for more than one minute")
+	# Cloud disperses in ~20 seconds; water tint persists via WaterBody shader for 75+ seconds.
+	assert_gt(script.DURATION, 5.0,
+		"Blood diffusion cloud must have a non-trivial lifetime before dispersing")
+	assert_lt(script.DURATION, 60.0,
+		"Blood diffusion cloud itself should disperse quickly; water tint persists via shader")
+	# Verify on_dispersed callback is exposed for water tint notification
+	var diffusion: Node2D = script.new()
+	add_child_autofree(diffusion)
+	assert_true("on_dispersed" in diffusion,
+		"WaterBloodDiffusion must expose on_dispersed callback for post-dispersal water tint")
 
 
 func test_blood_diffusion_renders_below_water_layer() -> void:

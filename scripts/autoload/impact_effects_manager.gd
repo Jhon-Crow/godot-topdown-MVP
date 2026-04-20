@@ -774,6 +774,7 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 
 ## Handle blood landing in water: merge into a nearby diffusion cloud or spawn a new one.
 ## Caps concurrent effects at MAX_CONCURRENT_DIFFUSIONS to prevent FPS drops (Issue #1578).
+## Water tint is applied only after the cloud disperses (not on every hit) — Issue #1578.
 func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 	var blood_color := Color(0.5, 0.02, 0.02, 0.55)
 
@@ -791,8 +792,6 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 	if nearest != null:
 		if nearest.has_method("absorb"):
 			nearest.absorb()
-		if water_body.has_method("register_blood_tint_at"):
-			water_body.register_blood_tint_at(landing_pos, blood_color)
 		return
 
 	# Enforce cap: remove the oldest diffusion before spawning a new one
@@ -811,10 +810,18 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 	diffusion.global_position = landing_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
-	_active_diffusions.append(diffusion)
 
-	if water_body.has_method("register_blood_tint_at"):
-		water_body.register_blood_tint_at(landing_pos, blood_color)
+	# Register water tint only when the cloud disperses (not immediately on spawn).
+	# Each absorbed hit contributes more tint so rapid fire darkens the water more.
+	var wb_ref := water_body
+	var pos_ref := landing_pos
+	var color_ref := blood_color
+	diffusion.set("on_dispersed", func(world_pos: Vector2, absorbed_hits: int) -> void:
+		if is_instance_valid(wb_ref) and wb_ref.has_method("register_blood_tint_at"):
+			wb_ref.register_blood_tint_at(world_pos, color_ref, absorbed_hits)
+	)
+
+	_active_diffusions.append(diffusion)
 
 	_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
 
@@ -822,6 +829,10 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 ## Returns the first WaterBody node whose bounds contain the given world position,
 ## or null if the position is not inside any water area.
 ## Used by _schedule_delayed_decal() to intercept blood landing in water (Issue #1578).
+## The boundary is expanded by WATER_EDGE_ABSORB_MARGIN so that puddles landing
+## near the water edge are fully absorbed instead of being clipped at the boundary.
+const WATER_EDGE_ABSORB_MARGIN: float = 80.0
+
 func _find_water_body_at(world_pos: Vector2) -> Node:
 	var current_scene := get_tree().current_scene
 	if current_scene == null:
@@ -837,16 +848,19 @@ func _find_water_body_at(world_pos: Vector2) -> Node:
 	for wb in water_bodies:
 		if not is_instance_valid(wb):
 			continue
-		if wb.has_method("is_point_in_water"):
+		if wb.has_method("is_point_near_water"):
+			if wb.is_point_near_water(world_pos, WATER_EDGE_ABSORB_MARGIN):
+				return wb
+		elif wb.has_method("is_point_in_water"):
 			if wb.is_point_in_water(world_pos):
 				return wb
 		else:
 			# Geometry fallback: has_method() can return false in some exported builds
-			# even when the method exists (Issue #1578). Check bounding rect directly.
+			# even when the method exists (Issue #1578). Check expanded bounding rect.
 			var half_w: float = wb.get("water_width") if wb.get("water_width") != null else 1200.0
 			var half_h: float = wb.get("water_height") if wb.get("water_height") != null else 210.0
-			half_w *= 0.5
-			half_h *= 0.5
+			half_w = half_w * 0.5 + WATER_EDGE_ABSORB_MARGIN
+			half_h = half_h * 0.5 + WATER_EDGE_ABSORB_MARGIN
 			var local: Vector2 = world_pos - wb.global_position
 			if abs(local.x) <= half_w and abs(local.y) <= half_h:
 				_log_info("[ImpactEffects] water_body geometry fallback hit at %s (has_method returned false — Issue #1578)" % world_pos)

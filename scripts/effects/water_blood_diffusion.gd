@@ -2,8 +2,9 @@ extends Node2D
 ## Blood diffusion effect for water (Issue #1445, enhanced Issue #1578).
 ##
 ## Simulates dense pigment (blood) entering water: a semi-dissolved stain that
-## spreads slowly and persists for over a minute. Drawn entirely via _draw() to
-## avoid the GPU-particle cost that caused FPS drops when many effects exist.
+## spreads and disperses over ~20 seconds, then permanently tints the water color.
+## Drawn entirely via _draw() to avoid the GPU-particle cost that caused FPS drops
+## when many effects exist.
 ## New blood hits nearby are absorbed into this node (see absorb()) rather than
 ## spawning fresh instances.
 
@@ -18,13 +19,13 @@ const MERGE_RADIUS: float = 120.0
 const MAX_RADIUS: float = 80.0
 
 ## Total lifetime of the effect in seconds.
-const DURATION: float = 75.0
+const DURATION: float = 20.0
 
 ## How long the effect expands before entering the hold phase.
-const EXPAND_DURATION: float = 18.0
+const EXPAND_DURATION: float = 5.0
 
-## Hold phase length — semi-dissolved cloud stays visible for over a minute.
-const HOLD_DURATION: float = 62.0
+## Hold phase length — visible dissolving cloud before fading out.
+const HOLD_DURATION: float = 10.0
 
 ## Blood color (default dark red, overridden by set_blood_color).
 var _blood_color: Color = Color(0.42, 0.01, 0.01, 0.72)
@@ -41,6 +42,13 @@ var _seed: float = 0.0
 ## Extra intensity from absorbed hits (each absorbed hit adds 0.2, capped at 1.0).
 var _extra_alpha: float = 0.0
 
+## How many hits were absorbed (used to scale water tint on dispersal).
+var _absorbed_hits: int = 1
+
+## Callback invoked when the cloud disperses — used to notify the water body.
+## Signature: func(world_pos: Vector2, absorbed_hits: int) -> void
+var on_dispersed: Callable = Callable()
+
 
 func _ready() -> void:
 	z_index = 0
@@ -51,6 +59,8 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	if _elapsed >= DURATION and not _done:
 		_done = true
+		if on_dispersed.is_valid():
+			on_dispersed.call(global_position, _absorbed_hits)
 		queue_free()
 	else:
 		queue_redraw()
@@ -97,6 +107,7 @@ func set_blood_color(color: Color) -> void:
 ## timer so the cloud lingers longer after fresh blood arrives.
 func absorb() -> void:
 	_extra_alpha = minf(_extra_alpha + 0.2, 1.0)
+	_absorbed_hits += 1
 	# Reset elapsed so the cloud stays in the hold phase for longer
 	if _elapsed > EXPAND_DURATION:
 		_elapsed = EXPAND_DURATION

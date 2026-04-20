@@ -317,6 +317,13 @@ func is_point_in_water(world_pos: Vector2) -> bool:
 	return _is_point_in_water(world_pos)
 
 
+## Public: check if a world position is within an expanded water boundary (Issue #1578).
+## Margin absorbs puddles that land near the water edge so they don't get clipped.
+func is_point_near_water(world_pos: Vector2, margin: float) -> bool:
+	var local_pos: Vector2 = world_pos - global_position
+	return abs(local_pos.x) <= water_width * 0.5 + margin and abs(local_pos.y) <= water_height * 0.5 + margin
+
+
 ## Check if a world position is within the water area bounds.
 func _is_point_in_water(world_pos: Vector2) -> bool:
 	var local_pos: Vector2 = world_pos - global_position
@@ -390,9 +397,10 @@ func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
 	_spawn_blood_diffusion(world_pos, blood_color)
 
 
-## Public entry point for direct-spawn fallbacks to register pigment in this water.
-func register_blood_tint_at(world_pos: Vector2, blood_color: Color) -> void:
-	_add_blood_tint_source(world_pos, blood_color)
+## Public entry point: register permanent blood pigment tint after a cloud disperses.
+## absorbed_hits scales the tint strength (more hits = darker water). Default = 1.
+func register_blood_tint_at(world_pos: Vector2, blood_color: Color, absorbed_hits: int = 1) -> void:
+	_add_blood_tint_source(world_pos, blood_color, absorbed_hits)
 
 
 ## Returns the parent that should receive under-water diffusion nodes.
@@ -412,14 +420,20 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
-	_add_blood_tint_source(world_pos, blood_color)
+	# Register tint only when cloud disperses, not immediately on spawn.
+	var color_ref := blood_color
+	diffusion.set("on_dispersed", func(p: Vector2, hits: int) -> void:
+		if is_instance_valid(self):
+			_add_blood_tint_source(p, color_ref, hits)
+	)
 
 
-func _add_blood_tint_source(world_pos: Vector2, blood_color: Color) -> void:
+func _add_blood_tint_source(world_pos: Vector2, blood_color: Color, absorbed_hits: int = 1) -> void:
 	_blood_tint_sources.append({
 		"position": world_pos,
 		"color": Color(blood_color.r, blood_color.g, blood_color.b, 1.0),
-		"start_msec": Time.get_ticks_msec()
+		"start_msec": Time.get_ticks_msec(),
+		"intensity": clampf(float(absorbed_hits) * 0.18, 0.18, 0.72),
 	})
 	while _blood_tint_sources.size() > MAX_BLOOD_TINT_SHADER_SLOTS:
 		_blood_tint_sources.pop_front()
@@ -446,7 +460,8 @@ func _update_blood_tint_shader_params() -> void:
 			(local.y + water_height * 0.5) / water_height
 		).clamp(Vector2.ZERO, Vector2.ONE))
 		var fade_t: float = clampf((elapsed - BLOOD_TINT_HOLD_DURATION) / maxf(BLOOD_TINT_DURATION - BLOOD_TINT_HOLD_DURATION, 0.001), 0.0, 1.0)
-		strengths.append(0.36 * (1.0 - fade_t * fade_t))
+		var base_strength: float = source.get("intensity", 0.36)
+		strengths.append(base_strength * (1.0 - fade_t * fade_t))
 		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
 			break
 	_blood_tint_sources = kept
