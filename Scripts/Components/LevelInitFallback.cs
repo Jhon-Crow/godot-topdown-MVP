@@ -1509,6 +1509,9 @@ public partial class LevelInitFallback : Node
             "res://scenes/levels/FactoryLevel.tscn",
             "res://scenes/levels/DecadenceLevel.tscn",
             "res://scenes/levels/Labyrinth2Level.tscn",
+            "res://scenes/levels/SewerLevel.tscn",
+            "res://scenes/levels/WinterForestLevel.tscn",
+            "res://scenes/levels/RailwayStationLevel.tscn",
         };
         for (int i = 0; i < levelPaths.Length; i++)
         {
