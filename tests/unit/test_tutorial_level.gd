@@ -2529,3 +2529,82 @@ func test_sniper_scope_training_still_works_normally_when_scope_not_used_early()
 		"Tutorial advances to SCOPE_TRAINING after reload if scope not used early (Issue #998)")
 	assert_true(tutorial.is_hint_active(MockTutorialLevel.HINT_SCOPE),
 		"Scope hint remains active in SCOPE_TRAINING step (Issue #998)")
+
+
+# ============================================================================
+# Issue #1881: Grenade tutorial hint should not cover the player
+# ============================================================================
+
+
+func test_tutorial_hints_are_bottom_aligned_above_player() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("const HINT_PLAYER_CLEARANCE"),
+		"Tutorial hints should use an explicit clearance above the player (Issue #1881)")
+	assert_true(content.contains("label.get_content_height()"),
+		"Tutorial hints should account for wrapped grenade hint height (Issue #1881)")
+	assert_true(
+		content.contains("-HINT_PLAYER_CLEARANCE - cumulative_y - h") or
+		content.contains("-HINT_PLAYER_CLEARANCE - label_height"),
+		"Tutorial hints should bottom-align above the player instead of growing downward over the sprite (Issue #1881)")
+
+
+func test_tutorial_hints_do_not_use_old_fixed_player_covering_offset() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	assert_false(content.contains("Vector2(-150, -80 - index * HINT_SPACING)"),
+		"Old fixed top-left offset can cover the player when grenade hint wraps (Issue #1881)")
+
+
+func test_tutorial_grenade_hint_stacks_above_existing_hints_without_overlap() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	# Grenade tutorial can appear simultaneously with other hints (e.g. scope hint on AK GL).
+	# The stacking must use cumulative actual heights rather than a fixed index*HINT_SPACING
+	# offset so that a multi-line grenade hint does not overlap the hint below it (Issue #1881).
+	assert_true(content.contains("cumulative_y"),
+		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints (Issue #1881)")
+	assert_false(content.contains("index * HINT_SPACING"),
+		"Fixed index*HINT_SPACING stacking ignores actual hint heights causing overlap when grenade hint is multi-line (Issue #1881)")
+
+
+func test_tutorial_hint_height_tracked_to_avoid_stale_zero_from_layout_engine() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	# In Godot 4, get_content_height() returns 0 for CanvasLayer-direct-child RichTextLabels
+	# until the label has been drawn and its size.x is set. A _hint_heights dictionary that
+	# tracks the maximum observed height prevents the stale-zero from overriding a correct value
+	# and ensures even the first frame uses a reasonable estimate (Issue #1881 session 3).
+	assert_true(content.contains("_hint_heights"),
+		"Hint heights should be tracked in a dictionary to survive stale get_content_height() (Issue #1881)")
+	assert_true(content.contains("_estimate_hint_height"),
+		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
+	assert_true(content.contains("label.size = Vector2(HINT_WIDTH"),
+		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
+	# Verify the estimate function does NOT strip all bracket content (it would remove grenade action labels).
+	# Grenade hint uses literal "[hold G+RMB]" etc. that are NOT BBCode — stripping them yields 1-line
+	# estimate instead of the real 4 lines, placing the hint bottom on top of the player.
+	assert_false(content.contains("while \"[\" in plain"),
+		"_estimate_hint_height must not strip all [..] content — grenade action labels use literal brackets that are NOT BBCode (Issue #1881 session 4)")
+	assert_true(content.contains("known_bbcode"),
+		"_estimate_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881 session 4)")
