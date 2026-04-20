@@ -1052,10 +1052,11 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 	if not is_instance_valid(label):
 		return
 
-	const LINE_HEIGHT := 26.0
-
+	# Issue #1890: Use get_line_count() for the actual rendered line count instead of
+	# estimating from content_height / constant, which overcounts when the real line
+	# height differs from the hard-coded value and shifts strikethroughs above the text.
 	var content_height := label.get_content_height()
-	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	var line_count := maxi(1, label.get_line_count())
 	_hint_line_counts[hint_key] = line_count
 
 	var line_widths: Array = []
@@ -1083,9 +1084,10 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 			line_widths.append(fallback_width)
 	_hint_line_widths[hint_key] = line_widths
 
+	var actual_line_height := float(content_height) / float(line_count)
 	var lines: Array = []
 	for line_idx in range(line_count):
-		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var line_y := line_idx * actual_line_height + actual_line_height * 0.5
 		var seg := Line2D.new()
 		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
 		seg.width = 1.5
