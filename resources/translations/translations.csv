@@ -272,6 +272,7 @@ UNLOCK_COND_SHOTS_SPECIAL_WEAPONS,"Fire %d shots with shotgun, ASVK, or revolver
 UNLOCK_COND_TOTAL_DEATHS,Die %d times,Умри %d раз
 UNLOCK_COND_NO_DAMAGE_LEVELS,Complete %d level(s) without taking damage,Пройди %d уровень(уровней) без урона
 UNLOCK_COND_RANK_A_LEVELS,Complete %d level(s) at rank A or higher,Пройди %d уровень(уровней) на ранге A или выше
+UNLOCK_COND_RANK_S_LEVELS,Complete %d level(s) at rank S,Пройди %d уровень(уровней) на ранге S
 UNLOCK_COND_WALL_KILLS,Get %d kills through walls,Получи %d убийств сквозь стены
 UNLOCK_COND_SILENCED_PISTOL_LEVEL,Complete any level with the silenced pistol,Пройди любой уровень с глушителем
 UNLOCK_COND_PROGRESS,Progress: %d / %d,Прогресс: %d / %d

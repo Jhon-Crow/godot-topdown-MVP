@@ -32,6 +32,7 @@ const KEY_SHOTS_FIRED_SPECIAL_WEAPONS := "shots_fired_special_weapons"  # Issue 
 const KEY_TOTAL_DEATHS := "total_deaths"  # Issue #1389
 const KEY_NO_DAMAGE_LEVELS_COMPLETED := "no_damage_levels_completed"  # Issue #1389
 const KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER := "levels_completed_rank_a_or_higher"  # Issue #1589
+const KEY_LEVELS_COMPLETED_RANK_S := "levels_completed_rank_s"  # Issue #1892
 const KEY_KILLS_THROUGH_WALL := "kills_through_wall"  # Issue #1624
 const KEY_LEVELS_COMPLETED_WITH_SILENCED_PISTOL := "levels_completed_with_silenced_pistol"  # Issue #1624
 
@@ -191,6 +192,8 @@ func _connect_signals() -> void:
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
 			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
+		if game_manager.has_signal("levels_completed_rank_s_updated"):
+			game_manager.levels_completed_rank_s_updated.connect(_on_levels_completed_rank_s_updated)
 		if game_manager.has_signal("kills_through_wall_updated"):
 			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
 		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
@@ -284,6 +287,10 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 
 
 func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
+	_save_state()
+
+
+func _on_levels_completed_rank_s_updated(_new_count: int) -> void:
 	_save_state()
 
 
@@ -383,6 +390,9 @@ func _save_state_with_level(level_path: String) -> void:
 		# Save rank-A level stats (Issue #1589)
 		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER,
 				game_manager.get("levels_completed_rank_a_or_higher") if game_manager.get("levels_completed_rank_a_or_higher") != null else 0)
+		# Save rank-S level stats (Issue #1892)
+		config.set_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S,
+				game_manager.get("levels_completed_rank_s") if game_manager.get("levels_completed_rank_s") != null else 0)
 		# Save wall-kill stats (Issue #1624)
 		config.set_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL,
 				game_manager.get("kills_through_wall") if game_manager.get("kills_through_wall") != null else 0)
@@ -473,6 +483,11 @@ func _load_state() -> void:
 			var saved_rank_a: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_A_OR_HIGHER, 0)
 			game_manager.levels_completed_rank_a_or_higher = saved_rank_a
 			_log_to_file("Restored levels_completed_rank_a_or_higher: %d" % saved_rank_a)
+		# Restore rank-S level stats (Issue #1892)
+		if config.has_section_key(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S):
+			var saved_rank_s: int = config.get_value(SECTION_KILL_STATS, KEY_LEVELS_COMPLETED_RANK_S, 0)
+			game_manager.levels_completed_rank_s = saved_rank_s
+			_log_to_file("Restored levels_completed_rank_s: %d" % saved_rank_s)
 		# Restore wall-kill stats (Issue #1624)
 		if config.has_section_key(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL):
 			var saved_wall_kills: int = config.get_value(SECTION_KILL_STATS, KEY_KILLS_THROUGH_WALL, 0)
@@ -578,6 +593,7 @@ func clear_all_saves() -> void:
 		game_manager.total_deaths = 0  # Issue #1389
 		game_manager.no_damage_levels_completed = 0  # Issue #1389
 		game_manager.levels_completed_rank_a_or_higher = 0  # Issue #1589
+		game_manager.levels_completed_rank_s = 0  # Issue #1892
 		game_manager.kills_through_wall = 0  # Issue #1624
 		game_manager.levels_completed_with_silenced_pistol = 0  # Issue #1624
 
