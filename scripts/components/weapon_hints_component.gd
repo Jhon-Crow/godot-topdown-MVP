@@ -980,9 +980,16 @@ func _extend_hint_strikethrough(hint_key: String, progress: float) -> void:
 
 
 ## Called when the global dismiss timer times out — clear all remaining hints.
+## The grenade hint is excluded: it must only be dismissed when the throw is performed.
 func _on_dismiss_timer_timeout() -> void:
 	_log_to_file("Auto-dismiss timer: clearing all remaining hints for %s" % _current_weapon_id)
-	dismiss_hints()
+	if _hint_labels.has(HINT_KEY_GRENADE):
+		var keys_to_dismiss: Array = _hint_labels.keys().filter(func(k): return k != HINT_KEY_GRENADE)
+		for key in keys_to_dismiss:
+			_dismiss_hint(key)
+		_log_to_file("Auto-dismiss timer: grenade hint kept active (waiting for throw)")
+	else:
+		dismiss_hints()
 
 
 ## Add a single hint label with Labyrinth-style BBCode, shadows, fade-in, and strikethrough Line2D.

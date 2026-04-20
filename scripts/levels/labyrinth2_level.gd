@@ -1157,7 +1157,7 @@ func _get_next_level_path() -> String:
 	if current_scene and current_scene.scene_file_path:
 		current_scene_path = current_scene.scene_file_path
 
-	# Level ordering (matching LevelsMenu.LEVELS) — Labyrinth Complex is last
+	# Level ordering (matching LevelsMenu.LEVELS)
 	var level_paths: Array[String] = [
 		"res://scenes/levels/LabyrinthLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",

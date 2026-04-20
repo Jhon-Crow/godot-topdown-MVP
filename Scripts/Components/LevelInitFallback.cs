@@ -1156,8 +1156,18 @@ public partial class LevelInitFallback : Node
         {
             var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
             if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload"))
-                soundPropagation.Call("emit_player_reload", _player.GlobalPosition, _player);
+            {
+                // Issue #1897: silenced pistol reload is nearly inaudible (100px vs default 900px)
+                float reloadSoundRange = IsSilencedPistolEquipped() ? 100.0f : -1.0f;
+                soundPropagation.Call("emit_player_reload", _player.GlobalPosition, _player, reloadSoundRange);
+            }
         }
+    }
+
+    private bool IsSilencedPistolEquipped()
+    {
+        var weapon = GetCurrentWeaponNode();
+        return weapon?.Name == "SilencedPistol";
     }
 
     private void OnPlayerReloadCompleted()
@@ -1499,6 +1509,9 @@ public partial class LevelInitFallback : Node
             "res://scenes/levels/FactoryLevel.tscn",
             "res://scenes/levels/DecadenceLevel.tscn",
             "res://scenes/levels/Labyrinth2Level.tscn",
+            "res://scenes/levels/SewerLevel.tscn",
+            "res://scenes/levels/WinterForestLevel.tscn",
+            "res://scenes/levels/RailwayStationLevel.tscn",
         };
         for (int i = 0; i < levelPaths.Length; i++)
         {

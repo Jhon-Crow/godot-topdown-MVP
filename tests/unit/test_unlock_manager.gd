@@ -50,8 +50,9 @@ class MockGameManager:
 	var shots_fired_special_weapons: int = 0     # Condition: 650 → Fine Motor Skills (Issue #1346)
 	var total_deaths: int = 0                    # Condition: 100 → Armored Skin (Issue #1389)
 	var no_damage_levels_completed: int = 0      # Condition: 1 → Combat Disposition (Issue #1389)
-	var levels_completed_rank_a_or_higher: int = 0  # Condition: 7 → Breaker Bullets (Issue #1589 req.3)
-	var kills_through_wall: int = 0              # Condition: 50 → Drilling Bullets (Issue #1624 req.3)
+	var levels_completed_rank_a_or_higher: int = 0  # Condition: 7 → (legacy, kept for other uses)
+	var levels_completed_rank_s: int = 0            # Condition: 7 → Breaker Bullets (Issue #1892 req.2)
+	var kills_through_wall: int = 0              # Condition: 15 → Drilling Bullets (Issue #1892 req.3)
 	var levels_completed_with_silenced_pistol: int = 0  # Condition: 1 → Auto Reload (Issue #1624 req.2)
 
 	var unlocked_signals: Array = []
@@ -73,16 +74,16 @@ class MockActiveItemManager:
 		3: false,  # TELEPORT_BRACERS — condition: Double Corridor F+ (Issue #1000)
 		4: false,  # BFF_PENDANT — condition: complete Winter Forest (Issue #1624 req.9)
 		5: false,  # INVISIBILITY_SUIT — condition: Beach S + Building S (Issue #1000)
-		6: false,  # BREAKER_BULLETS — condition: 7 levels at rank A or higher (Issue #1589 req.3)
+		6: false,  # BREAKER_BULLETS — condition: 7 unique maps at rank S (Issue #1892 req.2)
 		7: false,  # FORCE_FIELD — condition: complete Factory on any grade (Issue #1589 req.2)
 		8: false,  # TRAJECTORY_GLASSES — condition: City F+ (Issue #1692 req.2)
 		9: false,  # LASER_SIGHT — condition: 400 kills without laser sight equipped (Issue #1196)
-		10: false, # EXTENDED_MAGAZINE — condition: Double Corridor A+ (Issue #1692 req.1)
+		10: false, # EXTENDED_MAGAZINE — condition: Polygon S + Double Corridor S (Issue #1892 req.1)
 		11: true,  # LOUDSPEAKER — no condition, freely available from start (Issue #959)
 		12: false, # BREACHING_CHARGES — condition: complete Labyrinth Complex (Issue #1624 req.6)
 		13: false, # ARMORED_SKIN — condition: 100 total deaths (Issue #1389)
 		14: false, # AUTO_RELOAD — condition: complete any level with silenced pistol (Issue #1624 req.2)
-		15: false, # DRILLING_BULLETS — condition: 50 kills through walls (Issue #1624 req.3)
+		15: false, # DRILLING_BULLETS — condition: 15 kills through walls (Issue #1892 req.3)
 		16: false, # RECOIL_COMPENSATOR — condition: Labyrinth S (Issue #1423 req.2)
 		17: false, # COMBAT_DISPOSITION — condition: complete any level without damage (Issue #1389)
 		18: false, # EXPERIMENTAL_SAMPLE — condition: one level on every difficulty (Issue #1426)
@@ -204,12 +205,6 @@ class TestableUnlockManager extends Node:
 			"grenades": [],
 			"active_items": [16]  # RECOIL_COMPENSATOR (Issue #1423 req.2)
 		},
-		"res://scenes/levels/RevolverLevel.tscn:A": {
-			"min_rank": "A",
-			"weapons": [],
-			"grenades": [],
-			"active_items": [10]  # EXTENDED_MAGAZINE (Issue #1692 req.1)
-		},
 		"res://scenes/levels/DecadenceLevel.tscn:A+": {
 			"min_rank": "A+",
 			"weapons": [],
@@ -243,6 +238,16 @@ class TestableUnlockManager extends Node:
 	}
 
 	const MULTI_UNLOCK_CONDITIONS: Array[Dictionary] = [
+		{
+			# Polygon S + Double Corridor S → Extended Magazine (Issue #1892 req.1)
+			"levels": [
+				{"path": "res://scenes/levels/TestTier.tscn", "min_rank": "S"},
+				{"path": "res://scenes/levels/RevolverLevel.tscn", "min_rank": "S"}
+			],
+			"weapons": [],
+			"grenades": [],
+			"active_items": [10]  # EXTENDED_MAGAZINE
+		},
 		{
 			"levels": [
 				{"path": "res://scenes/levels/BeachLevel.tscn", "min_rank": "S"},
@@ -309,17 +314,17 @@ class TestableUnlockManager extends Node:
 			"active_items": [17]  # COMBAT_DISPOSITION
 		},
 		{
-			# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
-			"stat": "levels_completed_rank_a_or_higher",
+			# 7 unique maps completed at rank S → unlock Breaker Bullets (Issue #1892 req.2)
+			"stat": "levels_completed_rank_s",
 			"min_kills": 7,
 			"weapons": [],
 			"grenades": [],
 			"active_items": [6]   # BREAKER_BULLETS
 		},
 		{
-			# 50 kills through walls → unlock Drilling Bullets (Issue #1624 req.3)
+			# 15 kills through walls → unlock Drilling Bullets (Issue #1892 req.3)
 			"stat": "kills_through_wall",
-			"min_kills": 50,
+			"min_kills": 15,
 			"weapons": [],
 			"grenades": [],
 			"active_items": [15]  # DRILLING_BULLETS
@@ -1056,36 +1061,45 @@ func test_teleport_condition_met_after_double_corridor_f() -> void:
 
 
 # ============================================================================
-# New unlock condition tests (Issue #1692)
+# New unlock condition tests (Issue #1892)
 # ============================================================================
 
 
-func test_double_corridor_a_unlocks_extended_magazine() -> void:
-	# Issue #1692 req.1: Double Corridor A+ → Extended Magazine
-	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "A")
-	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
-		"Extended Magazine condition should be met after Double Corridor grade A (Issue #1692)")
-
-
-func test_double_corridor_s_unlocks_extended_magazine() -> void:
-	# Issue #1692 req.1: Double Corridor S also satisfies the A+ condition
+func test_polygon_s_and_double_corridor_s_unlocks_extended_magazine() -> void:
+	# Issue #1892 req.1: Polygon S + Double Corridor S → Extended Magazine
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "S")
 	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
 	assert_true(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
-		"Extended Magazine condition should be met after Double Corridor grade S (Issue #1692)")
+		"Extended Magazine condition should be met after Polygon S + Double Corridor S (Issue #1892)")
 
 
-func test_double_corridor_b_does_not_unlock_extended_magazine() -> void:
-	# Issue #1692 req.1: Double Corridor B is below A, should NOT unlock Extended Magazine
-	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "B")
+func test_double_corridor_s_alone_does_not_unlock_extended_magazine() -> void:
+	# Issue #1892 req.1: Double Corridor S alone is not enough — Polygon S also required
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
 	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
-		"Extended Magazine should NOT be unlocked with Double Corridor grade B (requires A+)")
+		"Extended Magazine should NOT be unlocked by Double Corridor S alone (requires both maps at S)")
 
 
-func test_extended_magazine_not_unlocked_without_double_corridor() -> void:
-	# Issue #1692 req.1: Extended Magazine requires Double Corridor, not Building
+func test_polygon_s_alone_does_not_unlock_extended_magazine() -> void:
+	# Issue #1892 req.1: Polygon S alone is not enough — Double Corridor S also required
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked by Polygon S alone (requires both maps at S)")
+
+
+func test_polygon_a_and_double_corridor_s_does_not_unlock_extended_magazine() -> void:
+	# Issue #1892 req.1: Both must be S rank — A on one is not enough
+	progress_manager.set_rank("res://scenes/levels/TestTier.tscn", "Normal", "A")
+	progress_manager.set_rank("res://scenes/levels/RevolverLevel.tscn", "Normal", "S")
+	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
+		"Extended Magazine should NOT be unlocked when Polygon is only A rank (requires S)")
+
+
+func test_extended_magazine_not_unlocked_without_correct_levels() -> void:
+	# Issue #1892 req.1: Extended Magazine requires Polygon + Double Corridor, not Building
 	progress_manager.set_rank("res://scenes/levels/BuildingLevel.tscn", "Normal", "S")
 	assert_false(unlock_manager.is_active_item_condition_met(10),  # EXTENDED_MAGAZINE = 10
-		"Extended Magazine should NOT be unlocked by Building completion (moved to Double Corridor in Issue #1692)")
+		"Extended Magazine should NOT be unlocked by Building completion alone")
 
 
 # ============================================================================
@@ -1632,18 +1646,19 @@ func test_fine_motor_skills_condition_met_at_threshold() -> void:
 
 
 func test_breaker_bullets_condition_not_met_below_threshold() -> void:
-	# Issue #1622: 6 out of 7 required A-rank levels → partial progress, no glow
-	game_manager.levels_completed_rank_a_or_higher = 6
+	# Issue #1892 req.2: 6 out of 7 required S-rank maps → partial progress, no glow
+	game_manager.levels_completed_rank_s = 6
 	assert_false(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
-		"Breaker Bullets condition should NOT be met with only 6/7 A-rank levels")
+		"Breaker Bullets condition should NOT be met with only 6/7 S-rank maps")
 	assert_false(unlock_manager.has_any_available_unlock(),
-		"has_any_available_unlock should return false with 6/7 A-rank levels")
+		"has_any_available_unlock should return false with 6/7 S-rank maps")
 
 
 func test_breaker_bullets_condition_met_at_threshold() -> void:
-	game_manager.levels_completed_rank_a_or_higher = 7  # At threshold
+	# Issue #1892 req.2: 7 unique S-rank maps → Breaker Bullets unlocks
+	game_manager.levels_completed_rank_s = 7  # At threshold
 	assert_true(unlock_manager.is_kill_condition_met(unlock_manager.KILL_UNLOCK_CONDITIONS[4]),
-		"Breaker Bullets condition should be met at exactly 7 A-rank levels")
+		"Breaker Bullets condition should be met at exactly 7 S-rank maps")
 	assert_true(unlock_manager.has_any_available_unlock(),
 		"has_any_available_unlock should return true when Breaker Bullets condition is met")
 
@@ -1719,6 +1734,8 @@ class DescriptionUnlockManager extends Node:
 			return tr("UNLOCK_COND_NO_DAMAGE_LEVELS") % min_kills
 		if stat == "levels_completed_rank_a_or_higher":
 			return tr("UNLOCK_COND_RANK_A_LEVELS") % min_kills
+		if stat == "levels_completed_rank_s":
+			return tr("UNLOCK_COND_RANK_S_LEVELS") % min_kills
 		if stat == "kills_through_wall":
 			return tr("UNLOCK_COND_WALL_KILLS") % min_kills
 		if stat == "levels_completed_with_silenced_pistol":
