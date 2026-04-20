@@ -12,10 +12,11 @@ extends GutTest
 
 
 class MockRailwayStationLevel:
-	## Mirrors the new state variables added for Issue #1755.
+	## Mirrors the new state variables added for Issue #1755 and Issue #1915.
 	var _level_completed: bool = false
 	var _game_end_screen_shown: bool = false
 	var _game_end_dismissed: bool = false   # guard added to fix Bug 2 (re-appearance)
+	var _game_end_ready_for_input: bool = false   # set to true after GAME_END_INPUT_DELAY (Issue #1915)
 	var _pending_score_data: Dictionary = {}
 	var _level_cleared: bool = false
 
@@ -35,20 +36,26 @@ class MockRailwayStationLevel:
 		_show_game_end_screen()
 
 	## Show the end-of-game screen (black bg + white text).
+	## Input is blocked until simulate_input_delay_elapsed() is called (Issue #1915).
 	func _show_game_end_screen() -> void:
 		if _game_end_screen_shown:
 			return
 		_game_end_screen_shown = true
+		_game_end_ready_for_input = false
 		game_end_screen_displayed = true
+
+	## Simulate the 2-second delay expiring so input becomes accepted (Issue #1915).
+	func simulate_input_delay_elapsed() -> void:
+		_game_end_ready_for_input = true
 
 	## Simulate the player pressing a key (keyboard path via _unhandled_input).
 	func handle_key_input() -> void:
-		if _game_end_screen_shown and not _game_end_dismissed:
+		if _game_end_screen_shown and not _game_end_dismissed and _game_end_ready_for_input:
 			_dismiss_game_end_screen()
 
 	## Simulate the player clicking the mouse (mouse path via gui_input on bg).
 	func handle_mouse_input() -> void:
-		if _game_end_screen_shown:
+		if _game_end_screen_shown and _game_end_ready_for_input:
 			_dismiss_game_end_screen()
 
 	## Remove the end screen and proceed to score.
@@ -107,6 +114,7 @@ func test_score_screen_not_shown_immediately_after_exit() -> void:
 func test_score_screen_appears_after_dismiss() -> void:
 	var score_data := {"rank": "B", "total_score": 25, "kills": 0}
 	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
 	level.handle_key_input()
 	assert_true(level.score_screen_displayed,
 		"Score screen must appear after the player dismisses the end screen")
@@ -128,6 +136,7 @@ func test_complete_level_idempotent() -> void:
 	var score_data := {"rank": "S", "total_score": 200, "kills": 5}
 	level.complete_level_with_score(score_data)
 	level.complete_level_with_score(score_data)  # Second call should be ignored.
+	level.simulate_input_delay_elapsed()
 	level.handle_key_input()
 	assert_true(level.score_screen_displayed,
 		"Score screen must appear exactly once even if complete_level called twice")
@@ -168,6 +177,7 @@ func test_mouse_click_dismisses_end_screen() -> void:
 	## Bug 1 regression: mouse click must dismiss the game-end screen.
 	var score_data := {"rank": "S", "total_score": 100, "kills": 0}
 	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
 	level.handle_mouse_input()
 	assert_true(level.dismissed,
 		"Mouse click must dismiss the game-end screen")
@@ -179,6 +189,7 @@ func test_score_screen_appears_only_once_after_repeated_key_presses() -> void:
 	## Bug 2 regression: repeated key presses must not re-show the score screen.
 	var score_data := {"rank": "A", "total_score": 50, "kills": 0}
 	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
 	level.handle_key_input()   # First press — dismisses end screen, shows score
 	level.handle_key_input()   # Second press — must be ignored
 	level.handle_key_input()   # Third press — must be ignored
@@ -190,6 +201,7 @@ func test_score_screen_appears_only_once_after_repeated_mouse_clicks() -> void:
 	## Bug 2 regression (mouse path): repeated clicks must not re-show the score screen.
 	var score_data := {"rank": "B", "total_score": 30, "kills": 0}
 	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
 	level.handle_mouse_input()   # First click — dismisses end screen, shows score
 	level.handle_mouse_input()   # Second click — must be ignored (gui_input lambda also
 	level.handle_mouse_input()   # Third click    checks _game_end_dismissed guard)
@@ -231,6 +243,76 @@ func test_issue_1869_end_screen_and_pacifist_messages_are_localized() -> void:
 		"translations.csv must define the game-end title")
 	assert_true(translations.contains("GAME_END_DISMISS_HINT,"),
 		"translations.csv must define the game-end dismiss hint")
+
+
+# ============================================================================
+# Input delay tests (Issue #1915)
+# ============================================================================
+
+
+func test_issue_1915_input_before_delay_does_not_dismiss() -> void:
+	## Issue #1915: pressing a key immediately (before 2s delay) must not dismiss the screen.
+	var score_data := {"rank": "S", "total_score": 100, "kills": 0}
+	level.complete_level_with_score(score_data)
+	# Delay has NOT elapsed yet — input must be ignored.
+	level.handle_key_input()
+	assert_false(level.dismissed,
+		"Screen must not be dismissed before the 2-second input delay elapses")
+	assert_false(level.score_screen_displayed,
+		"Score screen must not appear before the 2-second input delay elapses")
+
+
+func test_issue_1915_mouse_before_delay_does_not_dismiss() -> void:
+	## Issue #1915: clicking mouse immediately (before 2s delay) must not dismiss the screen.
+	var score_data := {"rank": "A", "total_score": 50, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.handle_mouse_input()
+	assert_false(level.dismissed,
+		"Mouse click must not dismiss the screen before the 2-second input delay elapses")
+
+
+func test_issue_1915_key_after_delay_dismisses_screen() -> void:
+	## Issue #1915: pressing a key after the 2s delay must dismiss the screen.
+	var score_data := {"rank": "B", "total_score": 25, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
+	level.handle_key_input()
+	assert_true(level.dismissed,
+		"Screen must be dismissed after the 2-second input delay has elapsed")
+	assert_true(level.score_screen_displayed,
+		"Score screen must appear after the 2-second input delay and dismiss")
+
+
+func test_issue_1915_mouse_after_delay_dismisses_screen() -> void:
+	## Issue #1915: clicking mouse after the 2s delay must dismiss the screen.
+	var score_data := {"rank": "C", "total_score": 10, "kills": 0}
+	level.complete_level_with_score(score_data)
+	level.simulate_input_delay_elapsed()
+	level.handle_mouse_input()
+	assert_true(level.dismissed,
+		"Mouse click must dismiss the screen after the 2-second input delay has elapsed")
+
+
+func test_issue_1915_source_has_input_delay_constant() -> void:
+	## Issue #1915: the source must define a 2-second delay constant and use it.
+	var source := FileAccess.get_file_as_string("res://scripts/levels/railway_station_level.gd")
+	assert_true(source.contains("GAME_END_INPUT_DELAY"),
+		"Source must define GAME_END_INPUT_DELAY constant for the 2-second delay")
+	assert_true(source.contains("_game_end_ready_for_input"),
+		"Source must track _game_end_ready_for_input state for the delay guard")
+	assert_true(source.contains("_game_end_ready_for_input = false"),
+		"Game-end screen setup must initialise the input guard to false")
+	assert_true(source.contains("_game_end_ready_for_input = true"),
+		"Source must set _game_end_ready_for_input = true after the delay expires")
+
+
+func test_issue_1915_hint_hidden_until_delay() -> void:
+	## Issue #1915: the hint label must start hidden and be shown after the delay.
+	var source := FileAccess.get_file_as_string("res://scripts/levels/railway_station_level.gd")
+	assert_true(source.contains("hint.visible = false"),
+		"Hint label must be hidden when the game-end screen is first shown")
+	assert_true(source.contains("hint_node.visible = true"),
+		"Hint label must be made visible once the input delay has elapsed")
 
 
 # ============================================================================
