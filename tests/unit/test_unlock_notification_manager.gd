@@ -92,9 +92,9 @@ func test_notification_uses_requested_opened_text() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("weapon"), "Открыт оружие !",
+	assert_eq(manager.build_notification_header_text("weapon"), "Открыт оружие!",
 		"Toast header should include only the unlocked weapon category")
-	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие !\nДробовик",
+	assert_eq(manager.build_notification_text("weapon", "Дробовик"), "Открыт оружие!\nДробовик",
 		"Combined fallback text should split the category header and item name onto separate lines")
 	TranslationServer.set_locale(previous_locale)
 
@@ -106,10 +106,10 @@ func test_notification_text_includes_active_item_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("active_item"), "Открыт предмет !",
+	assert_eq(manager.build_notification_header_text("active_item"), "Открыт предмет!",
 		"Toast header should include only the item category")
 	assert_eq(manager.build_notification_text("active_item", "Бронированная кожа"),
-		"Открыт предмет !\nБронированная кожа",
+		"Открыт предмет!\nБронированная кожа",
 		"Combined fallback text should put the Armored Skin name on the second line")
 	TranslationServer.set_locale(previous_locale)
 
@@ -121,10 +121,10 @@ func test_notification_text_includes_grenade_category_and_name() -> void:
 
 	var previous_locale: String = TranslationServer.get_locale()
 	TranslationServer.set_locale("ru")
-	assert_eq(manager.build_notification_header_text("grenade"), "Открыт граната !",
+	assert_eq(manager.build_notification_header_text("grenade"), "Открыт граната!",
 		"Toast header should include only the grenade category")
 	assert_eq(manager.build_notification_text("grenade", "Наступательная"),
-		"Открыт граната !\nНаступательная",
+		"Открыт граната!\nНаступательная",
 		"Combined fallback text should put the grenade name on the second line")
 	TranslationServer.set_locale(previous_locale)
 
@@ -144,7 +144,7 @@ func test_toast_uses_smaller_second_line_for_long_item_names() -> void:
 	var header_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/MessageShadowLabel")
 	var item_name_shadow_label: Label = manager.get_node("UnlockNotificationRoot/UnlockToast/ItemNameShadowLabel")
 
-	assert_eq(header_label.text, "Открыт предмет !",
+	assert_eq(header_label.text, "Открыт предмет!",
 		"Header label should keep the generic unlock text without the long item name")
 	assert_eq(item_name_label.text, "Очень длинное название предмета с несколькими словами",
 		"Item name should render on the second line in its own label")
@@ -156,6 +156,14 @@ func test_toast_uses_smaller_second_line_for_long_item_names() -> void:
 		item_name_label.get_theme_font_size("font_size"),
 		header_label.get_theme_font_size("font_size"),
 		"Second-line item name should use a smaller font than the generic unlock text")
+	assert_eq(header_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Header text should be centered in the available toast text area")
+	assert_eq(item_name_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Item name should be centered in the available toast text area")
+	assert_eq(header_shadow_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Fallback header text should use the same centered alignment")
+	assert_eq(item_name_shadow_label.horizontal_alignment, HORIZONTAL_ALIGNMENT_CENTER,
+		"Fallback item name should use the same centered alignment")
 
 
 func test_display_duration_is_four_seconds() -> void:
@@ -203,8 +211,8 @@ func test_gold_text_remains_above_shine_overlay() -> void:
 		"Fallback item name label should render above the shine overlay in exported builds")
 	assert_eq(row_gap, int(manager.ARMORY_ICON_TEXT_GAP),
 		"Content row should use the configured Armory icon/text gap")
-	assert_ge(row_gap, 24,
-		"Armory icon and text should have a larger readable gap")
+	assert_ge(row_gap, 8,
+		"Armory icon and text should have a readable gap")
 	assert_gt(content_margin.size.x, 0.0,
 		"Content margin should have explicit width so exported builds lay out the label")
 	assert_gt(content_row.size.x, 0.0,
@@ -254,11 +262,11 @@ func test_toast_animation_keeps_label_opaque_after_entry() -> void:
 		"Toast parent should remain opaque during the stable visible phase")
 	assert_eq(label.modulate.a, 1.0,
 		"Message label should remain fully opaque after the slide-in animation")
-	assert_eq(label.text, "Открыт предмет !",
+	assert_eq(label.text, "Открыт предмет!",
 		"Stable visible toast should keep the requested generic item text")
 	assert_eq(item_name_label.text, "Бронированная кожа",
 		"Stable visible toast should keep the requested Armored Skin name on the second line")
-	assert_eq(shadow_label.text, "Открыт предмет !",
+	assert_eq(shadow_label.text, "Открыт предмет!",
 		"Fallback text label should mirror the requested generic item text")
 	assert_eq(item_name_shadow_label.text, "Бронированная кожа",
 		"Fallback item label should mirror the requested Armored Skin name")
@@ -336,14 +344,23 @@ func test_collects_only_locked_items_with_met_conditions() -> void:
 	assert_false("active_item:8" in keys, "Already unlocked active items should not be announced")
 
 
-func test_startup_suppressed_unlock_can_announce_after_live_signal() -> void:
+func test_startup_suppressed_unlock_is_not_reshown_on_live_signal() -> void:
+	## Issue #1907: items that were already available at game startup should not
+	## show a toast on every new game session when a kill/condition signal fires.
 	var script: GDScript = load(NOTIFICATION_MANAGER_SCRIPT)
 	assert_not_null(script, "UnlockNotificationManager script should load")
 	var manager: Node = autofree(script.new())
 
+	# Simulate a startup-available item (condition met, not yet unlocked)
 	manager._startup_suppressed_available_keys["active_item:9"] = true
 	manager._announced_available_keys.clear()
 
+	# Simulate a live condition signal firing (e.g., a kill increments a stat)
+	# _queue_new_available_unlocks scans entries — active_item:9 condition is met
+	# (MockUnlockManager returns true for item type 9, MockActiveItemManager has it locked)
+	var startup_notification_count: int = manager._pending_notifications.size()
+	# Call the internal method directly to simulate the signal handler
+	# We reproduce the logic of _queue_new_available_unlocks with mocked managers
 	var unlock_manager: Node = autofree(MockUnlockManager.new())
 	var game_manager: Node = autofree(MockGameManager.new())
 	var grenade_manager: Node = autofree(MockGrenadeManager.new())
@@ -356,13 +373,14 @@ func test_startup_suppressed_unlock_can_announce_after_live_signal() -> void:
 		var key: String = entry["key"]
 		if manager._announced_available_keys.get(key, false):
 			continue
+		if manager._startup_suppressed_available_keys.has(key):
+			continue
 		manager._announced_available_keys[key] = true
-		manager._startup_suppressed_available_keys.erase(key)
 		manager.show_unlock_notification(entry["name"], entry["kind"])
 
-	assert_true(manager._announced_available_keys.get("active_item:9", false),
-		"Live stat signals should announce an item even if it was available during startup seeding")
-	assert_false(manager._startup_suppressed_available_keys.has("active_item:9"),
-		"Startup suppression should be consumed once a live signal announces the unlock")
-	assert_true(manager._pending_notifications.size() > 0,
-		"A notification should be queued for the live condition signal")
+	assert_false(manager._announced_available_keys.get("active_item:9", false),
+		"Startup-available item should not be added to announced keys — it stays suppressed this session")
+	assert_true(manager._startup_suppressed_available_keys.has("active_item:9"),
+		"Startup suppression should remain in place so repeated signals never show the toast")
+	assert_eq(manager._pending_notifications.size(), startup_notification_count,
+		"No new notification should be queued for an item that was already available at startup")

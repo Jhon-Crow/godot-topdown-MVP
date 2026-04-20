@@ -160,6 +160,9 @@ var _hint_labels: Dictionary = {}
 ## Vertical spacing between stacked hints above the player (pixels).
 ## Increased to 60 to prevent overlap when hints wrap to 2 lines (Bug fix #1 round 3).
 const HINT_SPACING := 60
+const HINT_WIDTH := 300
+const HINT_MIN_HEIGHT := 30
+const HINT_PLAYER_CLEARANCE := 120
 
 ## Issue #944: Animation durations for tutorial hint transitions.
 ## Fade-in duration for new hints appearing (seconds).
@@ -183,6 +186,10 @@ var _hint_strike_progress: Dictionary = {}
 
 ## Active strikethrough tween per hint, so rollback can cancel an older forward animation.
 var _hint_strike_tweens: Dictionary = {}
+
+## Track the last known rendered height for each hint (hint_key -> float).
+## Seeded from get_content_height() each frame; avoids stale-zero on first frame.
+var _hint_heights: Dictionary = {}
 
 ## Issue #944 Session 4: Track line count for each hint (hint_key -> int).
 ## Multi-line hints need multiple Line2D segments, one per line.
@@ -1959,7 +1966,9 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.custom_minimum_size = Vector2(300, 30)
+	label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
+	# Set explicit size so RichTextLabel computes word-wrap and content height before layout frame.
+	label.size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 	label.fit_content = true
 	label.scroll_active = false
 
@@ -1972,6 +1981,8 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 	# Issue #944 Session 5: Initialize empty array; Line2D nodes created per-line in deferred setup.
 	_hint_strike_lines[hint_key] = []
 	_hint_strike_progress[hint_key] = 0.0
+	# Seed with text-based estimate so first-frame position is reasonable even before layout.
+	_hint_heights[hint_key] = maxf(_estimate_hint_height(text), HINT_MIN_HEIGHT)
 
 	# Session 5: Calculate line count and create one Line2D per text line after layout.
 	# Font size 20 with default line spacing gives ~26px per line.
@@ -1980,8 +1991,10 @@ func _add_hint(hint_key: String, text: String, canvas_layer: Node) -> void:
 
 	print("Tutorial: Added hint '%s': %s" % [hint_key, text])
 
-	# Position immediately
+	# Position immediately (best-effort; _update_all_hint_positions in _process corrects each frame).
 	_update_hint_position(hint_key, label)
+	# Re-position all hints after layout so content heights are accurate for multi-line hints.
+	_update_all_hint_positions.call_deferred()
 
 	# Issue #944: Animate fade-in
 	var tween := create_tween()
@@ -2236,46 +2249,87 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_hint_strike_tweens.erase(hint_key)
 	_hint_line_counts.erase(hint_key)
 	_hint_line_widths.erase(hint_key)
+	_hint_heights.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
 	print("Tutorial: Hint '%s' dismissed (animation complete)" % hint_key)
 
 
+## Estimate hint label height from plain text when get_content_height() returns 0.
+## Uses a conservative character-width estimate to avoid under-counting lines.
+func _estimate_hint_height(text: String) -> float:
+	const LINE_HEIGHT := 26.0
+	const AVG_CHAR_WIDTH := 10.0  # conservative estimate at font size 20
+	# Strip only known BBCode tags (e.g. [color=#...], [/color], [b], [/b]).
+	# Action labels like "[hold G+RMB]" use literal square brackets that are NOT BBCode —
+	# they render as-is in RichTextLabel and must be counted toward line length.
+	# Naively stripping all "[...]" would remove those labels, yielding 1-line estimates
+	# for 4-line grenade hints and causing persistent overlap of the player sprite.
+	var plain := text
+	var known_bbcode := RegEx.new()
+	known_bbcode.compile("\\[/?(?:color(?:=#[0-9a-fA-F]{3,8})?|b|i|u|s|center|right|left|indent|code|url(?:=[^\\]]*)?|img(?:=[^\\]]*)?|font(?:=[^\\]]*)?|size=\\d+|bgcolor(?:=#[0-9a-fA-F]{3,8})?|fgcolor(?:=#[0-9a-fA-F]{3,8})?)\\]")
+	plain = known_bbcode.sub(plain, "", true)
+	var chars_per_line := int(HINT_WIDTH / AVG_CHAR_WIDTH)
+	var lines := maxi(1, int(ceil(float(plain.length()) / float(chars_per_line))))
+	return lines * LINE_HEIGHT
+
+
 ## Update positions of all active hints to follow the player.
+## Stacks hints above the player using actual content heights so multi-line hints
+## (e.g. the grenade tutorial) never overlap hints below them.
 func _update_all_hint_positions() -> void:
 	if _player == null or _hint_labels.is_empty():
 		return
 
-	var index := 0
+	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * _player.global_position
+	var cumulative_y: float = 0.0
 	for hint_key in _hint_labels:
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if is_instance_valid(label):
-			_update_hint_position_indexed(label, index)
-			index += 1
+			label.size = Vector2(HINT_WIDTH, label.size.y)
+			label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
+			# Refresh tracked height; keep the larger of previous and current reading
+			# so we never shrink below a value we already committed to.
+			var measured: float = label.get_content_height()
+			if measured > HINT_MIN_HEIGHT:
+				_hint_heights[hint_key] = measured
+				# Update label.size.y to match real content so Godot layout stays consistent.
+				label.size = Vector2(HINT_WIDTH, measured)
+			var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
+			label.position = screen_pos + Vector2(
+				-HINT_WIDTH * 0.5,
+				-HINT_PLAYER_CLEARANCE - cumulative_y - h
+			)
+			cumulative_y += h + HINT_SPACING
 
 
 ## Update a single hint label's position.
 func _update_hint_position(hint_key: String, label: RichTextLabel) -> void:
-	# Find this hint's index among active hints
-	var index := 0
-	for key in _hint_labels:
-		if key == hint_key:
-			break
-		index += 1
-	_update_hint_position_indexed(label, index)
-
-
-## Position a hint label above the player at the given vertical index (0 = closest to player).
-func _update_hint_position_indexed(label: RichTextLabel, index: int) -> void:
 	if _player == null:
 		return
 
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
+	var cumulative_y: float = 0.0
+	for key in _hint_labels:
+		if key == hint_key:
+			break
+		var prev: RichTextLabel = _hint_labels[key]
+		if is_instance_valid(prev):
+			cumulative_y += _hint_heights.get(key, HINT_MIN_HEIGHT) + HINT_SPACING
 
-	# Stack hints above player: index 0 is closest, higher indices are further up
-	label.custom_minimum_size = Vector2(300, 30)
-	label.position = screen_pos + Vector2(-150, -80 - index * HINT_SPACING)
+	label.size = Vector2(HINT_WIDTH, label.size.y)
+	label.custom_minimum_size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
+	var measured: float = label.get_content_height()
+	if measured > HINT_MIN_HEIGHT:
+		_hint_heights[hint_key] = measured
+		label.size = Vector2(HINT_WIDTH, measured)
+	var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
+	label.position = screen_pos + Vector2(
+		-HINT_WIDTH * 0.5,
+		-HINT_PLAYER_CLEARANCE - cumulative_y - h
+	)
 
 
 ## Show the completion message.

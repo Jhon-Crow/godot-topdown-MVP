@@ -121,8 +121,20 @@ const HINT_OFFSET_Y: float = -80.0
 ## Horizontal offset from player center (matches Labyrinth offset of -150).
 const HINT_OFFSET_X: float = -150.0
 
+## Fixed width of the hint RichTextLabel (Issue #1881).
+## Setting an explicit width is required so Godot's RichTextLabel computes word-wrap
+## and content height correctly — without it get_content_height() returns 0.
+const HINT_WIDTH: float = 300.0
+
+## Minimum hint label height in pixels before measured content is known (Issue #1881).
+const HINT_MIN_HEIGHT: float = 30.0
+
+## Clearance in pixels between the player sprite and the bottom of the lowest hint (Issue #1881).
+## Ensures the wrapped grenade hint never covers the player sprite on any level.
+const HINT_PLAYER_CLEARANCE: float = 120.0
+
 ## Minimum hint label size (matches Labyrinth custom_minimum_size).
-const HINT_MIN_SIZE := Vector2(300, 30)
+const HINT_MIN_SIZE := Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 
 ## Fade-in duration (matches Labyrinth TUTORIAL_HINT_FADE_IN_DURATION).
 const HINT_FADE_IN_DURATION: float = 0.3
@@ -147,6 +159,13 @@ var _hint_line_counts: Dictionary = {}
 
 ## Issue #1080 style: Track per-line text widths for each hint (hint_key -> Array[float]).
 var _hint_line_widths: Dictionary = {}
+
+## Issue #1881: Track last observed rendered height of each hint (hint_key -> float).
+## Seeded from _estimate_hint_height() at creation so the first-frame placement is
+## realistic even before layout runs; updated from get_content_height() every frame so
+## multi-line hints (e.g. the 4-line grenade hint) don't overlap hints below them or
+## the player sprite.
+var _hint_heights: Dictionary = {}
 
 ## Hint keys — mirrors Labyrinth constant names for easy reference.
 const HINT_KEY_RELOAD := "reload"
@@ -1014,6 +1033,10 @@ func _add_hint(hint_key: String, text: String) -> void:
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.custom_minimum_size = HINT_MIN_SIZE
+	# Issue #1881: set explicit width so RichTextLabel computes word-wrap and content height
+	# before the first layout frame — otherwise get_content_height() returns 0 and multi-line
+	# hints (grenade: 4 lines) are placed as if they were 1 line, overlapping the player sprite.
+	label.size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 	label.fit_content = true
 	label.scroll_active = false
 
@@ -1029,15 +1052,18 @@ func _add_hint(hint_key: String, text: String) -> void:
 	_hint_strike_lines[hint_key] = []
 	_hint_strike_progress[hint_key] = 0.0
 
+	# Issue #1881: Seed tracked height from a BBCode-aware text estimate so the first-frame
+	# placement is realistic before layout runs.
+	_hint_heights[hint_key] = maxf(_estimate_hint_height(text), HINT_MIN_HEIGHT)
+
 	# Set up Line2D strikethrough nodes after one frame
 	_setup_strikethrough_lines.call_deferred(hint_key, label)
 
-	# Position immediately
-	var index := _hint_labels.size() - 1
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
-	var screen_pos: Vector2 = canvas_transform * (_player.global_position if _player else Vector2.ZERO)
-	label.custom_minimum_size = HINT_MIN_SIZE
-	label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
+	# Issue #1881: bottom-align the new hint above the player using the tracked heights of all
+	# already-shown hints, so a multi-line hint grows upward instead of overlapping the player.
+	_update_hint_positions()
+	# Re-position once layout has run so content heights are accurate for multi-line hints.
+	_update_hint_positions.call_deferred()
 
 	# Fade-in animation
 	var tween := create_tween()
@@ -1173,8 +1199,11 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_hint_strike_progress.erase(hint_key)
 	_hint_line_counts.erase(hint_key)
 	_hint_line_widths.erase(hint_key)
+	_hint_heights.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
+	# Issue #1881: Re-pack remaining hints so the vacated slot closes and later hints bubble down.
+	_update_hint_positions()
 	if _hint_labels.is_empty() and _animating_hints.is_empty():
 		_hints_showing = false
 		_hints_active = false
@@ -1212,6 +1241,7 @@ func _dismiss_hints_immediate() -> void:
 	_hint_strike_progress.clear()
 	_hint_line_counts.clear()
 	_hint_line_widths.clear()
+	_hint_heights.clear()
 	_animating_hints.clear()
 	_disconnect_weapon_signals()
 	_log_to_file("All hints dismissed immediately")
@@ -1278,6 +1308,8 @@ func _reset_hint_state() -> void:
 
 ## Update positions of all hint labels to float above the player.
 ## Mirrors labyrinth_level.gd _update_tutorial_hint_positions().
+## Issue #1881: Stacks hints above the player using tracked content heights so multi-line
+## hints (e.g. the grenade tutorial) never overlap hints below them or the player sprite.
 func _update_hint_positions() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -1285,14 +1317,49 @@ func _update_hint_positions() -> void:
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
 
-	var index := 0
+	var cumulative_y: float = 0.0
 	for hint_key in _hint_labels:
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if label == null or not is_instance_valid(label):
 			continue
 		label.custom_minimum_size = HINT_MIN_SIZE
-		label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
-		index += 1
+		# Keep the width fixed so word-wrap is stable frame-to-frame.
+		label.size = Vector2(HINT_WIDTH, label.size.y)
+		# Refresh tracked height from measured content once layout has run. Keep the
+		# larger of tracked and measured so transient zeros during animation don't
+		# collapse the stack.
+		var measured: float = label.get_content_height()
+		if measured > HINT_MIN_HEIGHT:
+			_hint_heights[hint_key] = measured
+			label.size = Vector2(HINT_WIDTH, measured)
+		var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
+		label.position = screen_pos + Vector2(
+			-HINT_WIDTH * 0.5,
+			-HINT_PLAYER_CLEARANCE - cumulative_y - h
+		)
+		cumulative_y += h + HINT_SPACING
+
+
+## Estimate rendered height of a hint text before Godot has laid out the RichTextLabel.
+## Issue #1881: RichTextLabel.get_content_height() returns 0 until after the first layout
+## frame because the label must know its width to compute word-wrap. We approximate the
+## wrapped line count from character count so the first-frame position is realistic.
+##
+## Important: only known Godot BBCode tags are stripped — action labels like "[hold G+RMB]"
+## and "[flick mouse right]" used in the grenade hint are LITERAL brackets (not BBCode) and
+## must be counted toward line length. Stripping them would turn the 91-character grenade
+## hint into ~5 characters, yielding a 1-line (26 px) estimate instead of the real 4 lines
+## (~104 px), placing the hint bottom on top of the player sprite.
+func _estimate_hint_height(text: String) -> float:
+	const LINE_HEIGHT := 26.0
+	const AVG_CHAR_WIDTH := 10.0  # conservative estimate at font size 20
+	var plain := text
+	var known_bbcode := RegEx.new()
+	known_bbcode.compile("\\[/?(?:color(?:=#[0-9a-fA-F]{3,8})?|b|i|u|s|center|right|left|indent|code|url(?:=[^\\]]*)?|img(?:=[^\\]]*)?|font(?:=[^\\]]*)?|size=\\d+|bgcolor(?:=#[0-9a-fA-F]{3,8})?|fgcolor(?:=#[0-9a-fA-F]{3,8})?)\\]")
+	plain = known_bbcode.sub(plain, "", true)
+	var chars_per_line := int(HINT_WIDTH / AVG_CHAR_WIDTH)
+	var lines := maxi(1, int(ceil(float(plain.length()) / float(chars_per_line))))
+	return lines * LINE_HEIGHT
 
 
 ## Called when revolver reload state changes — updates hint text step-by-step.

@@ -375,3 +375,25 @@ func test_consume_snow_blood_step_drains_after_snowy_feet_render() -> void:
 
 	assert_eq(_component.get_blood_level(), 4,
 		"SnowyFeetComponent should explicitly consume one blood step after rendering a red snow print")
+
+
+## Test that _spawn_footprint skips boot prints when a SnowyFeetComponent sibling exists,
+## even if on_snow was not set (Issue #1909: enemies on snow left regular boot prints).
+## BloodyFeetComponent must not drain blood — only SnowyFeetComponent does via consume_snow_blood_step.
+func test_spawn_footprint_defers_to_snowy_feet_component_when_sibling_exists() -> void:
+	_component.on_snow = false  # on_snow not yet set (simulates setup race for enemies)
+	_component.snow_blood_steps_count = 5
+	_component.blood_steps_count = 12
+
+	var snowy_feet_stub := Node.new()
+	snowy_feet_stub.name = "SnowyFeetComponent"
+	_character.add_child(snowy_feet_stub)
+	await wait_frames(1)
+
+	_component.set_blood_level(12)
+	_component._spawn_footprint()
+
+	assert_eq(_component.get_blood_level(), 12,
+		"BloodyFeetComponent must not drain blood when SnowyFeetComponent sibling exists — SnowyFeetComponent owns snow-level spawning (Issue #1909)")
+
+	snowy_feet_stub.queue_free()
