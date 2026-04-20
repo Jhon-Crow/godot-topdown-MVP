@@ -218,13 +218,14 @@ func _find_player_and_camera() -> void:
 func _attach_camera_to_drone() -> void:
 	if _player_camera == null:
 		return
-	var cam_global_pos := _player_camera.global_position
 	var old_parent := _player_camera.get_parent()
 	if old_parent:
 		old_parent.remove_child(_player_camera)
 	add_child(_player_camera)
-	# Keep camera at its current world position so smoothing can interpolate toward drone.
-	_player_camera.global_position = cam_global_pos
+	# Zero local position so Camera2D centers on the drone.
+	# position_smoothing will animate the viewport from its current location
+	# toward the drone automatically — no manual position math required.
+	_player_camera.position = Vector2.ZERO
 	_player_camera.make_current()
 	FileLogger.info("[DroneGrenade] Camera attached to drone")
 
@@ -233,13 +234,13 @@ func _attach_camera_to_drone() -> void:
 func _detach_camera_from_drone() -> void:
 	if _player_camera == null or not is_instance_valid(_player_camera):
 		return
-	var cam_global_pos := _player_camera.global_position
 	if _player_camera.get_parent() == self:
 		remove_child(_player_camera)
 	if _player != null and is_instance_valid(_player):
 		_player.add_child(_player_camera)
-		# Keep camera at its current world position so smoothing can interpolate toward player.
-		_player_camera.global_position = cam_global_pos
+		# Zero local position so Camera2D centers on the player.
+		# position_smoothing animates the viewport back smoothly.
+		_player_camera.position = Vector2.ZERO
 		_player_camera.make_current()
 	FileLogger.info("[DroneGrenade] Camera returned to player")
 
