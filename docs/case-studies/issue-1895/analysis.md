@@ -65,3 +65,39 @@ Same root cause as bugs 2 & 3 — `UpdatePlayerModelRotation()` skipped.
 `game_log_20260420_122158.txt` — AKGL + Flashlight equipped, drone launched at 12:22:11. No `ShootFromDrone` calls logged → confirms the fallback to `set_physics_process(false)` was causing the root issue.
 
 `game_log_20260420_121813.txt` — Same pattern without flashlight; second session added flashlight via armory at 12:19:16, confirming the desync issue only manifests with active items that require model rotation.
+
+---
+
+## Remaining Issue After Session 2 Fix (2026-04-20)
+
+### Owner Feedback
+After the session 2 fix, owner reported one remaining issue:
+> "всё ещё есть расхождение между прицелом и направлением стрельбы при управлении дроном."
+> "There is still a discrepancy between the sight and shooting direction while controlling the drone."
+
+`game_log_20260420_125820.txt` — Session 3. Drone launched at 12:59:50 from (509, 1246), player at (450, 1250). Shots fired during drone mode confirmed via GUNSHOT sounds at (450, 1250). Blood decals at (529-615, 828-952) confirm kills while piloting drone.
+
+### Root Cause of Remaining Laser Desync
+
+The laser sight is drawn from the weapon's `GlobalPosition` (= player position P) in `_aimDirection = (M - P).normalized()` where M = world mouse position near the drone.
+
+**The laser uses `maxLaserLength = viewportSize.Length()` (≈1468px for 1280×720).**
+
+During drone mode, the drone can fly far from the player. If `|M - P| > maxLaserLength`, the laser LINE terminates BEFORE reaching M (the mouse cursor position). The user sees:
+- The laser line crossing the screen, pointing toward M
+- But the laser DOT (endpoint) stopping short of M — off-screen or at a wrong position
+- The mouse cursor is at M, but the laser dot is not
+
+This creates a visible desync: the user expects the laser dot to show exactly where bullets will land (at M), but the dot appears at an incorrect position when the drone is far from the player.
+
+Bullets ARE correctly aimed at M (fired from P in direction `(M-P)`, passing through M), but the laser sight visual doesn't confirm this accurately.
+
+### Fix Applied (Session 3)
+
+Changed `maxLaserLength` in all 6 weapons with laser sight to use the maximum of:
+- viewport diagonal (previous value, for normal gameplay)
+- actual distance to mouse cursor + 200px buffer
+
+This ensures the laser always extends far enough to reach the mouse cursor position during drone mode, making the laser dot correctly appear at or near the target. The raycast still stops the laser at walls for accurate obstacle feedback.
+
+Files changed: `AKGL.cs`, `AssaultRifle.cs`, `MakarovPM.cs`, `MiniUzi.cs`, `Revolver.cs`, `Shotgun.cs`, `SilencedPistol.cs`
