@@ -489,6 +489,8 @@ public partial class Player
         // Without this fix, the grenade lands ~60px short of the target.
         _activeGrenade.GlobalPosition = safeSpawnPosition;
 
+        PassDroneThrowAimPoint(targetPos);
+
         // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
         // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
         // before IsThrown is set, causing impact detection to fail.
@@ -789,6 +791,8 @@ public partial class Player
         Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
+        PassDroneThrowAimPoint(dragEnd);
+
         // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
         // GDScript methods called via Call() may silently fail in exported builds.
         // Calculate throw speed using the same formula as GDScript
@@ -844,6 +848,24 @@ public partial class Player
 
         // Reset state (grenade is now independent)
         ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Pass the world-space throw target to DroneGrenade before launch.
+    /// </summary>
+    /// <param name="aimPoint">Mouse cursor world position the drone should fly to before piloting.</param>
+    private void PassDroneThrowAimPoint(Vector2 aimPoint)
+    {
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            return;
+        }
+
+        if (_activeGrenade.HasMethod("set_aim_point"))
+        {
+            _activeGrenade.Call("set_aim_point", aimPoint);
+            LogToFile($"[Player.Grenade] Drone aim point set to {aimPoint}");
+        }
     }
 
     /// <summary>
