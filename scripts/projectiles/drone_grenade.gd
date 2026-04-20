@@ -244,9 +244,12 @@ func _detach_camera_from_drone() -> void:
 func _disable_player_control() -> void:
 	if _player == null:
 		return
-	# Set a flag on the player so its _physics_process skips input.
+	# GDScript player exposes set_drone_piloting; C# player exposes SetDronePiloting.
+	# Both keep model rotation running so laser sight / flashlight stay aligned.
 	if _player.has_method("set_drone_piloting"):
 		_player.set_drone_piloting(true)
+	elif _player.has_method("SetDronePiloting"):
+		_player.SetDronePiloting(true)
 	else:
 		# Fallback: disable physics processing on the player.
 		_player.set_physics_process(false)
@@ -259,6 +262,8 @@ func _restore_player_control() -> void:
 		return
 	if _player.has_method("set_drone_piloting"):
 		_player.set_drone_piloting(false)
+	elif _player.has_method("SetDronePiloting"):
+		_player.SetDronePiloting(false)
 	else:
 		_player.set_physics_process(true)
 	FileLogger.info("[DroneGrenade] Player control restored")
@@ -293,6 +298,24 @@ func _physics_process(delta: float) -> void:
 	# PILOTING phase — player controls the drone.
 	if _drone_state != DroneState.PILOTING:
 		return
+
+	# Issue #1895: while piloting the drone the player can fire their weapon and
+	# use their active item.  We detect the inputs here (the player's own
+	# _physics_process is suspended) and delegate to the player's public helpers.
+	if _player != null and is_instance_valid(_player):
+		# Shoot (LMB): support both automatic (held) and semi-automatic (just-pressed).
+		var shoot_just_pressed: bool = Input.is_action_just_pressed("shoot")
+		var shoot_held: bool = Input.is_action_pressed("shoot")
+		if shoot_just_pressed or shoot_held:
+			if _player.has_method("ShootFromDrone"):
+				_player.call("ShootFromDrone", global_position)
+		# AKGL underbarrel grenade launcher (RMB / grenade_throw just-pressed).
+		if Input.is_action_just_pressed("grenade_throw"):
+			if _player.has_method("FireAKGLFromDrone"):
+				_player.call("FireAKGLFromDrone")
+		# Active item (Space key) — delegate every frame so hold-based items work.
+		if _player.has_method("TriggerActiveItemFromDrone"):
+			_player.call("TriggerActiveItemFromDrone", delta)
 
 	# Read WASD / arrow key input.
 	var input_dir := Vector2.ZERO
