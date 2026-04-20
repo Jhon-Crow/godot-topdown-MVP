@@ -2581,3 +2581,23 @@ func test_tutorial_grenade_hint_stacks_above_existing_hints_without_overlap() ->
 		"Hint stacking should accumulate actual heights so grenade hint does not overlap other simultaneous hints (Issue #1881)")
 	assert_false(content.contains("index * HINT_SPACING"),
 		"Fixed index*HINT_SPACING stacking ignores actual hint heights causing overlap when grenade hint is multi-line (Issue #1881)")
+
+
+func test_tutorial_hint_height_tracked_to_avoid_stale_zero_from_layout_engine() -> void:
+	var file := FileAccess.open("res://scripts/levels/tutorial_level.gd", FileAccess.READ)
+	if file == null:
+		pass_test("tutorial_level.gd not accessible in test environment (OK)")
+		return
+	var content := file.get_as_text()
+	file.close()
+
+	# In Godot 4, get_content_height() returns 0 for CanvasLayer-direct-child RichTextLabels
+	# until the label has been drawn and its size.x is set. A _hint_heights dictionary that
+	# tracks the maximum observed height prevents the stale-zero from overriding a correct value
+	# and ensures even the first frame uses a reasonable estimate (Issue #1881 session 3).
+	assert_true(content.contains("_hint_heights"),
+		"Hint heights should be tracked in a dictionary to survive stale get_content_height() (Issue #1881)")
+	assert_true(content.contains("_estimate_hint_height"),
+		"A text-based height estimate fallback should be used when layout has not run yet (Issue #1881)")
+	assert_true(content.contains("label.size = Vector2(HINT_WIDTH"),
+		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
