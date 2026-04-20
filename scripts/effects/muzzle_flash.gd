@@ -9,8 +9,7 @@ extends Node2D
 const FLASH_DURATION: float = 0.3
 
 ## Starting energy (intensity) of the point light.
-## Issue #1845: bright enough to read on Labyrinth floor/walls while preserving shadows.
-const LIGHT_START_ENERGY: float = 12.0
+const LIGHT_START_ENERGY: float = 4.5
 
 ## Reference to the point light child node.
 var _point_light: PointLight2D = null

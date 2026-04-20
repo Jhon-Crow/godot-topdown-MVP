@@ -31,7 +31,7 @@ color = Color(1, 0.9, 0.5, 1)
 
 [sub_resource type="Gradient" id="Gradient_light"]
 offsets = PackedFloat32Array(0, 0.1, 0.2, 0.5, 1)
-colors = PackedColorArray(1, 0.95, 0.75, 1, 1, 0.86, 0.48, 0.95, 1, 0.68, 0.25, 0.65, 1, 0.42, 0.08, 0.22, 1, 0.25, 0.04, 0)
+colors = PackedColorArray(1, 0.9, 0.6, 1, 1, 0.8, 0.5, 0.9, 1, 0.7, 0.3, 0.5, 1, 0.5, 0.15, 0.15, 1, 0.4, 0.1, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
 gradient = SubResource("Gradient_light")
@@ -55,10 +55,10 @@ explosiveness = 1.0
 randomness = 0.1
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
-color = Color(1, 0.82, 0.42, 1)
+color = Color(1, 0.8, 0.4, 1)
 energy = 0.0
 blend_mode = 0
 shadow_enabled = true
 range_item_cull_mask = 3
 texture = SubResource("GradientTexture2D_light")
-texture_scale = 8.0
+texture_scale = 4.5
