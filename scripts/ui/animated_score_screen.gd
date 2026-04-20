@@ -347,7 +347,7 @@ func show_animated_score(ui: Control, score_data: Dictionary) -> void:
 	container.offset_right = 300
 	container.offset_top = -230
 	container.offset_bottom = 230
-	container.add_theme_constant_override("separation", 5)
+	container.add_theme_constant_override("separation", 4)
 	ui.add_child(container)
 	_container = container
 
@@ -446,7 +446,7 @@ func _animate_title(container: VBoxContainer, start_delay: float) -> float:
 ## Animates a separator line.
 func _animate_separator(container: VBoxContainer, start_delay: float) -> float:
 	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 8)
+	separator.add_theme_constant_override("separation", 4)
 	separator.modulate.a = 0.0
 	container.add_child(separator)
 
@@ -592,7 +592,7 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 func _animate_total_score(container: VBoxContainer, score_data: Dictionary, start_delay: float) -> float:
 	# Add separator before total
 	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 8)
+	separator.add_theme_constant_override("separation", 4)
 	separator.modulate.a = 0.0
 	container.add_child(separator)
 	_total_separator = separator
@@ -733,7 +733,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
-	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 100, 6, rank_color)
+	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 80, 5, rank_color)
 	final_rank_label.name = "FinalRankLabel"
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
