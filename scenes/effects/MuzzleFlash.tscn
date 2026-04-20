@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://muzzle_flash_scene"]
+[gd_scene load_steps=9 format=3 uid="uid://muzzle_flash_scene"]
 
 [ext_resource type="Script" path="res://scripts/effects/muzzle_flash.gd" id="1_muzzle_flash"]
 
@@ -40,9 +40,30 @@ height = 512
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 
+[sub_resource type="Gradient" id="Gradient_floor_glow"]
+offsets = PackedFloat32Array(0, 0.4, 1)
+colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.6, 0.2, 0.55, 1, 0.4, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_floor_glow"]
+gradient = SubResource("Gradient_floor_glow")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_floor_glow"]
+blend_mode = 1
+
 [node name="MuzzleFlash" type="Node2D"]
 z_index = 10
 script = ExtResource("1_muzzle_flash")
+
+[node name="FloorGlow" type="Sprite2D" parent="."]
+material = SubResource("CanvasItemMaterial_floor_glow")
+z_index = 0
+z_as_relative = false
+texture = SubResource("GradientTexture2D_floor_glow")
+modulate = Color(1, 1, 1, 0)
 
 [node name="GPUParticles2D" type="GPUParticles2D" parent="."]
 emitting = false
@@ -57,8 +78,6 @@ randomness = 0.1
 [node name="PointLight2D" type="PointLight2D" parent="."]
 color = Color(1, 0.8, 0.4, 1)
 energy = 0.0
-blend_mode = 0
 shadow_enabled = true
-range_item_cull_mask = 3
 texture = SubResource("GradientTexture2D_light")
 texture_scale = 4.5

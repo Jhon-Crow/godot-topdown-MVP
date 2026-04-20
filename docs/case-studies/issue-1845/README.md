@@ -1,49 +1,89 @@
-## Issue 1845: muzzle flashes are too dim on Labyrinth Complex
+# Issue 1845: muzzle flash not visible on Labyrinth Complex floor
 
 Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/1845
 PR: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/1846
 
-### Summary
+## Summary
 
-The muzzle flash logic was spawning correctly, but on `Labyrinth2Level` (`Labyrinth Complex`) the flash light was visible on dynamic objects such as particles, blood, and shell casings while the map floor itself did not brighten. Owner feedback clarified that the desired result is not an extra bright sprite at the weapon barrel, but a stronger floor/wall light that visibly flashes the environment and casts clear shadows through existing `LightOccluder2D` geometry.
+On the `Labyrinth Complex` map (`scenes/levels/Labyrinth2Level.tscn`) the
+muzzle flash's `PointLight2D` contribution is not perceptible on the floor,
+even though the same flash visibly brightens blood decals, particles, and
+shell casings. Every other map renders the flash on its floor correctly.
 
-### Collected data
+## Collected data
 
-- `issue.json`: issue metadata and original report
-- `comments.json`: issue comments at investigation time
-- `game_log_20260416_013506.txt`: owner-provided runtime log
-- `game_log_20260416_021858.txt`: owner-provided follow-up runtime log from PR feedback
-- `game_log_20260416_231945.txt`: owner-provided follow-up runtime log confirming the remaining problem on `Labyrinth Complex`
-- `game_log_20260417_041119.txt`: owner-provided follow-up runtime log confirming that blood still lights up while the floor does not
-- `game_log_20260417_233940.txt`: owner-provided follow-up runtime log reporting no floor flash and suggesting a layer/mask issue
+- `issue.json`, `comments.json` — issue metadata captured at investigation time
+- `game_log_20260416_021858.txt` — owner log after first attempt
+- `game_log_20260416_231945.txt` — owner log confirming floor still dark
+- `game_log_20260417_041119.txt` — owner log, blood lit but floor dark
+- `game_log_20260417_233940.txt` — owner log suggesting a layer/mask issue
+- `game_log_20260420_125552.txt` — owner log after 2026-04-20 attempt: "не исправлено"
 
-### Timeline
+## Timeline
 
-1. 2026-04-15: issue #1845 opened describing correct flash logic but poor floor visibility on Labyrinth.
-2. Runtime logs confirmed the issue on Labyrinth-family scenes, with standard muzzle flash support active and particles enabled.
-3. Code inspection showed `MuzzleFlash.tscn` depended on:
-   - a very small `GPUParticles2D` burst
-   - a shadowed `PointLight2D`
-4. Labyrinth-family inspection showed dark flat floors and warm/cold room lighting that reduce the contrast of short warm flashes.
-5. 2026-04-15: an initial draft added an additive `Sprite2D` flare so the muzzle itself remained readable on the floor.
-6. 2026-04-15: owner feedback rejected the sprite-heavy result and requested the original wall-respecting light behavior with a brighter floor/wall flash and clear shadows.
-7. 2026-04-16: owner feedback clarified that `Labyrinth Complex` still showed flash response on particles, blood, and shell casings, but not on the map floor.
-8. Code inspection showed `Labyrinth2Level.tscn` used `Environment/Floor` as a `ColorRect`, while the desired behavior requires light-reactive world geometry under `PointLight2D`.
-9. 2026-04-17: owner feedback reported the floor still had no visible flash after the floor geometry change, while blood remained clearly lit.
-10. 2026-04-17: owner follow-up suggested a layer issue. That matched the symptom: dynamic blood/casings could be lit while the static `Labyrinth Complex` environment visuals did not visibly receive the same flash.
+1. 2026-04-15 — issue opened. Owner notes correct flash logic but no visible floor flash on Labyrinth Complex.
+2. 2026-04-15 — first attempt added an additive `Sprite2D` flare. Owner rejected it and asked for wall-respecting behaviour with brighter floor/wall flash.
+3. 2026-04-16 — second attempt replaced the floor `ColorRect` with a `Polygon2D` carrying `light_mask = 3`, added matching masks to walls, and set `range_item_cull_mask = 3` on the muzzle `PointLight2D`. Owner reported: "floor still no flash, but blood is clearly lit".
+4. 2026-04-17 — further tuning of light mask bits and floor geometry. Owner reported same result.
+5. 2026-04-20 — owner reports "не исправлено" (not fixed) with `game_log_20260420_125552.txt`.
 
-### Root cause
+## Root cause
 
-The muzzle flash was already spawning and using a shadow-enabled `PointLight2D`, proven by bright response on blood, particles, and shell casings. The remaining `Labyrinth Complex` failure had three contributing parts: the level floor originally used a `ColorRect`, the flash light configuration was too weak/narrow for a visible flash on dark world surfaces, and the static environment visuals did not explicitly share the muzzle flash light mask. The user-visible requirement is an environmental light pulse, not a barrel flare.
+Two factors combine to make the Labyrinth Complex floor effectively unresponsive to a
+`PointLight2D`-only muzzle flash:
 
-### Fix
+1. `scripts/levels/labyrinth2_level.gd:255-284` spawns **11 warm ceiling `PointLight2D`s**
+   (energy 0.7–0.85, texture scale 3.5–4.5, warm yellow-orange colour) covering every
+   zone of the map — plus window lights (`:353-378`) and a scene-wide
+   `DirectionalLight2D` (`:459-466`). With a floor colour of `(0.17, 0.15, 0.13)`,
+   these steady lights already push the floor pixels close to saturation in
+   every playable area. A `+4.5` energy muzzle pulse on ADD blend produces a
+   very small perceptual delta compared to the same pulse on an unlit
+   Sprite2D decal (blood/casings), where the delta from dark to bright is
+   large.
+2. `Environment/RoomLabels/ZoneMid_Label` and `ZoneLow_Label`
+   (`scenes/levels/Labyrinth2Level.tscn:1525-1551`) are ~3168 px wide translucent
+   overlays covering the entire central corridor and lower labyrinth — the
+   primary play area. They are drawn *after* the floor in sibling order and
+   further compress the floor's brightness headroom.
 
-The final fix keeps the original `GPUParticles2D` plus shadow-enabled `PointLight2D` structure and removes the additive sprite draft. It raises muzzle flash light energy from `4.5` to `12.0`, increases `PointLight2D.texture_scale` from `4.5` to `8.0`, explicitly keeps the `PointLight2D` in mix blend mode for canvas item lighting, sets `range_item_cull_mask = 3`, strengthens the warm light gradient, changes `Labyrinth2Level.tscn` `Environment/Floor` from `ColorRect` to a same-bounds, same-color `Polygon2D`, and assigns `light_mask = 3` to the Complex floor/wall/cover visuals so the floor receives the muzzle flash light while wall occluders still cast shadows.
+Changing the floor's geometry or the flash's light-mask bits does not address
+either factor: the `PointLight2D` is reaching the floor, it just does not
+produce enough *relative* brightness there to notice.
 
-### Verification strategy
+## Fix (this PR)
 
-- Updated unit coverage for the brighter light start energy in `tests/unit/test_muzzle_flash.gd`
-- Added regression coverage that `Labyrinth Complex` floor uses light-reactive `Polygon2D` geometry while preserving bounds and color in `tests/unit/test_labyrinth2_level.gd`
-- Added regression coverage that the muzzle flash and `Labyrinth Complex` environment share light mask `3`
-- Preserved existing duration, particles, shadow-enabled light, and light fade behavior
-- Kept the effect changes local to the muzzle flash and changed only the problematic Complex environment rendering contract
+Instead of fighting the map's ambient lighting with a brighter `PointLight2D`
+(which the owner explicitly rejected: "верни яркость вспышки как в ветке
+backup"), the muzzle flash now produces the floor flash with an **additive
+`Sprite2D` drawn at absolute `z_index = 0`, directly under the muzzle**.
+
+- `scenes/effects/MuzzleFlash.tscn` — added a `FloorGlow` `Sprite2D` with a
+  radial gradient texture and a `CanvasItemMaterial` in
+  `BLEND_MODE_ADD`. Its `modulate.a` starts at 0 and is driven by the script.
+- `scripts/effects/muzzle_flash.gd` — mirrors the existing ease-out fade of
+  `LIGHT_START_ENERGY` onto `FLOOR_GLOW_START_ALPHA = 0.9`, with a scale of
+  2.5 (~320 px wide glow).
+- All previous environment-level changes (floor `ColorRect → Polygon2D`,
+  `light_mask = 3` on walls/cover, `range_item_cull_mask = 3` on the
+  `PointLight2D`) are reverted so the scene files match `origin/main` and
+  there is no collateral risk to other lighting on Labyrinth Complex.
+- `PointLight2D` brightness (`LIGHT_START_ENERGY = 4.5`, `texture_scale =
+  4.5`) remains at the backup-branch values, per the owner's explicit
+  request.
+
+Because the new floor glow is a `Sprite2D` using additive blending, it is
+visible on *any* canvas surface regardless of how the map's light masks,
+`light_mask` bits, or ambient lighting are configured — the same mechanism
+that already makes blood decals and casings visibly light up in the owner's
+screenshots.
+
+## Verification
+
+- `tests/unit/test_muzzle_flash.gd` — existing lifecycle tests updated to
+  cover the new `FLOOR_GLOW_START_ALPHA` constant, plus a regression test
+  guaranteeing the glow is clearly visible during the first third of the
+  flash.
+- Manual: firing on Labyrinth Complex should now show a bright orange glow
+  on the floor at every shot while the `PointLight2D` continues to light the
+  walls and cast shadows through the existing `LightOccluder2D` geometry.
