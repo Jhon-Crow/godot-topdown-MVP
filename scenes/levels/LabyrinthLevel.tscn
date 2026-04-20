@@ -94,11 +94,9 @@ offset_right = 2016.0
 offset_bottom = 1176.0
 color = Color(0.03, 0.03, 0.05, 1)
 
-[node name="Floor" type="ColorRect" parent="Environment"]
-offset_left = 48.0
-offset_top = 48.0
-offset_right = 1968.0
-offset_bottom = 1128.0
+[node name="Floor" type="Polygon2D" parent="Environment"]
+light_mask = 3
+polygon = PackedVector2Array(48, 48, 1968, 48, 1968, 1128, 48, 1128)
 color = Color(0.15, 0.14, 0.13, 1)
 
 [node name="Walls" type="Node2D" parent="Environment"]
