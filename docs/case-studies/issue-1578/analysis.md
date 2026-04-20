@@ -574,3 +574,31 @@ All game logs referenced in this case study are archived in `game-logs/`:
 | `game_log_20260328_193137.txt`        | Test 5       | "не работает"           |
 | `game_log_20260329_175815.txt`        | Test 6       | "не сработало"          |
 | `game_log_20260330_111035.txt`        | Test 7       | "не сработало"          |
+| `game_log_20260418_024824.txt`        | Test 9       | "сильно проседает fps / кровь оказывается не в воде и её лужа слишком большая" |
+
+---
+
+## Ninth Owner Feedback: severe FPS drop, oversized stain outside water (2026-04-18)
+
+Owner reported:
+1. **FPS drops severely** during combat near water.
+2. **Blood stain is outside water** (the stain appears to extend far beyond the water area).
+
+### Root cause analysis (game_log_20260418_024824.txt)
+
+Log analysis found **1,638 diffusion effect nodes spawned in one session** — each with 90 `GPUParticles2D` particles, a 75-second lifetime, and `_draw()` calls every frame.
+
+- Each lethal hit spawns 30 blood particles, each checked independently.
+- A bullet spray into the water area triggers 30+ independent `Blood landed in water` events in one frame.
+- With 1,638 nodes × 90 particles = ~147,000 concurrent GPU particles, FPS drops to 1-3 fps.
+- The stain appears huge because many overlapping draw-circles (MAX_RADIUS=145) cover the entire water region.
+
+**Fix (2026-04-20):**
+
+1. **Remove GPUParticles2D from WaterBloodDiffusion** — use `_draw()` procedural rendering only. This eliminates the GPU particle cost.
+2. **Reduce MAX_RADIUS** from 145 to 80 pixels to prevent visual bleed outside the water area.
+3. **Add merge logic**: blood hits within 120px of an existing diffusion call `absorb()` on it instead of spawning new nodes. This means a burst of 30 particles into the same area creates at most ~1 new node.
+4. **Add cap**: max 8 concurrent diffusion nodes. If exceeded, the oldest node is freed before a new one spawns.
+5. **Add `absorb()` method**: increases the cloud's intensity slightly and resets the elapsed timer back to the expansion phase, keeping the cloud alive and growing after absorbing new hits.
+
+Expected result: a continuous burst of blood into water creates ≤1 new diffusion node per ~120px cluster, with the rest merging into existing nodes. FPS impact drops from ~150k GPU particles to ≤720 particles (8 nodes max) or zero when MAX_RADIUS <= MERGE_RADIUS means all hits merge.

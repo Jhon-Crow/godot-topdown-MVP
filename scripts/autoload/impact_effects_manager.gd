@@ -140,6 +140,13 @@ var _debug_water_group_logged: Node = null
 ## (Issue #1578 — _blood_diffusion_script in WaterBody is null when _ready() doesn't fire).
 var _blood_diffusion_script: GDScript = null
 
+## Active water blood diffusion nodes tracked for merge/cap logic (Issue #1578 FPS fix).
+## New blood in water merges into a nearby existing node instead of spawning a fresh one,
+## capping GPU work at MAX_CONCURRENT_DIFFUSIONS concurrent draw-only effects.
+var _active_diffusions: Array[Node2D] = []
+const MAX_CONCURRENT_DIFFUSIONS: int = 8
+const DIFFUSION_MERGE_RADIUS: float = 120.0
+
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -737,25 +744,7 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Issue #1578: If landing position is inside water, spawn blood diffusion instead of a decal.
 	var water_body: Node = _find_water_body_at(landing_pos)
 	if water_body != null:
-		# Spawn blood diffusion directly from ImpactEffectsManager (Issue #1578).
-		# ImpactEffectsManager._ready() always runs in exported builds, so _blood_diffusion_script
-		# is reliably loaded here.  We bypass WaterBody.spawn_blood_diffusion_at() because
-		# water_body.gd._ready() frequently fails to execute in exported builds, leaving its
-		# internal _blood_diffusion_script null and making the delegation a silent no-op.
-		if _blood_diffusion_script != null:
-			var diffusion: Node2D = Node2D.new()
-			diffusion.set_script(_blood_diffusion_script)
-			_add_underwater_effect_to_scene(diffusion, water_body)
-			diffusion.global_position = landing_pos
-			if diffusion.has_method("set_blood_color"):
-				diffusion.set_blood_color(Color(0.5, 0.02, 0.02, 0.55))
-			if water_body.has_method("register_blood_tint_at"):
-				water_body.register_blood_tint_at(landing_pos, Color(0.5, 0.02, 0.02, 0.55))
-			_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
-		else:
-			_log_info("[ImpactEffects] Blood landed in water at %s — diffusion script not loaded, skipping decal (Issue #1578)" % landing_pos)
-		if _debug_effects:
-			print("[ImpactEffectsManager] Blood landed in water at ", landing_pos, " — spawning diffusion instead of decal")
+		_handle_blood_in_water(landing_pos, water_body)
 		return
 
 	# Create the decal
@@ -781,6 +770,53 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Handle blood landing in water: merge into a nearby diffusion cloud or spawn a new one.
+## Caps concurrent effects at MAX_CONCURRENT_DIFFUSIONS to prevent FPS drops (Issue #1578).
+func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
+	var blood_color := Color(0.5, 0.02, 0.02, 0.55)
+
+	# Clean up any freed nodes from the pool first
+	_active_diffusions = _active_diffusions.filter(func(n): return is_instance_valid(n))
+
+	# Try to merge into the nearest existing diffusion within merge radius
+	var nearest: Node2D = null
+	var nearest_dist: float = DIFFUSION_MERGE_RADIUS
+	for d in _active_diffusions:
+		var dist: float = d.global_position.distance_to(landing_pos)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = d
+	if nearest != null:
+		if nearest.has_method("absorb"):
+			nearest.absorb()
+		if water_body.has_method("register_blood_tint_at"):
+			water_body.register_blood_tint_at(landing_pos, blood_color)
+		return
+
+	# Enforce cap: remove the oldest diffusion before spawning a new one
+	while _active_diffusions.size() >= MAX_CONCURRENT_DIFFUSIONS:
+		var oldest: Node2D = _active_diffusions.pop_front()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
+
+	if _blood_diffusion_script == null:
+		_log_info("[ImpactEffects] Blood landed in water at %s — diffusion script not loaded, skipping decal (Issue #1578)" % landing_pos)
+		return
+
+	var diffusion: Node2D = Node2D.new()
+	diffusion.set_script(_blood_diffusion_script)
+	_add_underwater_effect_to_scene(diffusion, water_body)
+	diffusion.global_position = landing_pos
+	if diffusion.has_method("set_blood_color"):
+		diffusion.set_blood_color(blood_color)
+	_active_diffusions.append(diffusion)
+
+	if water_body.has_method("register_blood_tint_at"):
+		water_body.register_blood_tint_at(landing_pos, blood_color)
+
+	_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
 
 
 ## Returns the first WaterBody node whose bounds contain the given world position,
@@ -1149,6 +1185,7 @@ func _on_tree_changed() -> void:
 		_bullet_holes.clear()
 		_penetration_holes.clear()
 		_scorch_marks.clear()
+		_active_diffusions.clear()
 		_last_scene = current_scene
 
 

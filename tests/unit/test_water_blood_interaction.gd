@@ -358,3 +358,118 @@ func test_blood_puddle_diffusion_pos_matches_decal_pos() -> void:
 	wb.handle_blood_puddle_entered(decal)
 	assert_eq(wb.last_diffusion_pos, expected_pos,
 		"Diffusion effect must be spawned at the exact position of the blood decal")
+
+
+# ============================================================================
+# FPS fix: diffusion merging and cap (Issue #1578)
+# ============================================================================
+
+
+class MockDiffusion:
+	var global_position: Vector2 = Vector2.ZERO
+	var absorbed: bool = false
+	var freed: bool = false
+
+	func absorb() -> void:
+		absorbed = true
+
+	func queue_free() -> void:
+		freed = true
+
+
+class MockImpactManagerWithDiffusion:
+	const MAX_CONCURRENT_DIFFUSIONS: int = 8
+	const DIFFUSION_MERGE_RADIUS: float = 120.0
+
+	var _active_diffusions: Array = []
+	var spawned_count: int = 0
+	var merged_count: int = 0
+
+	func handle_blood_in_water(landing_pos: Vector2) -> void:
+		_active_diffusions = _active_diffusions.filter(func(n): return not n.freed)
+
+		# Try merge into nearest within radius
+		var nearest = null
+		var nearest_dist: float = DIFFUSION_MERGE_RADIUS
+		for d in _active_diffusions:
+			var dist: float = d.global_position.distance_to(landing_pos)
+			if dist < nearest_dist:
+				nearest_dist = dist
+				nearest = d
+		if nearest != null:
+			nearest.absorb()
+			merged_count += 1
+			return
+
+		# Enforce cap
+		while _active_diffusions.size() >= MAX_CONCURRENT_DIFFUSIONS:
+			var oldest = _active_diffusions.pop_front()
+			oldest.queue_free()
+
+		var d := MockDiffusion.new()
+		d.global_position = landing_pos
+		_active_diffusions.append(d)
+		spawned_count += 1
+
+
+func test_nearby_blood_hits_merge_into_existing_diffusion() -> void:
+	var mgr := MockImpactManagerWithDiffusion.new()
+	var base_pos := Vector2(500.0, 300.0)
+	# Spawn initial
+	mgr.handle_blood_in_water(base_pos)
+	assert_eq(mgr.spawned_count, 1, "First hit should spawn a diffusion node")
+	# Hit very close — should merge
+	mgr.handle_blood_in_water(base_pos + Vector2(10.0, 5.0))
+	assert_eq(mgr.spawned_count, 1, "Nearby hit must not spawn new node")
+	assert_eq(mgr.merged_count, 1, "Nearby hit must call absorb on existing node")
+
+
+func test_far_blood_hits_spawn_separate_diffusion() -> void:
+	var mgr := MockImpactManagerWithDiffusion.new()
+	mgr.handle_blood_in_water(Vector2(500.0, 300.0))
+	mgr.handle_blood_in_water(Vector2(900.0, 300.0))  # 400px away — beyond merge radius
+	assert_eq(mgr.spawned_count, 2, "Blood hits beyond merge radius must spawn separate effects")
+	assert_eq(mgr.merged_count, 0, "Hits beyond merge radius must not merge")
+
+
+func test_diffusion_cap_prevents_more_than_max_concurrent() -> void:
+	var mgr := MockImpactManagerWithDiffusion.new()
+	for i in range(MockImpactManagerWithDiffusion.MAX_CONCURRENT_DIFFUSIONS + 3):
+		mgr.handle_blood_in_water(Vector2(float(i) * 300.0, 300.0))  # all far apart
+	assert_lte(mgr._active_diffusions.size(), MockImpactManagerWithDiffusion.MAX_CONCURRENT_DIFFUSIONS,
+		"Active diffusion count must not exceed MAX_CONCURRENT_DIFFUSIONS")
+
+
+func test_oldest_diffusion_freed_when_cap_exceeded() -> void:
+	var mgr := MockImpactManagerWithDiffusion.new()
+	for i in range(MockImpactManagerWithDiffusion.MAX_CONCURRENT_DIFFUSIONS):
+		mgr.handle_blood_in_water(Vector2(float(i) * 300.0, 0.0))
+	var first_pos := mgr._active_diffusions[0].global_position
+	# One more hit far away forces eviction of oldest
+	mgr.handle_blood_in_water(Vector2(9999.0, 9999.0))
+	# Oldest should be freed
+	assert_eq(mgr._active_diffusions[0].global_position, Vector2(300.0, 0.0),
+		"After cap exceeded, the oldest diffusion should be evicted")
+
+
+func test_diffusion_no_gpu_particles() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	assert_not_null(script, "WaterBloodDiffusion script must load")
+	var diffusion: Node2D = script.new()
+	add_child_autofree(diffusion)
+	diffusion._ready()
+	var has_particles: bool = false
+	for child in diffusion.get_children():
+		if child is GPUParticles2D:
+			has_particles = true
+	assert_false(has_particles, "WaterBloodDiffusion must not use GPUParticles2D (FPS fix)")
+
+
+func test_absorb_increases_intensity_flag() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	var diffusion = script.new()
+	add_child_autofree(diffusion)
+	var before: float = diffusion._extra_alpha
+	diffusion.absorb()
+	assert_gt(diffusion._extra_alpha, before,
+		"absorb() must increase _extra_alpha to make the cloud darker after merging")
