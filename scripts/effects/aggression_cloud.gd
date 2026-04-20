@@ -57,11 +57,11 @@ var _spawn_elapsed: float = 0.0
 func _ready() -> void:
 	FileLogger.info("[AggressionCloud] _ready() called at %s" % str(global_position))
 	_time_remaining = cloud_duration
-	# Issue #1688: Start at grenade size (scale 0) so cloud grows from nothing
-	if grow_in_duration > 0.0:
-		scale = Vector2.ZERO
 	_setup_detection_area()
 	_setup_cloud_visual()
+	# Issue #1688: Scale only the visual child so the detection area stays at full size.
+	if grow_in_duration > 0.0 and _cloud_visual != null:
+		_cloud_visual.scale = Vector2.ZERO
 	FileLogger.info("[AggressionCloud] Cloud spawned at %s, radius=%.0f, duration=%.0fs, particles=%s" % [
 		str(global_position), cloud_radius, cloud_duration, str(_using_particles)
 	])
@@ -71,10 +71,11 @@ func _physics_process(delta: float) -> void:
 	_time_remaining -= delta
 	_spawn_elapsed += delta
 
-	# Issue #1688: Grow-in effect — scale cloud from 0 to 1 over grow_in_duration
-	if grow_in_duration > 0.0:
+	# Issue #1688: Grow-in effect — scale only the visual from 0 to 1 over grow_in_duration.
+	# Detection area stays at full size so enemy aggression triggering works from frame 1.
+	if grow_in_duration > 0.0 and _cloud_visual != null:
 		var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
-		scale = Vector2(grow_progress, grow_progress)
+		_cloud_visual.scale = Vector2(grow_progress, grow_progress)
 
 	# Periodic effect application to enemies in the cloud
 	_effect_tick_timer += delta

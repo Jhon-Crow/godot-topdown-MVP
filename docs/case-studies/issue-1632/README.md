@@ -370,11 +370,73 @@ The previous `preload("res://scripts/effects/chemical_cloud.gd").new()` mitigati
 
 ---
 
+---
+
+---
+
+## Fifth Visual Regression Report (April 20, 2026 — 13:10)
+
+**Report date**: 2026-04-20
+**Log**: `logs/game_log_20260420_131056.txt`
+**Symptom**: "не исправлено" — still not fixed.
+
+### Session Overview
+
+| Metric | Value |
+|--------|-------|
+| Session time | 13:10:56 – 13:11:17 |
+| Clouds spawned | 4 (logged by grenade) |
+| `[ChemicalCloud]` log lines | **0** — `_ready()` never ran |
+| No SceneLoader error in this log | Async fallback is absent this run |
+
+### Log Evidence
+
+The log shows 4 successful cloud-spawn lines:
+
+```
+[13:11:10] [ChemicalGasGrenade] Chemical cloud spawned at (92.77065, 933.2136) (radius=600, duration=20s, grow_in=5.62s)
+[13:11:11] [ChemicalGasGrenade] Chemical cloud spawned at (329.0563, 1027.515) (radius=600, duration=20s, grow_in=5.62s)
+[13:11:12] [ChemicalGasGrenade] Chemical cloud spawned at (328.0982, 1043.108) (radius=600, duration=20s, grow_in=5.62s)
+[13:11:13] [ChemicalGasGrenade] Chemical cloud spawned at (328.1023, 1052.131) (radius=600, duration=20s, grow_in=5.62s)
+```
+
+There are zero `[ChemicalCloud]` messages following any of these lines. No SceneLoader errors appear in this run.
+
+### Root Cause Analysis
+
+The previous preload mitigation (`preload("res://scripts/effects/chemical_cloud.gd").new()`) is **not sufficient**. Even though `preload()` forces the GDScript resource to compile at load time, calling `.new()` on the loaded GDScript resource in Godot 4 does not guarantee that the compiled class is registered in the runtime global class registry under all conditions.
+
+The definitive fix is to use a **PackedScene** (`.tscn` file) and call `instantiate()` instead of `.new()`. This is how all other effects in the codebase work (BloodEffect.tscn, ExplosionFlash.tscn, etc.). The `instantiate()` path:
+
+1. Uses the PackedScene's serialized script reference directly — bypasses the GDScript class registry entirely.
+2. Is guaranteed to call `_ready()` on all script nodes after `add_child()`.
+3. Is consistent with how `ChemicalGasGrenade.tscn` itself is instantiated by `GasMaskGrenadeComponent`.
+
+### Fix Applied
+
+Created `scenes/effects/ChemicalCloud.tscn` — a minimal Node2D scene with `chemical_cloud.gd` attached as a script.
+
+Changed `chemical_gas_grenade.gd`:
+- Replaced `const ChemicalCloudScript := preload("...chemical_cloud.gd")` with `const ChemicalCloudScene := preload("res://scenes/effects/ChemicalCloud.tscn")`
+- Replaced `ChemicalCloudScript.new()` with `ChemicalCloudScene.instantiate()`
+
+Applied the same fix to `aggression_gas_grenade.gd` / `aggression_cloud.gd`:
+- Created `scenes/effects/AggressionCloud.tscn`
+- Changed to `const AggressionCloudScene := preload("res://scenes/effects/AggressionCloud.tscn")` + `AggressionCloudScene.instantiate()`
+- Also fixed the `aggression_cloud.gd` issue #1688 regression: the whole-node scale was never fixed (it was only fixed for `chemical_cloud.gd`). Now only `_cloud_visual` is scaled so the detection area stays at full size.
+
+---
+
+---
+
 ## Files Involved
 
 | File | Role |
 |------|------|
 | `scripts/effects/chemical_cloud.gd` | Main fix location — `_spawn_illusions_for_nearby_enemies()`, `_create_position_validation_context()`, and `_is_position_valid()` |
+| `scenes/effects/ChemicalCloud.tscn` | New: PackedScene for reliable `instantiate()` — bypasses GDScript class registry |
+| `scenes/effects/AggressionCloud.tscn` | New: PackedScene for `AggressionCloud` — same reliability fix |
+| `scripts/effects/aggression_cloud.gd` | Fixed: whole-node scale bug (#1688 regression) — now scales only `_cloud_visual` |
 | `scripts/effects/illusion_effect.gd` | IllusionEffect node — not involved in position validation |
 | `scripts/components/enemy_teleport_component.gd` | Reference: uses same nav-mesh approach (50px tolerance) |
 | `scripts/characters/player.gd` | Reference: `_is_spawn_position_valid()` uses physics overlap check (correct approach) |

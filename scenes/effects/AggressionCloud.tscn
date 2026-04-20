@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://aggression_cloud_scene_675"]
+
+[ext_resource type="Script" path="res://scripts/effects/aggression_cloud.gd" id="1_script"]
+
+[node name="AggressionCloud" type="Node2D"]
+script = ExtResource("1_script")

@@ -26,6 +26,10 @@ class_name AggressionGasGrenade
 ## Duration of aggression effect on each enemy (seconds).
 @export var aggression_duration: float = 10.0
 
+## Preloaded scene for reliable instantiation — avoids GDScript class registry failures
+## (Godot bug #94150) that can prevent AggressionCloud._ready() from being called.
+const AggressionCloudScene := preload("res://scenes/effects/AggressionCloud.tscn")
+
 ## Hiss visual pulse timer for gas release countdown.
 var _hiss_timer: float = 0.0
 
@@ -140,7 +144,7 @@ func _spawn_aggression_cloud() -> void:
 ## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
 ## This makes the gas start spreading when the sound starts, not after it ends.
 func _spawn_aggression_cloud_with_grow_in(grow_duration: float) -> void:
-	var cloud := AggressionCloud.new()
+	var cloud := AggressionCloudScene.instantiate()
 	cloud.name = "AggressionCloud"
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration

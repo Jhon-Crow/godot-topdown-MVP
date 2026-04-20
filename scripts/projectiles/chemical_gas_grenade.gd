@@ -17,9 +17,9 @@ class_name ChemicalGasGrenade
 ## Duration of each illusion copy (seconds).
 @export var illusion_duration: float = 20.0
 
-## Preloaded to force GDScript compilation at startup (workaround for Godot binary tokenization
-## bug #94150 that can prevent runtime class lookup from finding ChemicalCloud).
-const ChemicalCloudScript := preload("res://scripts/effects/chemical_cloud.gd")
+## Preloaded scene for reliable instantiation — avoids GDScript class registry failures
+## (Godot bug #94150) that prevent ChemicalCloud._ready() from being called when using .new().
+const ChemicalCloudScene := preload("res://scenes/effects/ChemicalCloud.tscn")
 
 ## Hiss visual pulse timer.
 var _hiss_timer: float = 0.0
@@ -138,7 +138,7 @@ func _spawn_chemical_cloud() -> void:
 ## Issue #1688: Spawn the cloud immediately, growing in gradually over grow_duration seconds.
 ## This makes the gas start spreading when the sound starts, not after it ends.
 func _spawn_chemical_cloud_with_grow_in(grow_duration: float) -> void:
-	var cloud := ChemicalCloudScript.new()
+	var cloud := ChemicalCloudScene.instantiate()
 	cloud.name = "ChemicalCloud"
 	cloud.cloud_radius = effect_radius
 	cloud.cloud_duration = cloud_duration
