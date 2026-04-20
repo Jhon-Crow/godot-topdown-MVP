@@ -245,8 +245,9 @@ func _arm_blood_snow_steps_from_bloody_feet_if_needed() -> void:
 		_connect_bloody_feet()
 	if _bloody_feet == null:
 		return
-	if _bloody_feet.get("on_snow") == null or not _bloody_feet.on_snow:
-		return
+	# SnowyFeetComponent is only attached to characters on snow levels (via _add_snowy_feet),
+	# so skip the on_snow guard — it may not be set yet if setup races with blood contact
+	# (Issue #1909: enemies received regular boot prints because on_snow wasn't set in time).
 	if not _bloody_feet.has_method("has_bloody_feet") or not _bloody_feet.has_bloody_feet():
 		return
 

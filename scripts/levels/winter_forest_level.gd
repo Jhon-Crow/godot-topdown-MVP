@@ -1511,16 +1511,18 @@ func _create_snow_area() -> void:
 ## Adds a SnowyFeetComponent to a CharacterBody2D and configures any existing
 ## BloodyFeetComponent on the same character for faster snow-blood fading.
 func _add_snowy_feet(character: CharacterBody2D, snowy_feet_script: GDScript) -> void:
+	# BloodyFeetComponent: set on_snow BEFORE adding SnowyFeetComponent so the flag
+	# is already true when SnowyFeetComponent._ready() connects to blood_contact.
+	# This ensures enemies (Issue #1909) receive snow blood prints, not regular boot prints.
+	var bloody_feet: Node = character.get_node_or_null("BloodyFeetComponent")
+	if bloody_feet and bloody_feet.get("on_snow") != null:
+		bloody_feet.on_snow = true
+
 	# SnowyFeetComponent: leave snow tracks.
 	var snowy_feet := Node.new()
 	snowy_feet.name = "SnowyFeetComponent"
 	snowy_feet.set_script(snowy_feet_script)
 	character.add_child(snowy_feet)
-
-	# BloodyFeetComponent: enable faster fading on snow (Issue #1627).
-	var bloody_feet: Node = character.get_node_or_null("BloodyFeetComponent")
-	if bloody_feet and bloody_feet.get("on_snow") != null:
-		bloody_feet.on_snow = true
 
 
 func _log_to_file(message: String) -> void:

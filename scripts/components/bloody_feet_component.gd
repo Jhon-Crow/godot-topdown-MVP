@@ -523,7 +523,10 @@ func _spawn_footprint() -> void:
 	# On snow levels, SnowyFeetComponent handles all footprint rendering (both normal
 	# white and red blood-snow prints). This component only tracks the blood level so
 	# SnowyFeetComponent can read it via has_bloody_feet() and _blood_color (Issue #1627).
-	if on_snow:
+	# Also defer to SnowyFeetComponent if one exists as a sibling — this covers the case
+	# where on_snow wasn't set before the first blood contact (Issue #1909: enemies).
+	var has_snowy_feet: bool = _parent_body != null and _parent_body.get_node_or_null("SnowyFeetComponent") != null
+	if on_snow or has_snowy_feet:
 		if debug_logging:
 			_log_info("On snow — SnowyFeetComponent handles prints (blood steps remaining: %d)" % _blood_level)
 		return
