@@ -175,9 +175,24 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			var distance: float = randf_range(60.0, 120.0)
 			offsets.append(Vector2(cos(angle), sin(angle)) * distance)
 
-		# Pick a random position for the original enemy (any of the total_positions)
-		var original_index: int = randi_range(0, total_positions - 1)
-		var original_offset: Vector2 = offsets[original_index]
+		# Issue #1361: Randomly pick a non-center offset for the original enemy so it's
+		# not always at the cluster center. Issue #1632: Validate the candidate against
+		# walls before teleporting to avoid placing the enemy inside/behind obstacles in
+		# narrow corridors. Fall back to index 0 (no-move) if no random offset is safe.
+		var candidate_indices: Array[int] = []
+		for i in range(1, total_positions):
+			candidate_indices.append(i)
+		candidate_indices.shuffle()
+
+		var original_index: int = 0
+		var original_offset: Vector2 = Vector2.ZERO
+		for idx in candidate_indices:
+			var off: Vector2 = offsets[idx]
+			var candidate_pos: Vector2 = enemy.global_position + off.rotated(enemy.rotation)
+			if _is_position_safe_from_walls(enemy.global_position, candidate_pos, enemy):
+				original_index = idx
+				original_offset = off
+				break
 
 		# Move the original enemy to its new position
 		if original_offset != Vector2.ZERO:
@@ -186,6 +201,8 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 				str(enemy.global_position), str(new_pos), str(original_offset)
 			])
 			enemy.global_position = new_pos
+		else:
+			FileLogger.info("[ChemicalCloud] No safe random offset for enemy at %s, keeping original position" % str(enemy.global_position))
 
 		# Spawn illusions at all positions except the one assigned to the original
 		for i in range(total_positions):
@@ -204,6 +221,44 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies (total: %d/%d)" % [
 		spawned_count, enemies.size(), _total_illusions_spawned, max_illusions_per_cloud
 	])
+
+
+## Issue #1632: Check that a teleport destination does not place the enemy inside a
+## wall and that the straight path from the current position does not cross a wall.
+## Uses the same obstacle-layer pattern as enemy.gd (collision_mask = 4, layer 3).
+## Returns true when both checks pass, false when the candidate would clip a wall.
+func _is_position_safe_from_walls(from_pos: Vector2, to_pos: Vector2, enemy: Node2D) -> bool:
+	var world := get_world_2d()
+	if world == null:
+		return true  # No physics space available — skip validation rather than block movement.
+	var space_state := world.direct_space_state
+	if space_state == null:
+		return true
+
+	var exclude_rids: Array = []
+	if enemy is CollisionObject2D:
+		exclude_rids.append((enemy as CollisionObject2D).get_rid())
+
+	# Reject candidates that are inside a wall collider.
+	var point_query := PhysicsPointQueryParameters2D.new()
+	point_query.position = to_pos
+	point_query.collision_mask = 4  # layer 3 = obstacles/walls
+	point_query.collide_with_areas = false
+	point_query.collide_with_bodies = true
+	point_query.exclude = exclude_rids
+	if not space_state.intersect_point(point_query, 1).is_empty():
+		return false
+
+	# Reject candidates whose direct path from the enemy crosses a wall.
+	var ray_query := PhysicsRayQueryParameters2D.new()
+	ray_query.from = from_pos
+	ray_query.to = to_pos
+	ray_query.collision_mask = 4
+	ray_query.exclude = exclude_rids
+	if not space_state.intersect_ray(ray_query).is_empty():
+		return false
+
+	return true
 
 
 ## Spawn a single illusion copy of an enemy at a given offset.

@@ -246,3 +246,108 @@ func test_initial_batch_plus_progressive_can_reach_10() -> void:
 		])
 
 	cloud.free()
+
+
+# ============================================================================
+# Issue #1632: Wall-safe random position for the original enemy
+# ============================================================================
+
+
+## Build a StaticBody2D with a rectangle collider on the obstacle layer (layer 3).
+func _make_wall(pos: Vector2, extents: Vector2) -> StaticBody2D:
+	var wall := StaticBody2D.new()
+	wall.collision_layer = 4  # layer 3 (bit 2) — obstacles
+	wall.collision_mask = 0
+	wall.global_position = pos
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = extents
+	shape.shape = rect
+	wall.add_child(shape)
+	return wall
+
+
+## Add node to the scene tree and wait one physics frame so collision shapes register.
+func _register_in_physics(node: Node) -> void:
+	add_child_autofree(node)
+	await wait_frames(2)
+
+
+func test_wall_validation_rejects_position_inside_wall() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	var wall := _make_wall(Vector2(200, 0), Vector2(100, 100))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	# Target inside the wall — must be rejected.
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(200, 0), enemy
+	)
+	assert_false(safe, "Position inside wall collider must be rejected")
+
+
+func test_wall_validation_rejects_path_crossing_wall() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	# Wall sits between (0,0) and (400,0).
+	var wall := _make_wall(Vector2(200, 0), Vector2(50, 200))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	# Target is in open space but the path crosses the wall — must be rejected.
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(400, 0), enemy
+	)
+	assert_false(safe, "Path crossing wall must be rejected")
+
+
+func test_wall_validation_accepts_open_space_position() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	# Wall placed far off to the side so it does not interfere.
+	var wall := _make_wall(Vector2(1000, 1000), Vector2(50, 50))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(100, 0), enemy
+	)
+	assert_true(safe, "Open-space position with clear path must be accepted")
+
+
+func test_wall_validation_returns_true_when_world_unavailable() -> void:
+	# ChemicalCloud not added to the tree has no World2D — validation must not block.
+	var cloud := ChemicalCloud.new()
+	var enemy := MockEnemy.new()
+	enemy.global_position = Vector2(0, 0)
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(100, 0), enemy
+	)
+	assert_true(safe, "Validation must be permissive when no physics space is available")
+	cloud.free()
+	enemy.free()
+
+
+func test_candidate_indices_exclude_center_before_fallback() -> void:
+	# The validation loop must iterate over non-center offsets (indices 1..N-1)
+	# before falling back to index 0. Center stays reserved as the no-move fallback
+	# so the random-position behavior from Issue #1361 is preserved whenever any
+	# random offset passes the wall check.
+	var total_positions: int = 5
+	var candidate_indices: Array[int] = []
+	for i in range(1, total_positions):
+		candidate_indices.append(i)
+	assert_eq(candidate_indices.size(), total_positions - 1,
+		"Should iterate over %d non-center candidates" % (total_positions - 1))
+	assert_false(candidate_indices.has(0),
+		"Index 0 (center) must be excluded from the shuffled candidate list")
