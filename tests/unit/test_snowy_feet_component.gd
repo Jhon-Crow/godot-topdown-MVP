@@ -626,6 +626,52 @@ func test_red_snow_footprints_consume_bloody_feet_after_rendering() -> void:
 		"Second rendered red snow print should consume exactly one more snow blood step")
 
 
+## Regression test for Issue #1909: enemies received regular boot prints instead of
+## snow blood prints because on_snow was not set on BloodyFeetComponent before blood contact.
+## The signal path (_on_blood_contact) must arm the counter regardless of on_snow.
+func test_enemy_gets_snow_blood_prints_via_signal_even_when_on_snow_not_yet_set() -> void:
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 5
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 5
+	bloody.snow_blood_steps_count = 5
+	# Simulate enemy: on_snow was not yet set (mimics race between _add_snowy_feet and
+	# blood contact before on_snow = true is applied to BloodyFeetComponent).
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+
+	# Arm via signal (primary path) — this is what BloodyFeetComponent.blood_contact emits.
+	comp.on_blood_contact()
+
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1, "One footprint should be spawned")
+	assert_true(comp.spawned_footprints[0].get("is_blood", false),
+		"Enemy must get snow blood print (not regular boot print) — Issue #1909")
+
+
+## Regression test for Issue #1909: fallback path (_arm_blood_snow_steps_from_bloody_feet_if_needed)
+## must NOT require on_snow=true since SnowyFeetComponent is only ever added to snow-level characters.
+func test_fallback_arms_snow_prints_even_when_on_snow_false_on_bloody_feet() -> void:
+	## This simulates the case where the signal was missed (race) AND on_snow is still false.
+	## The fallback should still arm the counter because SnowyFeetComponent exists = snow level.
+	var comp := MockSnowyFeetComponentWithBloodCheck.new()
+	comp.is_on_snow = true
+	comp.snow_blood_steps_count = 5
+	var bloody := MockBloodyFeet.new()
+	bloody._blood_level = 5
+	bloody.snow_blood_steps_count = 5
+	comp._bloody_feet = bloody
+	comp.ready(Vector2.ZERO)
+
+	# Do NOT fire on_blood_contact() — simulate missed signal.
+	# Verify the fallback arms prints even without on_snow guard.
+	comp.process(Vector2(comp.step_distance, 0.0))
+	assert_eq(comp.spawned_footprints.size(), 1, "A footprint should be spawned via fallback")
+	assert_true(comp.spawned_footprints[0].get("is_blood", false),
+		"Fallback must produce red snow prints for enemies even when on_snow was not set (Issue #1909)")
+
+
 func test_signal_captured_blood_color_survives_bloody_feet_drain() -> void:
 	## The visible red snow print should use the color captured at blood contact time,
 	## even if BloodyFeetComponent has already drained before SnowyFeetComponent steps.
