@@ -17,6 +17,8 @@ shell casings. Every other map renders the flash on its floor correctly.
 - `game_log_20260416_231945.txt` — owner log confirming floor still dark
 - `game_log_20260417_041119.txt` — owner log, blood lit but floor dark
 - `game_log_20260417_233940.txt` — owner log suggesting a layer/mask issue
+- `game_log_20260418_013007.txt` — owner log: "всё ещё нет вспышек на полу Лабиринт Комплекс"
+- `game_log_20260420_122659.txt` — owner log: too bright + still no floor flash
 - `game_log_20260420_125552.txt` — owner log after 2026-04-20 attempt: "не исправлено"
 
 ## Timeline
@@ -24,8 +26,10 @@ shell casings. Every other map renders the flash on its floor correctly.
 1. 2026-04-15 — issue opened. Owner notes correct flash logic but no visible floor flash on Labyrinth Complex.
 2. 2026-04-15 — first attempt added an additive `Sprite2D` flare. Owner rejected it and asked for wall-respecting behaviour with brighter floor/wall flash.
 3. 2026-04-16 — second attempt replaced the floor `ColorRect` with a `Polygon2D` carrying `light_mask = 3`, added matching masks to walls, and set `range_item_cull_mask = 3` on the muzzle `PointLight2D`. Owner reported: "floor still no flash, but blood is clearly lit".
-4. 2026-04-17 — further tuning of light mask bits and floor geometry. Owner reported same result.
-5. 2026-04-20 — owner reports "не исправлено" (not fixed) with `game_log_20260420_125552.txt`.
+4. 2026-04-17 — further tuning of light mask bits and floor geometry. Owner reported same result (`game_log_20260417_233940.txt`, `game_log_20260418_013007.txt`).
+5. 2026-04-20 (morning) — owner reports flash too bright + still no floor flash (`game_log_20260420_122659.txt`). Brightness reverted to backup values.
+6. 2026-04-20 (mid-morning) — owner reports "не исправлено" (`game_log_20260420_125552.txt`). New approach: additive `FloorGlow` Sprite2D added to MuzzleFlash.tscn.
+7. 2026-04-20 (late morning) — owner reports "появилась странная квадратная вспышка" (strange square flash appeared). Root cause: GradientTexture2D with ADD blend mode shows visible square boundary when gradient alpha is non-zero at the texture edges.
 
 ## Root cause
 
@@ -63,7 +67,7 @@ backup"), the muzzle flash now produces the floor flash with an **additive
   `BLEND_MODE_ADD`. Its `modulate.a` starts at 0 and is driven by the script.
 - `scripts/effects/muzzle_flash.gd` — mirrors the existing ease-out fade of
   `LIGHT_START_ENERGY` onto `FLOOR_GLOW_START_ALPHA = 0.9`, with a scale of
-  2.5 (~320 px wide glow).
+  1.25 (~320 px wide glow with 256px texture).
 - All previous environment-level changes (floor `ColorRect → Polygon2D`,
   `light_mask = 3` on walls/cover, `range_item_cull_mask = 3` on the
   `PointLight2D`) are reverted so the scene files match `origin/main` and
@@ -71,6 +75,19 @@ backup"), the muzzle flash now produces the floor flash with an **additive
 - `PointLight2D` brightness (`LIGHT_START_ENERGY = 4.5`, `texture_scale =
   4.5`) remains at the backup-branch values, per the owner's explicit
   request.
+
+### Square flash fix (2026-04-20)
+
+Owner reported "странная квадратная вспышка" after the FloorGlow was added.
+Root cause: with `CanvasItemMaterial.blend_mode = ADD`, even near-zero alpha
+pixel values add visible colour. The initial 128×128 gradient had alpha 0.55
+at offset 0.4, which was still non-zero at the square texture boundary
+(offset 1.0 = edge midpoint). This created a visible square halo.
+
+Fix: gradient alpha now reaches 0 at offset 0.7 (well inside the texture
+boundary), and texture size increased to 256×256 to give the gradient more
+falloff room. Scale reduced from 2.5→1.25 to compensate, keeping the same
+visual glow size (~320px diameter).
 
 Because the new floor glow is a `Sprite2D` using additive blending, it is
 visible on *any* canvas surface regardless of how the map's light masks,

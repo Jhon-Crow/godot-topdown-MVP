@@ -41,13 +41,13 @@ fill = 1
 fill_from = Vector2(0.5, 0.5)
 
 [sub_resource type="Gradient" id="Gradient_floor_glow"]
-offsets = PackedFloat32Array(0, 0.4, 1)
-colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.6, 0.2, 0.55, 1, 0.4, 0.1, 0)
+offsets = PackedFloat32Array(0, 0.2, 0.45, 0.7, 1)
+colors = PackedColorArray(1, 0.85, 0.5, 1, 1, 0.7, 0.3, 0.8, 1, 0.5, 0.15, 0.3, 1, 0.4, 0.1, 0, 1, 0.4, 0.1, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_floor_glow"]
 gradient = SubResource("Gradient_floor_glow")
-width = 128
-height = 128
+width = 256
+height = 256
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 

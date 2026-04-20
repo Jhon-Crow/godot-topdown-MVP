@@ -18,8 +18,8 @@ const LIGHT_START_ENERGY: float = 4.5
 ## Starting alpha of the floor glow sprite.
 const FLOOR_GLOW_START_ALPHA: float = 0.9
 
-## Scale applied to the floor glow sprite (128px texture -> ~320px wide glow).
-const FLOOR_GLOW_SCALE: float = 2.5
+## Scale applied to the floor glow sprite (256px texture at 1.25x -> ~320px wide glow circle).
+const FLOOR_GLOW_SCALE: float = 1.25
 
 ## Reference to the point light child node.
 var _point_light: PointLight2D = null
