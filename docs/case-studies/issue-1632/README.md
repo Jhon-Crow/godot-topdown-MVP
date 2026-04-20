@@ -199,6 +199,46 @@ This keeps the detection area at full size and ensures the grow-in animation wor
 
 ---
 
+---
+
+## Second Visual Regression Report (April 20, 2026)
+
+**Report date**: 2026-04-20  
+**Log**: `logs/game_log_20260420_115753.txt`  
+**Symptom**: "у газовой гранаты всё ещё не появляется газ (сломана)" — gas grenade still produces no visible gas.
+
+### Session Overview
+
+| Metric | Value |
+|--------|-------|
+| Session duration | 11:57:53 – 11:58:15 (22 seconds) |
+| Clouds spawned | 4 |
+| FPS drops observed | 1 fps, then 5–23 fps after clouds |
+| `[ChemicalCloud]` log lines | **0** |
+
+### Evidence: Clouds Spawned But No ChemicalCloud Logs
+
+The grenade script logged "Chemical cloud spawned" 4 times:
+
+| Time | Cloud position | grow_in |
+|------|---------------|---------|
+| 11:58:03 | (203.9, 2632.9) | 5.62s |
+| 11:58:04 | (176.1, 2877.7) | 5.62s |
+| 11:58:06 | (188.0, 2878.8) | 5.62s |
+| 11:58:08 | (120.3, 3120.7) | 5.62s |
+
+Despite 4 clouds being created, there are zero `[ChemicalCloud]` messages in the log. This means `ChemicalCloud._ready()` was never called. Several possibilities:
+
+1. **Upstream code still has the bug** — the game being tested was the upstream build which still contains `scale = Vector2.ZERO` on the whole node (not our fixed branch). The node IS added to the scene but the scale collapse makes particles invisible. The missing `_ready()` logs may be due to log buffer overload (719 log messages in 2 seconds) causing write delays.
+
+2. **Massive log throughput** — 719 messages were generated in just 2 seconds during the cloud spawn (11:58:03–11:58:04). The `FileLogger` write buffer uses a 1-second flush interval. Under this load, ordering is preserved but messages could arrive out-of-temporal-order in the file.
+
+### Root Cause Assessment
+
+The April 20 log confirms the upstream version still has the invisible-gas bug. PR #1646's fix (scaling only `_cloud_visual`) is not yet merged into upstream. The user is testing the unpatched build.
+
+**Our fix addresses this correctly**: by scaling only `_cloud_visual` (the particle node), the gas becomes visible immediately while the grow-in animation progresses over 5.62 seconds. The detection area remains at full scale throughout.
+
 ## Files Involved
 
 | File | Role |
