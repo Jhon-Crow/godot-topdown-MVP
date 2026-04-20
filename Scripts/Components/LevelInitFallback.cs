@@ -1156,8 +1156,18 @@ public partial class LevelInitFallback : Node
         {
             var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
             if (soundPropagation != null && soundPropagation.HasMethod("emit_player_reload"))
-                soundPropagation.Call("emit_player_reload", _player.GlobalPosition, _player);
+            {
+                // Issue #1897: silenced pistol reload is nearly inaudible (100px vs default 900px)
+                float reloadSoundRange = IsSilencedPistolEquipped() ? 100.0f : -1.0f;
+                soundPropagation.Call("emit_player_reload", _player.GlobalPosition, _player, reloadSoundRange);
+            }
         }
+    }
+
+    private bool IsSilencedPistolEquipped()
+    {
+        var weapon = GetCurrentWeaponNode();
+        return weapon?.Name == "SilencedPistol";
     }
 
     private void OnPlayerReloadCompleted()
