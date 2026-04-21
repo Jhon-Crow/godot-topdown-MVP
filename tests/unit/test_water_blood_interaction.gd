@@ -53,6 +53,12 @@ class MockWaterBody:
 		last_diffusion_pos = world_pos
 		last_diffusion_color = blood_color
 
+	func update_blood_tint_fade(world_pos: Vector2, blood_color: Color, absorbed_hits: int, fade_t: float) -> void:
+		last_diffusion_pos = world_pos
+		last_diffusion_color = blood_color
+		if fade_t >= 1.0:
+			tint_registered_count += 1
+
 
 # ============================================================================
 # Mock blood decal for _on_area_entered tests
@@ -277,16 +283,16 @@ func test_default_blood_diffusion_color_is_dark_red() -> void:
 func test_blood_diffusion_cloud_duration_and_water_tint_persists() -> void:
 	var script := load("res://scripts/effects/water_blood_diffusion.gd")
 	assert_not_null(script, "WaterBloodDiffusion script must load")
-	# Cloud disperses in ~20 seconds; water tint persists via WaterBody shader for 75+ seconds.
-	assert_gt(script.DURATION, 5.0,
+	# Cloud disperses quickly; water tint persists via WaterBody shader for 75+ seconds.
+	assert_gt(script.DURATION, 3.0,
 		"Blood diffusion cloud must have a non-trivial lifetime before dispersing")
 	assert_lt(script.DURATION, 60.0,
 		"Blood diffusion cloud itself should disperse quickly; water tint persists via shader")
-	# Verify on_dispersed callback is exposed for water tint notification
+	# Verify on_tint_update callback is exposed for gradual water tint notification
 	var diffusion: Node2D = script.new()
 	add_child_autofree(diffusion)
-	assert_true("on_dispersed" in diffusion,
-		"WaterBloodDiffusion must expose on_dispersed callback for post-dispersal water tint")
+	assert_true("on_tint_update" in diffusion,
+		"WaterBloodDiffusion must expose on_tint_update callback for gradual water tint")
 
 
 func test_blood_diffusion_renders_below_water_layer() -> void:
@@ -304,6 +310,8 @@ func test_water_body_exposes_blood_tint_registration_api() -> void:
 	add_child_autofree(node)
 	assert_true(node.has_method("register_blood_tint_at"),
 		"WaterBody must expose register_blood_tint_at for direct-spawn exported-build fallback")
+	assert_true(node.has_method("update_blood_tint_fade"),
+		"WaterBody must expose update_blood_tint_fade for gradual tint (Issue #1578 feedback)")
 	water.register_blood_tint_at(water.global_position, Color(0.5, 0.02, 0.02, 0.55))
 	assert_eq(water.tint_registered_count, 1,
 		"Direct blood diffusion fallback must also register red water tint")

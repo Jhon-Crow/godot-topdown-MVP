@@ -19,13 +19,13 @@ const MERGE_RADIUS: float = 120.0
 const MAX_RADIUS: float = 80.0
 
 ## Total lifetime of the effect in seconds.
-const DURATION: float = 20.0
+const DURATION: float = 12.0
 
 ## How long the effect expands before entering the hold phase.
-const EXPAND_DURATION: float = 5.0
+const EXPAND_DURATION: float = 3.0
 
 ## Hold phase length — visible dissolving cloud before fading out.
-const HOLD_DURATION: float = 10.0
+const HOLD_DURATION: float = 5.0
 
 ## Blood color (default dark red, overridden by set_blood_color).
 var _blood_color: Color = Color(0.42, 0.01, 0.01, 0.72)
@@ -45,9 +45,12 @@ var _extra_alpha: float = 0.0
 ## How many hits were absorbed (used to scale water tint on dispersal).
 var _absorbed_hits: int = 1
 
-## Callback invoked when the cloud disperses — used to notify the water body.
-## Signature: func(world_pos: Vector2, absorbed_hits: int) -> void
-var on_dispersed: Callable = Callable()
+## Callback invoked each frame during the fade phase to apply tint gradually.
+## Signature: func(world_pos: Vector2, absorbed_hits: int, fade_t: float) -> void
+var on_tint_update: Callable = Callable()
+
+## Whether the tint update has been connected (first frame of fade phase).
+var _tint_started: bool = false
 
 
 func _ready() -> void:
@@ -59,10 +62,13 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	if _elapsed >= DURATION and not _done:
 		_done = true
-		if on_dispersed.is_valid():
-			on_dispersed.call(global_position, _absorbed_hits)
 		queue_free()
 	else:
+		# During fade phase, call tint update each frame so water tint grows gradually
+		# in sync with the cloud fading out (Issue #1578 feedback).
+		if _elapsed >= HOLD_DURATION and not _done and on_tint_update.is_valid():
+			var fade_t: float = clampf((_elapsed - HOLD_DURATION) / maxf(DURATION - HOLD_DURATION, 0.001), 0.0, 1.0)
+			on_tint_update.call(global_position, _absorbed_hits, fade_t)
 		queue_redraw()
 
 
@@ -103,12 +109,11 @@ func set_blood_color(color: Color) -> void:
 	_blood_color = Color(color.r, color.g, color.b, 0.72)
 
 
-## Absorb a nearby blood hit: increase intensity slightly and reset the hold
-## timer so the cloud lingers longer after fresh blood arrives.
+## Absorb a nearby blood hit: increase intensity and restart the expansion phase.
 func absorb() -> void:
 	_extra_alpha = minf(_extra_alpha + 0.2, 1.0)
 	_absorbed_hits += 1
-	# Reset elapsed so the cloud stays in the hold phase for longer
+	_tint_started = false
 	if _elapsed > EXPAND_DURATION:
 		_elapsed = EXPAND_DURATION
 

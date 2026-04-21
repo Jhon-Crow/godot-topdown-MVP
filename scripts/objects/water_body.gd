@@ -78,6 +78,10 @@ const BLOOD_TINT_DURATION: float = 75.0
 const BLOOD_TINT_HOLD_DURATION: float = 62.0
 var _blood_tint_sources: Array[Dictionary] = []
 
+## Live tint sources updated each frame during cloud fade (key = position hash).
+## Each entry: { "position", "color", "intensity", "current_strength", "settled" }
+var _live_tint_sources: Array[Dictionary] = []
+
 
 func _ready() -> void:
 	# Unconditional early log — confirms this script's _ready() is running in the build (Issue #1578).
@@ -403,6 +407,40 @@ func register_blood_tint_at(world_pos: Vector2, blood_color: Color, absorbed_hit
 	_add_blood_tint_source(world_pos, blood_color, absorbed_hits)
 
 
+## Called each frame during cloud fade — grows tint gradually in sync with cloud dispersal.
+## fade_t goes 0→1 as the cloud fades out; we track live sources and promote to
+## settled (permanent) tint sources once the cloud is fully gone.
+func update_blood_tint_fade(world_pos: Vector2, blood_color: Color, absorbed_hits: int, fade_t: float) -> void:
+	var max_intensity: float = clampf(float(absorbed_hits) * 0.18, 0.18, 0.72)
+	var current_strength: float = max_intensity * fade_t
+
+	# Find or create a live tint entry for this position (within 5px tolerance).
+	var found: bool = false
+	for entry in _live_tint_sources:
+		if entry["position"].distance_to(world_pos) < 5.0:
+			entry["current_strength"] = current_strength
+			entry["color"] = blood_color
+			found = true
+			break
+	if not found:
+		_live_tint_sources.append({
+			"position": world_pos,
+			"color": blood_color,
+			"current_strength": current_strength,
+			"max_intensity": max_intensity,
+		})
+		while _live_tint_sources.size() > MAX_BLOOD_TINT_SHADER_SLOTS:
+			_live_tint_sources.pop_front()
+
+	# When cloud is fully dispersed (fade_t >= 1), promote to a permanent tint source.
+	if fade_t >= 1.0:
+		_add_blood_tint_source(world_pos, blood_color, absorbed_hits)
+		# Remove from live sources
+		_live_tint_sources = _live_tint_sources.filter(func(e): return e["position"].distance_to(world_pos) >= 5.0)
+
+	_update_live_tint_shader_params()
+
+
 ## Returns the parent that should receive under-water diffusion nodes.
 func get_underwater_effect_parent() -> Node:
 	if _visual != null:
@@ -420,11 +458,11 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
-	# Register tint only when cloud disperses, not immediately on spawn.
+	# Tint water gradually as the cloud fades (Issue #1578 feedback).
 	var color_ref := blood_color
-	diffusion.set("on_dispersed", func(p: Vector2, hits: int) -> void:
+	diffusion.set("on_tint_update", func(p: Vector2, hits: int, fade_t: float) -> void:
 		if is_instance_valid(self):
-			_add_blood_tint_source(p, color_ref, hits)
+			update_blood_tint_fade(p, color_ref, hits, fade_t)
 	)
 
 
@@ -469,6 +507,53 @@ func _update_blood_tint_shader_params() -> void:
 		uvs.append(Vector2(-1.0, -1.0))
 		strengths.append(0.0)
 	mat.set_shader_parameter("blood_tint_count", mini(kept.size(), MAX_BLOOD_TINT_SHADER_SLOTS))
+	mat.set_shader_parameter("blood_tint_uvs", uvs)
+	mat.set_shader_parameter("blood_tint_strengths", strengths)
+
+
+## Update shader with live (still-fading) tint sources that are growing gradually.
+func _update_live_tint_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	if _live_tint_sources.is_empty():
+		return
+	# Merge live sources with settled sources for shader upload.
+	# Live sources fill any remaining shader slots after settled sources.
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	var now_sec := Time.get_ticks_msec() / 1000.0
+	var uvs: Array[Vector2] = []
+	var strengths: Array[float] = []
+	# Settled (permanent) sources first
+	for source in _blood_tint_sources:
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+		var elapsed: float = now_sec - float(source.get("start_msec", 0)) / 1000.0
+		if elapsed >= BLOOD_TINT_DURATION:
+			continue
+		var world_pos: Vector2 = source.get("position", global_position)
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		var fade_t: float = clampf((elapsed - BLOOD_TINT_HOLD_DURATION) / maxf(BLOOD_TINT_DURATION - BLOOD_TINT_HOLD_DURATION, 0.001), 0.0, 1.0)
+		strengths.append(source.get("intensity", 0.36) * (1.0 - fade_t * fade_t))
+	# Live sources fill remaining slots
+	for entry in _live_tint_sources:
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+		var world_pos: Vector2 = entry["position"]
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		strengths.append(entry.get("current_strength", 0.0))
+	var count: int = uvs.size()
+	while uvs.size() < MAX_BLOOD_TINT_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
+		strengths.append(0.0)
+	mat.set_shader_parameter("blood_tint_count", count)
 	mat.set_shader_parameter("blood_tint_uvs", uvs)
 	mat.set_shader_parameter("blood_tint_strengths", strengths)
 
