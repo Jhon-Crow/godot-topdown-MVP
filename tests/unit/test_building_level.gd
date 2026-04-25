@@ -45,6 +45,9 @@ class MockBuildingLevel:
 	## Debug mode flag.
 	var _debug_mode: bool = false
 
+	## Shared weapon hints component state (Issue #1810).
+	var _weapon_hints_component: Variant = null
+
 	## Initialize with default enemies.
 	func initialize() -> void:
 		_enemies.clear()
@@ -66,6 +69,33 @@ class MockBuildingLevel:
 			return
 		_level_completed = true
 
+
+class MockLevelInitFallback:
+	## Mirrors the critical fallback branch from Scripts/Components/LevelInitFallback.cs
+	## for BuildingLevel. This is the path that was missing tutorial hints in issue #1810
+	## when GDScript _ready() did not execute.
+	var player_ready: bool = true
+	var canvas_layer_ready: bool = true
+	var weapon_hints_script_ready: bool = true
+	var existing_component: bool = false
+	var setup_calls: int = 0
+	var _weapon_hints_component: Dictionary = {}
+
+	func setup_weapon_hints() -> void:
+		if not player_ready:
+			return
+		if not canvas_layer_ready:
+			return
+		if existing_component:
+			return
+		if not weapon_hints_script_ready:
+			return
+
+		_weapon_hints_component = {
+			"name": "WeaponHintsComponent",
+			"setup_called": true,
+		}
+		setup_calls += 1
 
 var level: MockBuildingLevel
 
@@ -170,3 +200,95 @@ func test_debug_mode_default_off() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Building map width should be 2400")
 	assert_eq(level.map_height, 2000, "Building map height should be 2000")
+
+
+func test_building_level_uses_shared_weapon_hints_component() -> void:
+	var script := load("res://scripts/levels/building_level.gd") as GDScript
+	assert_not_null(script, "Building level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "func _setup_weapon_hints() -> void:",
+		"Building level should define weapon hints setup for issue #1810")
+	assert_string_contains(source, "load(\"res://scripts/components/weapon_hints_component.gd\")",
+		"Building level should load the shared weapon hints component")
+	assert_string_contains(source, "_weapon_hints_component.setup(_player, canvas_layer)",
+		"Building level should initialize the shared weapon hints component with player and CanvasLayer")
+	assert_string_contains(source, "var existing_component := get_node_or_null(\"WeaponHintsComponent\")",
+		"Building level should reuse the scene-owned WeaponHintsComponent when present")
+	assert_string_contains(source, "_weapon_hints_component = existing_component",
+		"Building level should not create duplicate weapon hints components")
+
+
+func test_building_level_fallback_sets_up_weapon_hints() -> void:
+	var fallback := MockLevelInitFallback.new()
+	fallback.setup_weapon_hints()
+
+	assert_eq(fallback.setup_calls, 1,
+		"Fallback initialization should setup weapon hints exactly once when GDScript _ready() is skipped")
+	assert_true(fallback._weapon_hints_component.get("setup_called", false),
+		"Fallback initialization should keep Building weapon hints active for issue #1810")
+
+
+func test_building_level_scene_has_export_safe_weapon_hints_component() -> void:
+	var scene_text := FileAccess.get_file_as_string("res://scenes/levels/BuildingLevel.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://scripts/components/weapon_hints_component.gd\"",
+		"Building scene should directly include WeaponHintsComponent so exported builds do not depend on level GDScript _ready()")
+	assert_string_contains(scene_text, "[node name=\"WeaponHintsComponent\" type=\"Node\" parent=\".\"]",
+		"Building scene should have a scene-owned WeaponHintsComponent")
+	assert_string_contains(scene_text, "player_path = NodePath(\"../Entities/Player\")",
+		"Scene-owned WeaponHintsComponent should resolve the Building player")
+	assert_string_contains(scene_text, "canvas_layer_path = NodePath(\"../CanvasLayer\")",
+		"Scene-owned WeaponHintsComponent should resolve the Building CanvasLayer")
+
+
+func test_weapon_hints_component_supports_scene_owned_auto_setup() -> void:
+	var script := load("res://scripts/components/weapon_hints_component.gd") as GDScript
+	assert_not_null(script, "Weapon hints component script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "@export var player_path: NodePath",
+		"WeaponHintsComponent should expose player_path for scene-owned setup")
+	assert_string_contains(source, "@export var canvas_layer_path: NodePath",
+		"WeaponHintsComponent should expose canvas_layer_path for scene-owned setup")
+	assert_string_contains(source, "setup(configured_player, configured_canvas_layer)",
+		"WeaponHintsComponent should auto-call setup when exported NodePaths resolve")
+
+
+func test_building_level_fallback_skips_duplicate_weapon_hints_setup() -> void:
+	var fallback := MockLevelInitFallback.new()
+	fallback.existing_component = true
+	fallback.setup_weapon_hints()
+
+	assert_eq(fallback.setup_calls, 0,
+		"Fallback initialization should not create a duplicate weapon hints component")
+
+
+func test_level_init_fallback_source_initializes_weapon_hints_before_property_sync() -> void:
+	var source := _read_text_file("res://Scripts/Components/LevelInitFallback.cs")
+
+	assert_string_contains(source, "SetupWeaponHints(levelRoot);",
+		"LevelInitFallback must invoke weapon hints setup on the exported Building fallback path")
+	assert_string_contains(source, "GD.Load<Script>(\"res://scripts/components/weapon_hints_component.gd\")",
+		"LevelInitFallback must load the shared GDScript WeaponHintsComponent")
+	assert_string_contains(source, "_weaponHintsComponent.Call(\"setup\", _player, canvasLayer)",
+		"LevelInitFallback must call WeaponHintsComponent.setup with player and CanvasLayer")
+	assert_string_contains(source, "levelRoot.Set(\"_weapon_hints_component\", _weaponHintsComponent)",
+		"LevelInitFallback must sync the component back to the Building GDScript property")
+
+	var setup_index := source.find("SetupWeaponHints(levelRoot);")
+	var sync_index := source.find("SyncGDScriptProperties(levelRoot);")
+	assert_gt(setup_index, -1, "Fallback setup call should exist")
+	assert_gt(sync_index, -1, "Fallback property sync call should exist")
+	assert_lt(setup_index, sync_index,
+		"Fallback must create weapon hints before syncing GDScript properties")
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	assert_not_null(file, "%s should be readable" % path)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text

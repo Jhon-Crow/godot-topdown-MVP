@@ -150,3 +150,40 @@ func test_format_enemy_count_label() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 4000, "TestTier map width should be 4000")
 	assert_eq(level.map_height, 2960, "TestTier map height should be 2960")
+
+
+func test_test_tier_level_reuses_scene_owned_weapon_hints_component() -> void:
+	var script := load("res://scripts/levels/test_tier.gd") as GDScript
+	assert_not_null(script, "TestTier level script should load")
+
+	var source := script.source_code
+	assert_string_contains(source, "var existing_component := get_node_or_null(\"WeaponHintsComponent\")",
+		"TestTier level should look for the scene-owned WeaponHintsComponent first")
+	assert_string_contains(source, "_weapon_hints_component = existing_component",
+		"TestTier level should reuse the existing scene-owned component instead of creating a duplicate")
+
+
+func test_test_tier_scene_has_export_safe_weapon_hints_component() -> void:
+	var scene_text := FileAccess.get_file_as_string("res://scenes/levels/TestTier.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://scripts/components/weapon_hints_component.gd\"",
+		"TestTier scene should directly include WeaponHintsComponent for regular map grenade hints")
+	assert_string_contains(scene_text, "[node name=\"WeaponHintsComponent\" type=\"Node\" parent=\".\"]",
+		"TestTier scene should have a scene-owned WeaponHintsComponent")
+	assert_string_contains(scene_text, "player_path = NodePath(\"../Entities/Player\")",
+		"Scene-owned WeaponHintsComponent should resolve the TestTier player")
+	assert_string_contains(scene_text, "canvas_layer_path = NodePath(\"../CanvasLayer\")",
+		"Scene-owned WeaponHintsComponent should resolve the TestTier CanvasLayer")
+
+
+func test_csharp_test_tier_scene_has_export_safe_weapon_hints_component() -> void:
+	var scene_text := FileAccess.get_file_as_string("res://scenes/levels/csharp/TestTier.tscn")
+
+	assert_string_contains(scene_text, "path=\"res://scripts/components/weapon_hints_component.gd\"",
+		"C# Training Ground scene should directly include WeaponHintsComponent for grenade hints")
+	assert_string_contains(scene_text, "[node name=\"WeaponHintsComponent\" type=\"Node\" parent=\".\"]",
+		"C# Training Ground scene should have a scene-owned WeaponHintsComponent")
+	assert_string_contains(scene_text, "player_path = NodePath(\"../Entities/Player\")",
+		"Scene-owned WeaponHintsComponent should resolve the C# Training Ground player")
+	assert_string_contains(scene_text, "canvas_layer_path = NodePath(\"../CanvasLayer\")",
+		"Scene-owned WeaponHintsComponent should resolve the C# Training Ground CanvasLayer")

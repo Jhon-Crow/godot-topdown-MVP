@@ -19,8 +19,8 @@ const ROTOR_RADIUS: float = 4.0
 ##
 ## After the explosion control returns to the player automatically.
 
-## Speed of the player-controlled drone (pixels/second).
-@export var drone_speed: float = 400.0
+## Speed of the player-controlled drone (pixels/second). 50% faster than original (400 → 600).
+@export var drone_speed: float = 600.0
 
 ## Explosion radius matching RPG charge (pixels). 50% larger than standard (150 → 225).
 @export var explosion_radius: float = 225.0
@@ -35,14 +35,33 @@ const DRIFT_FACTOR: float = 0.82
 ## Delay (seconds) before enemies start targeting this drone (Issue #1667).
 const ENEMY_TARGETING_DELAY: float = 1.5
 
+## Speed of the ballistic throw phase (pixels/second). Issue #1896.
+const THROW_PHASE_SPEED: float = 900.0
+
+## Drone state machine for Issue #1896: throw-then-pilot mechanic.
+enum DroneState {
+	IDLE,        ## Not yet launched.
+	THROWING,    ## Flying ballistically toward aim target; player has no control.
+	PILOTING,    ## Player is piloting the drone.
+	EXPLODED,    ## Drone has exploded.
+}
+
 ## Whether the drone has been launched (player is now piloting).
 var _drone_launched: bool = false
 
 ## Whether the drone is alive (not yet exploded).
 var _drone_alive: bool = false
 
-## Reference to the Camera2D that follows the player (reparented to drone while active).
+## Reference to the Camera2D that follows the player.
+## Issue #1911: the camera is NOT reparented — reparenting a Camera2D in Godot 4
+## resets its internal position_smoothing state, producing a hard cut that the
+## user perceives as "the level restarting". Instead we keep the camera a child
+## of the player and, while the drone owns the view, write its LOCAL `position`
+## each physics frame so its `global_position` equals the drone's.
 var _player_camera: Camera2D = null
+
+## True while the drone is driving the camera's position (pilot/throw view).
+var _camera_owned_by_drone: bool = false
 
 ## Reference to the player node (to return control after explosion).
 var _player: Node2D = null
@@ -58,6 +77,15 @@ var _enemy_targeting_timer: float = 0.0
 
 ## Whether enemies are currently targeting this drone (Issue #1667).
 var _enemy_targeting_active: bool = false
+
+## Current drone state machine state (Issue #1896).
+var _drone_state: DroneState = DroneState.IDLE
+
+## World position the drone is being thrown toward (Issue #1896).
+var _throw_target: Vector2 = Vector2.ZERO
+
+## The aim point passed at throw time (mouse cursor world position). Issue #1896.
+var _aim_point: Vector2 = Vector2.ZERO
 
 ## Visual: drone body polygon drawn procedurally.
 var _drone_visual: Node2D = null
@@ -118,15 +146,19 @@ func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 	_launch_drone()
 
 
-## Launch the drone: stop physics movement, transfer control.
+## Set the aim point for the throw phase. Call before any throw_grenade* method.
+## Issue #1896: the drone flies to this world position before player control activates.
+func set_aim_point(world_pos: Vector2) -> void:
+	_aim_point = world_pos
+
+
+## Launch the drone: enter THROWING phase and fly ballistically to aim point.
+## Issue #1896: player control only activates after the drone reaches the aim point.
 func _launch_drone() -> void:
 	if _drone_launched:
 		return
 	_drone_launched = true
 	_drone_alive = true
-
-	# Stop physics movement — the drone is now under direct player control.
-	linear_velocity = Vector2.ZERO
 
 	# Issue #1667: enemies can shoot this drone; add it to a discoverable group.
 	add_to_group("player_drones")
@@ -136,10 +168,32 @@ func _launch_drone() -> void:
 	_enemy_targeting_active = false
 
 	_find_player_and_camera()
+
+	# Issue #1896: if an aim point was provided, enter THROWING phase.
+	# Otherwise fall back to immediate PILOTING (legacy behavior).
+	if _aim_point != Vector2.ZERO:
+		_drone_state = DroneState.THROWING
+		_throw_target = _aim_point
+		# Fly toward the aim point at throw speed; let physics carry it.
+		var throw_dir := global_position.direction_to(_throw_target)
+		linear_velocity = throw_dir * THROW_PHASE_SPEED
+		rotation = throw_dir.angle()
+		FileLogger.info("[DroneGrenade] THROWING phase started toward %s" % str(_throw_target))
+	else:
+		_start_piloting()
+
+	FileLogger.info("[DroneGrenade] Drone launched at %s" % str(global_position))
+
+
+## Activate player piloting mode (camera attach + disable player input).
+func _start_piloting() -> void:
+	_drone_state = DroneState.PILOTING
+	# Stop ballistic movement; the player takes over.
+	linear_velocity = Vector2.ZERO
+	_current_move_dir = Vector2.ZERO
 	_attach_camera_to_drone()
 	_disable_player_control()
-
-	FileLogger.info("[DroneGrenade] Drone launched at %s — player now piloting" % str(global_position))
+	FileLogger.info("[DroneGrenade] PILOTING phase started at %s" % str(global_position))
 
 
 ## Find the player node and its Camera2D.
@@ -168,39 +222,59 @@ func _find_player_and_camera() -> void:
 	])
 
 
-## Reparent the player's camera to follow the drone.
+## Start having the drone drive the player's Camera2D.
+## Issue #1911: do NOT reparent the Camera2D. Reparenting (or toggling `top_level`)
+## resets Camera2D's internal position_smoothing state in Godot 4, producing a hard
+## cut the user perceives as a level reset. Instead we leave the camera a child of
+## the player and, each physics frame, set its LOCAL `position` so that
+## `global_position = player.global_position + camera.position = drone.global_position`.
+## The hierarchy and top_level flag never change, so position_smoothing runs
+## uninterrupted and smoothly pans the viewport from player area to drone area.
 func _attach_camera_to_drone() -> void:
 	if _player_camera == null:
 		return
-	var old_parent := _player_camera.get_parent()
-	if old_parent:
-		old_parent.remove_child(_player_camera)
-	add_child(_player_camera)
-	_player_camera.global_position = global_position
+	_camera_owned_by_drone = true
 	_player_camera.make_current()
+	_sync_camera_to_drone()
 	FileLogger.info("[DroneGrenade] Camera attached to drone")
 
 
-## Return the camera to the player.
+## Return the camera to the player (Issue #1911).
+## Zeroing the camera's local position re-centers it on the player without touching
+## the node hierarchy. position_smoothing then pans the viewport back smoothly
+## from the drone's last location to the player.
 func _detach_camera_from_drone() -> void:
 	if _player_camera == null or not is_instance_valid(_player_camera):
 		return
-	if _player_camera.get_parent() == self:
-		remove_child(_player_camera)
+	_camera_owned_by_drone = false
 	if _player != null and is_instance_valid(_player):
-		_player.add_child(_player_camera)
-		_player_camera.global_position = _player.global_position
+		_player_camera.position = Vector2.ZERO
 		_player_camera.make_current()
 	FileLogger.info("[DroneGrenade] Camera returned to player")
+
+
+## Write the camera's local offset so its global_position equals the drone's.
+## Called each physics frame while the drone owns the view (Issue #1911).
+func _sync_camera_to_drone() -> void:
+	if not _camera_owned_by_drone:
+		return
+	if _player_camera == null or not is_instance_valid(_player_camera):
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+	_player_camera.position = global_position - _player.global_position
 
 
 ## Disable player movement + shooting while drone is active.
 func _disable_player_control() -> void:
 	if _player == null:
 		return
-	# Set a flag on the player so its _physics_process skips input.
+	# GDScript player exposes set_drone_piloting; C# player exposes SetDronePiloting.
+	# Both keep model rotation running so laser sight / flashlight stay aligned.
 	if _player.has_method("set_drone_piloting"):
 		_player.set_drone_piloting(true)
+	elif _player.has_method("SetDronePiloting"):
+		_player.SetDronePiloting(true)
 	else:
 		# Fallback: disable physics processing on the player.
 		_player.set_physics_process(false)
@@ -213,12 +287,14 @@ func _restore_player_control() -> void:
 		return
 	if _player.has_method("set_drone_piloting"):
 		_player.set_drone_piloting(false)
+	elif _player.has_method("SetDronePiloting"):
+		_player.SetDronePiloting(false)
 	else:
 		_player.set_physics_process(true)
 	FileLogger.info("[DroneGrenade] Player control restored")
 
 
-## Override _physics_process to pilot the drone via player input.
+## Override _physics_process to handle THROWING and PILOTING phases.
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
@@ -232,12 +308,44 @@ func _physics_process(delta: float) -> void:
 	if not _drone_launched or not _drone_alive:
 		return
 
+	# Issue #1911: keep the camera's global_position centered on the drone
+	# while the drone owns the view. This drives position_smoothing's target
+	# without ever reparenting the camera, so smoothing state is preserved.
+	_sync_camera_to_drone()
+
 	# Issue #1667: tick down enemy-targeting delay.
 	if not _enemy_targeting_active:
 		_enemy_targeting_timer -= delta
 		if _enemy_targeting_timer <= 0.0:
 			_enemy_targeting_active = true
 			FileLogger.info("[DroneGrenade] Enemy targeting now active (delay elapsed)")
+
+	# Issue #1896: THROWING phase — fly ballistically toward target.
+	if _drone_state == DroneState.THROWING:
+		_update_throwing_phase()
+		return
+
+	# PILOTING phase — player controls the drone.
+	if _drone_state != DroneState.PILOTING:
+		return
+
+	# Issue #1895: while piloting the drone the player can fire their weapon and
+	# use their active item.  We detect the inputs here (the player's own
+	# _physics_process is suspended) and delegate to the player's public helpers.
+	if _player != null and is_instance_valid(_player):
+		# Shoot (LMB): support both automatic (held) and semi-automatic (just-pressed).
+		var shoot_just_pressed: bool = Input.is_action_just_pressed("shoot")
+		var shoot_held: bool = Input.is_action_pressed("shoot")
+		if shoot_just_pressed or shoot_held:
+			if _player.has_method("ShootFromDrone"):
+				_player.call("ShootFromDrone", global_position)
+		# AKGL underbarrel grenade launcher (RMB / grenade_throw just-pressed).
+		if Input.is_action_just_pressed("grenade_throw"):
+			if _player.has_method("FireAKGLFromDrone"):
+				_player.call("FireAKGLFromDrone")
+		# Active item (Space key) — delegate every frame so hold-based items work.
+		if _player.has_method("TriggerActiveItemFromDrone"):
+			_player.call("TriggerActiveItemFromDrone", delta)
 
 	# Read WASD / arrow key input.
 	var input_dir := Vector2.ZERO
@@ -272,20 +380,34 @@ func _physics_process(delta: float) -> void:
 		linear_velocity = _current_move_dir * drone_speed
 
 
-## Override body collision to explode when hitting an enemy.
+## Issue #1896: update THROWING phase — transition to PILOTING when target reached.
+func _update_throwing_phase() -> void:
+	var dist_to_target := global_position.distance_to(_throw_target)
+	# Transition to piloting when the drone reaches (or overshoots) the aim point.
+	if dist_to_target <= THROW_PHASE_SPEED * get_physics_process_delta_time() * 2.0 or dist_to_target <= 16.0:
+		FileLogger.info("[DroneGrenade] Throw target reached — switching to PILOTING")
+		_start_piloting()
+
+
+## Override body collision to explode on contact.
+## Issue #1896: during THROWING phase any collision (enemy OR obstacle) triggers explosion.
+## During PILOTING phase only enemies trigger explosion (walls block movement but don't explode).
 func _on_body_entered(body: Node) -> void:
 	super._on_body_entered(body)
 
 	if not _drone_alive or _has_exploded:
 		return
 
-	# Explode on contact with an enemy.
-	if body.is_in_group("enemies") or body is CharacterBody2D:
-		# Only trigger on enemies (not walls/obstacles for drone — drone flies over them
-		# conceptually, but walls block movement via physics).
-		if body.is_in_group("enemies"):
-			FileLogger.info("[DroneGrenade] Crashed into enemy '%s' — exploding!" % body.name)
-			_explode()
+	if _drone_state == DroneState.THROWING:
+		# During the throw, colliding with anything explodes the drone.
+		FileLogger.info("[DroneGrenade] Throw collision with '%s' — exploding!" % body.name)
+		_explode()
+		return
+
+	# PILOTING phase: only explode on enemy contact.
+	if body.is_in_group("enemies"):
+		FileLogger.info("[DroneGrenade] Crashed into enemy '%s' — exploding!" % body.name)
+		_explode()
 
 
 ## Called when a bullet hits the drone.
@@ -307,6 +429,7 @@ func is_targetable_by_enemies() -> bool:
 func _on_explode() -> void:
 	_drone_alive = false
 	_enemy_targeting_active = false
+	_drone_state = DroneState.EXPLODED
 	# Issue #1667: leave the targeting group so enemies stop shooting at debris.
 	if is_in_group("player_drones"):
 		remove_from_group("player_drones")

@@ -78,6 +78,7 @@ func _ready() -> void:
 	# The collision layer/mask setup is sufficient:
 	# - Player collision_mask = 4 (doesn't include layer 7 where casings are)
 	# - Casing collision_layer = 64 (layer 7)
+	# - Casing collision_mask = 68 (4 + 64 = walls + other casings, Issue #1766)
 	# - CasingPusher Area2D collision_mask = 64 (detects layer 7)
 	# The collision exception was causing issues with casing physics.
 	# _add_player_collision_exception()  # DISABLED

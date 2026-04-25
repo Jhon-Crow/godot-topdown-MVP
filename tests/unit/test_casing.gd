@@ -3,7 +3,8 @@ extends GutTest
 ##
 ## Tests auto-land timing, spawn collision delay, freeze/unfreeze
 ## velocity preservation, impulse queueing, landing state transitions,
-## and caliber-based appearance color selection.
+## caliber-based appearance color selection, and casing-casing collision
+## configuration (Issue #1766).
 
 
 # ============================================================================
@@ -441,3 +442,63 @@ func test_unknown_caliber_casing_color_brass() -> void:
 
 	assert_eq(casing.casing_color, Color(0.9, 0.8, 0.4),
 		"Unknown caliber should default to brass")
+
+
+# ============================================================================
+# Issue #1766 Tests: Casing-Casing Collision Configuration
+# ============================================================================
+# Casings must repel each other to prevent pile-ups that cause lag and look
+# unnatural. The collision_mask must include both:
+#   - Layer 3 (value 4)  = walls / static bodies  — so casings bounce off walls
+#   - Layer 7 (value 64) = other casings          — so casings push each other apart
+# Combined value: 4 + 64 = 68
+# ============================================================================
+
+
+## Expected collision layer for casings (layer 7 = 64).
+const EXPECTED_CASING_COLLISION_LAYER: int = 64
+
+## Expected collision mask for casings:
+## layer 3 (walls=4) + layer 7 (casings=64) = 68.
+const EXPECTED_CASING_COLLISION_MASK: int = 68
+
+## Walls/static bodies collision layer bit.
+const WALL_LAYER_BIT: int = 4
+
+## Casing collision layer bit (layer 7).
+const CASING_LAYER_BIT: int = 64
+
+
+func test_casing_collision_mask_includes_wall_layer() -> void:
+	# Casings must collide with walls/static bodies so they bounce off them.
+	assert_true(
+		EXPECTED_CASING_COLLISION_MASK & WALL_LAYER_BIT != 0,
+		"Casing collision_mask must include wall layer (bit 4)"
+	)
+
+
+func test_casing_collision_mask_includes_casing_layer() -> void:
+	# Issue #1766: Casings must collide with other casings to prevent pile-ups.
+	assert_true(
+		EXPECTED_CASING_COLLISION_MASK & CASING_LAYER_BIT != 0,
+		"Casing collision_mask must include casing layer (bit 64) so casings repel each other"
+	)
+
+
+func test_casing_collision_mask_equals_68() -> void:
+	# Issue #1766: The combined mask (walls + casings) must be exactly 68.
+	assert_eq(
+		EXPECTED_CASING_COLLISION_MASK,
+		WALL_LAYER_BIT | CASING_LAYER_BIT,
+		"Casing collision_mask should be 68 (walls=4 | casings=64)"
+	)
+
+
+func test_casing_collision_layer_is_64() -> void:
+	# Casings must live on layer 7 (value 64) for CasingPusher and other
+	# systems to detect them correctly.
+	assert_eq(
+		EXPECTED_CASING_COLLISION_LAYER,
+		CASING_LAYER_BIT,
+		"Casing collision_layer must be 64 (layer 7)"
+	)

@@ -63,6 +63,10 @@ func _ready() -> void:
 	# Set monitoring to false initially
 	monitoring = false
 
+	var localization_settings: Node = get_node_or_null("/root/LocalizationSettings")
+	if localization_settings and localization_settings.has_signal("locale_changed") and not localization_settings.locale_changed.is_connected(_on_locale_changed):
+		localization_settings.locale_changed.connect(_on_locale_changed)
+
 
 func _process(_delta: float) -> void:
 	if _is_active and _player != null and is_instance_valid(_player):
@@ -103,7 +107,7 @@ func _create_visuals() -> void:
 	# Create exit label
 	_exit_label = Label.new()
 	_exit_label.name = "ExitLabel"
-	_exit_label.text = "ВЫХОД"
+	_exit_label.text = tr("EXIT_ZONE_LABEL")
 	_exit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_exit_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_exit_label.add_theme_font_size_override("font_size", 24)
@@ -118,7 +122,7 @@ func _create_visuals() -> void:
 	# Create arrow indicator (shows when player is far from exit)
 	_arrow_indicator = Label.new()
 	_arrow_indicator.name = "ArrowIndicator"
-	_arrow_indicator.text = "← ВЫХОД"
+	_arrow_indicator.text = _get_arrow_text(Vector2.LEFT)
 	_arrow_indicator.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_arrow_indicator.add_theme_font_size_override("font_size", 32)
 	_arrow_indicator.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4, 1.0))
@@ -162,18 +166,29 @@ func _update_arrow_indicator() -> void:
 		_arrow_indicator.position = arrow_world_pos - global_position - Vector2(80, 20)
 
 		# Update arrow text based on direction
-		if abs(direction.x) > abs(direction.y):
-			if direction.x < 0:
-				_arrow_indicator.text = "← ВЫХОД"
-			else:
-				_arrow_indicator.text = "ВЫХОД →"
-		else:
-			if direction.y < 0:
-				_arrow_indicator.text = "↑ ВЫХОД"
-			else:
-				_arrow_indicator.text = "ВЫХОД ↓"
+		_arrow_indicator.text = _get_arrow_text(direction)
 	else:
 		_arrow_indicator.visible = false
+
+
+## Returns localized arrow text for the direction from player to exit.
+func _get_arrow_text(direction: Vector2) -> String:
+	var exit_text: String = tr("EXIT_ZONE_LABEL")
+	if abs(direction.x) > abs(direction.y):
+		if direction.x < 0:
+			return "← %s" % exit_text
+		return "%s →" % exit_text
+	if direction.y < 0:
+		return "↑ %s" % exit_text
+	return "%s ↓" % exit_text
+
+
+## Refresh localized text when the display language changes.
+func _on_locale_changed(_locale: String) -> void:
+	if _exit_label:
+		_exit_label.text = tr("EXIT_ZONE_LABEL")
+	if _arrow_indicator:
+		_arrow_indicator.text = _get_arrow_text(Vector2.LEFT)
 
 
 ## Set the visibility of the exit zone.

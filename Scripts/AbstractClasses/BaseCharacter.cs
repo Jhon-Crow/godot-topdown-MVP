@@ -148,8 +148,29 @@ public abstract partial class BaseCharacter : CharacterBody2D, IDamageable
     {
         if (direction != Vector2.Zero)
         {
-            // Apply acceleration towards the input direction
-            Velocity = Velocity.MoveToward(direction * MaxSpeed, Acceleration * delta);
+            // Issue #1769: project the input direction onto any collision surface and
+            // renormalize so the player moves at full MaxSpeed along walls from all
+            // directions.  In Godot 4's default GROUNDED motion mode, only lateral
+            // surfaces register as IsOnWall(); horizontal surfaces (top/bottom walls
+            // in a top-down game) register as IsOnCeiling()/IsOnFloor() instead.
+            // We therefore collect all slide-collision normals from the previous
+            // MoveAndSlide() call and apply each one in turn.
+            Vector2 moveDir = direction;
+            int collisionCount = GetSlideCollisionCount();
+            for (int i = 0; i < collisionCount; i++)
+            {
+                var collision = GetSlideCollision(i);
+                Vector2 normal = collision.GetNormal();
+                // Only slide against surfaces the player is pushing into
+                // (dot product < 0 means direction opposes the normal).
+                if (direction.Dot(normal) < 0f)
+                {
+                    Vector2 slid = moveDir.Slide(normal);
+                    if (slid != Vector2.Zero)
+                        moveDir = slid.Normalized();
+                }
+            }
+            Velocity = Velocity.MoveToward(moveDir * MaxSpeed, Acceleration * delta);
         }
         else
         {

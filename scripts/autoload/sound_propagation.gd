@@ -278,8 +278,9 @@ func emit_enemy_gunshot(position: Vector2, source_node: Node2D = null) -> void:
 
 ## Convenience method to emit a reload sound from the player.
 ## This sound propagates through walls and alerts enemies even behind cover.
-func emit_player_reload(position: Vector2, source_node: Node2D = null) -> void:
-	emit_sound(SoundType.RELOAD, position, SourceType.PLAYER, source_node)
+## Use custom_range to override the default 900px distance (e.g. 100px for silenced pistol).
+func emit_player_reload(position: Vector2, source_node: Node2D = null, custom_range: float = -1.0) -> void:
+	emit_sound(SoundType.RELOAD, position, SourceType.PLAYER, source_node, custom_range)
 
 
 ## Convenience method to emit an empty click sound from the player.

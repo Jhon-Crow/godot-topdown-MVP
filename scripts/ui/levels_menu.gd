@@ -414,6 +414,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	card_style.corner_radius_top_right = 6
 	card_style.corner_radius_bottom_left = 6
 	card_style.corner_radius_bottom_right = 6
+	card_style.content_margin_bottom = 8.0
 	card.add_theme_stylebox_override("panel", card_style)
 
 	# Card content
@@ -514,6 +515,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
+	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_label)
 
 	# Progress results for all difficulties (shown as letter grades)
@@ -521,7 +523,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	var progress_vbox := VBoxContainer.new()
 	progress_vbox.layout_mode = 2
-	progress_vbox.add_theme_constant_override("separation", 1)
+	progress_vbox.add_theme_constant_override("separation", 0)
 	vbox.add_child(progress_vbox)
 
 	# Load custom font for grade display
@@ -537,6 +539,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		var difficulty_label := Label.new()
 		difficulty_label.text = difficulty_name + ":"
 		difficulty_label.add_theme_font_size_override("font_size", 9)
+		difficulty_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if not unlocked:
 			difficulty_label.add_theme_color_override("font_color", Color(0.3, 0.3, 0.35, 0.6))
 		else:
@@ -551,6 +554,7 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 		var grade_label := Label.new()
 		grade_label.text = best_rank if not best_rank.is_empty() else "—"
 		grade_label.add_theme_font_size_override("font_size", 14)
+		grade_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		if grade_font:
 			grade_label.add_theme_font_override("font", grade_font)
 		if not unlocked:

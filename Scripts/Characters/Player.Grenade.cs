@@ -13,6 +13,17 @@ public partial class Player
     #region Grenade System
 
     /// <summary>
+    /// Tracks whether simple grenade aiming may become active on G release.
+    /// This is armed only when RMB is already held during the post-pin handoff.
+    /// </summary>
+    private bool _simpleGrenadeAwaitingGReleaseForAim = false;
+
+    /// <summary>
+    /// Tracks whether the simple-mode grenade handoff has completed and aiming is valid.
+    /// </summary>
+    private bool _simpleGrenadeHandoffComplete = false;
+
+    /// <summary>
     /// Handle grenade input with either simple or complex mechanic.
     /// Simple mode (default): Hold RMB to aim with trajectory preview, release to throw.
     /// Complex mode (experimental): G + RMB drag right → hold G+RMB → release G → drag and release RMB.
@@ -200,6 +211,16 @@ public partial class Player
         // If G is released while RMB is still held, enter Aiming state
         if (!Input.IsActionPressed("grenade_prepare"))
         {
+            // Issue #1819: if the player releases G before the right hand has actually
+            // taken the grenade, the grenade should slip from the left hand and drop
+            // at the player's feet instead of entering aiming mode.
+            if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer > 0.0f)
+            {
+                LogToFile("[Player.Grenade] G released before hand transfer completed - dropping grenade at feet");
+                DropGrenadeAtFeet();
+                return;
+            }
+
             _grenadeState = GrenadeState.Aiming;
             _grenadeDragStart = GetGlobalMousePosition();
             _prevMousePos = _grenadeDragStart;
@@ -220,8 +241,15 @@ public partial class Player
     /// </summary>
     private void HandleGrenadeAimingState()
     {
-        // In this state, G is already released (that's how we got here)
-        // We only care about RMB
+        // Complex throw aiming is only valid after G has been released.
+        // If the state machine somehow reaches aiming while G is still held,
+        // treat it as an invalid handoff and refuse to throw.
+        if (Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] Aiming state entered while G is still held - returning to waiting for G release");
+            _grenadeState = GrenadeState.WaitingForGRelease;
+            return;
+        }
 
         // Transition from transfer to wind-up after transfer completes
         if (_grenadeAnimPhase == GrenadeAnimPhase.Transfer && _grenadeAnimTimer <= 0)
@@ -280,11 +308,13 @@ public partial class Player
         {
             _grenadeState = GrenadeState.SimpleAiming;
             _isPreparingGrenade = true;
+            _simpleGrenadeAwaitingGReleaseForAim = true;
+            _simpleGrenadeHandoffComplete = false;
             // Store initial mouse position for aiming
             _aimDragStart = GetGlobalMousePosition();
             // Start hands approach animation
             StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
-            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming");
+            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - waiting for valid G release handoff before trajectory aiming");
         }
     }
 
@@ -295,6 +325,58 @@ public partial class Player
     /// </summary>
     private void HandleSimpleGrenadeAimingState()
     {
+        bool rmbPressed = Input.IsActionPressed("grenade_throw");
+        bool rmbJustReleased = Input.IsActionJustReleased("grenade_throw");
+
+        if (!rmbPressed && !rmbJustReleased)
+        {
+            _grenadeState = GrenadeState.TimerStarted;
+            _simpleGrenadeAwaitingGReleaseForAim = false;
+            _simpleGrenadeHandoffComplete = false;
+            LogToFile("[Player.Grenade.Simple] RMB released before valid G handoff - back to waiting for RMB");
+            return;
+        }
+
+        bool gPressed = Input.IsActionPressed("grenade_prepare");
+        bool gJustReleased = Input.IsActionJustReleased("grenade_prepare");
+
+        if (_simpleGrenadeAwaitingGReleaseForAim)
+        {
+            if (gJustReleased)
+            {
+                _simpleGrenadeAwaitingGReleaseForAim = false;
+                _simpleGrenadeHandoffComplete = true;
+                LogToFile("[Player.Grenade.Simple] G released while RMB held - valid handoff completed, trajectory aiming is now active");
+            }
+            else if (!gPressed)
+            {
+                _grenadeState = GrenadeState.TimerStarted;
+                _simpleGrenadeAwaitingGReleaseForAim = false;
+                _simpleGrenadeHandoffComplete = false;
+                LogToFile("[Player.Grenade.Simple] G was already up before the RMB handoff frame - cancelling aim and returning to waiting for RMB");
+                return;
+            }
+        }
+
+        if (!_simpleGrenadeHandoffComplete)
+        {
+            if (gPressed)
+            {
+                LogToFile("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw");
+                return;
+            }
+
+            LogToFile("[Player.Grenade.Simple] G released before right-hand handoff completed - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // If animation phases need to transition
+        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
+        {
+            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
+        }
+
         // Request redraw for trajectory visualization (always show in simple mode)
         QueueRedraw();
 
@@ -307,14 +389,8 @@ public partial class Player
         // Update arm animation based on wind-up
         UpdateSimpleWindUpAnimation();
 
-        // If animation phases need to transition
-        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
-        {
-            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
-        }
-
         // Check for RMB release - throw the grenade!
-        if (Input.IsActionJustReleased("grenade_throw"))
+        if (rmbJustReleased)
         {
             ThrowSimpleGrenade();
         }
@@ -412,6 +488,8 @@ public partial class Player
         // but the distance calculation assumes it starts from spawnPosition (60px ahead).
         // Without this fix, the grenade lands ~60px short of the target.
         _activeGrenade.GlobalPosition = safeSpawnPosition;
+
+        PassDroneThrowAimPoint(targetPos);
 
         // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
         // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
@@ -713,6 +791,8 @@ public partial class Player
         Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
+        PassDroneThrowAimPoint(dragEnd);
+
         // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
         // GDScript methods called via Call() may silently fail in exported builds.
         // Calculate throw speed using the same formula as GDScript
@@ -768,6 +848,24 @@ public partial class Player
 
         // Reset state (grenade is now independent)
         ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Pass the world-space throw target to DroneGrenade before launch.
+    /// </summary>
+    /// <param name="aimPoint">Mouse cursor world position the drone should fly to before piloting.</param>
+    private void PassDroneThrowAimPoint(Vector2 aimPoint)
+    {
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            return;
+        }
+
+        if (_activeGrenade.HasMethod("set_aim_point"))
+        {
+            _activeGrenade.Call("set_aim_point", aimPoint);
+            LogToFile($"[Player.Grenade] Drone aim point set to {aimPoint}");
+        }
     }
 
     /// <summary>
@@ -924,6 +1022,14 @@ public partial class Player
     public bool IsPreparingGrenade()
     {
         return _grenadeState != GrenadeState.Idle;
+    }
+
+    /// <summary>
+    /// Numeric grenade state for GDScript tutorial hint tracking.
+    /// </summary>
+    public int GetGrenadeState()
+    {
+        return (int)_grenadeState;
     }
 
     #endregion

@@ -62,6 +62,11 @@ public partial class ShotgunPellet : Area2D
     public bool IsBreakerBullet { get; set; } = false;
 
     /// <summary>
+    /// Distance traveled since spawn for breaker bullet arming (Issue #1634).
+    /// </summary>
+    private float _breakerDistanceTraveled = 0.0f;
+
+    /// <summary>
     /// Whether this pellet ignores walls (Issue #751).
     /// When true, the pellet passes through walls with full damage and no ricochet.
     /// Set via Node.Set("is_drilling_bullet", true) by Shotgun.SpawnPelletWithOffset().
@@ -295,10 +300,11 @@ public partial class ShotgunPellet : Area2D
             }
         }
 
-        // Check for breaker detonation (Issue #678)
+        // Check for breaker detonation (Issue #678, #1634)
         if (IsBreakerBullet)
         {
-            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false))
+            _breakerDistanceTraveled += movement.Length();
+            if (BreakerDetonation.CheckAndDetonate(this, Direction, Damage, _damageMultiplier, ShooterId, false, _breakerDistanceTraveled))
             {
                 return; // Pellet detonated and was freed
             }
