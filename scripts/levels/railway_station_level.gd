@@ -32,8 +32,10 @@ var _score_shown: bool = false
 var _level_completed: bool = false
 var _game_end_screen_shown: bool = false
 var _game_end_dismissed: bool = false
+var _game_end_ready_for_input: bool = false
 var _pending_score_data: Dictionary = {}
 const SATURATION_DURATION: float = 0.15
+const GAME_END_INPUT_DELAY: float = 2.0
 const SATURATION_INTENSITY: float = 0.25
 var _enemies: Array = []
 var _replay_manager: Node = null
@@ -618,11 +620,13 @@ func _complete_level_with_score() -> void:
 
 
 ## Shows the end-of-game screen: white text on solid black background (Issue #1755).
-## Player must click or press any key to dismiss it, then the score screen is shown.
+## For GAME_END_INPUT_DELAY seconds input is blocked and the hint is hidden (Issue #1915).
+## After the delay the hint appears and any key or mouse button dismisses the screen.
 func _show_game_end_screen() -> void:
 	if _game_end_screen_shown:
 		return
 	_game_end_screen_shown = true
+	_game_end_ready_for_input = false
 	var canvas_layer := get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
 		_proceed_to_score_screen()
@@ -635,7 +639,7 @@ func _show_game_end_screen() -> void:
 	# MOUSE_FILTER_STOP captures mouse clicks so gui_input fires (IGNORE would miss them).
 	bg.mouse_filter = Control.MOUSE_FILTER_STOP
 	bg.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.is_pressed():
+		if ev is InputEventMouseButton and ev.is_pressed() and _game_end_ready_for_input:
 			_dismiss_game_end_screen()
 	)
 	canvas_layer.add_child(bg)
@@ -661,18 +665,31 @@ func _show_game_end_screen() -> void:
 	hint.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hint.offset_bottom = -30
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.visible = false
 	canvas_layer.add_child(hint)
+
+	# After GAME_END_INPUT_DELAY seconds, enable input and reveal the hint (Issue #1915).
+	await get_tree().create_timer(GAME_END_INPUT_DELAY).timeout
+	if not is_instance_valid(self) or _game_end_dismissed:
+		return
+	_game_end_ready_for_input = true
+	var hint_node := canvas_layer.get_node_or_null("GameEndHint")
+	if hint_node:
+		hint_node.visible = true
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Game-end screen: consume every pressed key or mouse button before gameplay can react.
+	# During the initial GAME_END_INPUT_DELAY the input is consumed but does not dismiss (Issue #1915).
 	if _game_end_screen_shown and not _game_end_dismissed:
 		if event is InputEventKey and event.is_pressed() and not event.echo:
 			get_viewport().set_input_as_handled()
-			_dismiss_game_end_screen()
+			if _game_end_ready_for_input:
+				_dismiss_game_end_screen()
 		elif event is InputEventMouseButton and event.is_pressed():
 			get_viewport().set_input_as_handled()
-			_dismiss_game_end_screen()
+			if _game_end_ready_for_input:
+				_dismiss_game_end_screen()
 		return
 	# Score screen: W key triggers the watch-replay shortcut.
 	if _score_shown:
