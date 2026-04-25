@@ -29,6 +29,11 @@ extends Node
 
 class_name WeaponHintsComponent
 
+## Optional NodePaths let a scene-owned component bootstrap itself without relying
+## on level GDScript _ready() or the C# fallback to call setup().
+@export var player_path: NodePath = NodePath("")
+@export var canvas_layer_path: NodePath = NodePath("")
+
 ## Reference to the player node.
 var _player: Node2D = null
 
@@ -81,8 +86,22 @@ var _shotgun_full_reload_active: bool = false
 ## Reference to the weapon node used for shotgun shell-count queries.
 var _shotgun_node: Node = null
 
+## Tracks whether a shotgun full reload inserted at least one shell before closing.
+var _shotgun_reload_loaded_shell: bool = false
+
+## Tracks whether a revolver reload inserted at least one cartridge before closing.
+var _revolver_reload_loaded_cartridge: bool = false
+
 ## Whether the AK GL grenade launcher hint has been shown (to avoid re-showing).
 var _ak_gl_launcher_hint_shown: bool = false
+
+## Grenade hint step state mirrors tutorial grenade training.
+var _grenade_hint_step: int = 0
+var _grenade_g_was_held: bool = false
+var _grenade_drag_completed: bool = false
+var _grenade_rmb_held_after_release: bool = false
+var _grenade_rmb_was_pressed: bool = false
+var _grenade_hint_drag_start: Vector2 = Vector2.ZERO
 
 ## Timer for auto-dismissing all hints after a long idle period.
 var _dismiss_timer: Timer = null
@@ -102,8 +121,20 @@ const HINT_OFFSET_Y: float = -80.0
 ## Horizontal offset from player center (matches Labyrinth offset of -150).
 const HINT_OFFSET_X: float = -150.0
 
+## Fixed width of the hint RichTextLabel (Issue #1881).
+## Setting an explicit width is required so Godot's RichTextLabel computes word-wrap
+## and content height correctly — without it get_content_height() returns 0.
+const HINT_WIDTH: float = 300.0
+
+## Minimum hint label height in pixels before measured content is known (Issue #1881).
+const HINT_MIN_HEIGHT: float = 30.0
+
+## Clearance in pixels between the player sprite and the bottom of the lowest hint (Issue #1881).
+## Ensures the wrapped grenade hint never covers the player sprite on any level.
+const HINT_PLAYER_CLEARANCE: float = 120.0
+
 ## Minimum hint label size (matches Labyrinth custom_minimum_size).
-const HINT_MIN_SIZE := Vector2(300, 30)
+const HINT_MIN_SIZE := Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 
 ## Fade-in duration (matches Labyrinth TUTORIAL_HINT_FADE_IN_DURATION).
 const HINT_FADE_IN_DURATION: float = 0.3
@@ -129,6 +160,13 @@ var _hint_line_counts: Dictionary = {}
 ## Issue #1080 style: Track per-line text widths for each hint (hint_key -> Array[float]).
 var _hint_line_widths: Dictionary = {}
 
+## Issue #1881: Track last observed rendered height of each hint (hint_key -> float).
+## Seeded from _estimate_hint_height() at creation so the first-frame placement is
+## realistic even before layout runs; updated from get_content_height() every frame so
+## multi-line hints (e.g. the 4-line grenade hint) don't overlap hints below them or
+## the player sprite.
+var _hint_heights: Dictionary = {}
+
 ## Hint keys — mirrors Labyrinth constant names for easy reference.
 const HINT_KEY_RELOAD := "reload"
 const HINT_KEY_BOLT_CYCLE := "bolt_cycle"
@@ -136,6 +174,7 @@ const HINT_KEY_HAMMER_COCK := "hammer_cock"
 const HINT_KEY_SCOPE := "scope"
 const HINT_KEY_FIRE_MODE := "fire_mode"
 const HINT_KEY_LAUNCHER := "launcher"
+const HINT_KEY_GRENADE := "grenade"
 
 ## Per-hint colors matching Labyrinth level color palette.
 const HINT_COLOR_RELOAD := Color(0.4, 1.0, 0.5, 1.0)              ## Green
@@ -144,6 +183,7 @@ const HINT_COLOR_HAMMER_COCK := Color(1.0, 0.8, 0.3, 1.0)         ## Yellow
 const HINT_COLOR_SCOPE := Color(0.3, 0.9, 1.0, 1.0)               ## Cyan
 const HINT_COLOR_FIRE_MODE := Color(0.3, 0.9, 1.0, 1.0)           ## Cyan
 const HINT_COLOR_LAUNCHER := Color(1.0, 0.4, 0.2, 1.0)            ## Red-orange
+const HINT_COLOR_GRENADE := Color(1.0, 0.65, 0.0, 1.0)            ## Orange
 const HINT_COLOR_DEFAULT := Color(1.0, 1.0, 0.3, 1.0)             ## Yellow fallback
 
 ## Color mapping by hint key.
@@ -155,6 +195,7 @@ func _get_hint_color(hint_key: String) -> Color:
 		HINT_KEY_SCOPE:     return HINT_COLOR_SCOPE
 		HINT_KEY_FIRE_MODE: return HINT_COLOR_FIRE_MODE
 		HINT_KEY_LAUNCHER:  return HINT_COLOR_LAUNCHER
+		HINT_KEY_GRENADE:   return HINT_COLOR_GRENADE
 		_:                  return HINT_COLOR_DEFAULT
 
 
@@ -164,6 +205,15 @@ func _ready() -> void:
 	_dismiss_timer.one_shot = true
 	_dismiss_timer.timeout.connect(_on_dismiss_timer_timeout)
 	add_child(_dismiss_timer)
+
+	if not player_path.is_empty() and not canvas_layer_path.is_empty():
+		var configured_player := get_node_or_null(player_path) as Node2D
+		var configured_canvas_layer := get_node_or_null(canvas_layer_path)
+		if configured_player != null and configured_canvas_layer != null:
+			setup(configured_player, configured_canvas_layer)
+			_log_to_file("Auto-setup from exported NodePaths")
+		else:
+			push_warning("[WeaponHintsComponent] Auto-setup paths could not be resolved")
 
 
 ## Setup the component with required references.
@@ -202,6 +252,8 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 func _process(_delta: float) -> void:
 	if _hints_showing:
 		_update_hint_positions()
+	if _hints_active:
+		_update_grenade_hint()
 
 
 ## Called when GameManager emits weapon_unlocked (weapon opened in armory and taken for first time).
@@ -250,6 +302,7 @@ func _try_start_hints(weapon_id: String) -> void:
 func _start_hint_sequence(weapon_id: String) -> void:
 	_reset_hint_state()
 	_hints_active = true
+	_connect_player_action_signals()
 
 	# Locate the weapon node on the player (same detection logic as labyrinth_level.gd)
 	_current_weapon_node = _find_weapon_node(weapon_id)
@@ -299,6 +352,30 @@ func _find_weapon_node(weapon_id: String) -> Node:
 	return null
 
 
+## Connect player-level action signals used by hints regardless of weapon-node lookup.
+func _connect_player_action_signals() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	if _player.has_signal("ReloadCompleted"):
+		if not _player.ReloadCompleted.is_connected(_on_reload_completed):
+			_player.ReloadCompleted.connect(_on_reload_completed)
+	elif _player.has_signal("reload_completed"):
+		if not _player.reload_completed.is_connected(_on_reload_completed):
+			_player.reload_completed.connect(_on_reload_completed)
+
+	if _player.has_signal("ReloadSequenceProgress"):
+		if not _player.ReloadSequenceProgress.is_connected(_on_reload_sequence_progress):
+			_player.ReloadSequenceProgress.connect(_on_reload_sequence_progress)
+
+	if _player.has_signal("GrenadeThrown"):
+		if not _player.GrenadeThrown.is_connected(_on_player_grenade_thrown):
+			_player.GrenadeThrown.connect(_on_player_grenade_thrown)
+	elif _player.has_signal("grenade_thrown"):
+		if not _player.grenade_thrown.is_connected(_on_player_grenade_thrown):
+			_player.grenade_thrown.connect(_on_player_grenade_thrown)
+
+
 ## Connect to weapon-specific action signals so hints can be dismissed when player acts.
 ## Mirrors labyrinth_level.gd weapon signal connection logic.
 func _connect_weapon_signals(weapon: Node, weapon_id: String) -> void:
@@ -346,19 +423,6 @@ func _connect_weapon_signals(weapon: Node, weapon_id: String) -> void:
 	# Store shotgun node reference for shell-count queries
 	if weapon_id == "shotgun":
 		_shotgun_node = weapon
-
-	# Connect player-level reload signals
-	if _player.has_signal("ReloadCompleted"):
-		if not _player.ReloadCompleted.is_connected(_on_reload_completed):
-			_player.ReloadCompleted.connect(_on_reload_completed)
-	elif _player.has_signal("reload_completed"):
-		if not _player.reload_completed.is_connected(_on_reload_completed):
-			_player.reload_completed.connect(_on_reload_completed)
-
-	# Connect ReloadSequenceProgress for step-by-step hint highlighting (mirrors labyrinth_level.gd)
-	if _player.has_signal("ReloadSequenceProgress"):
-		if not _player.ReloadSequenceProgress.is_connected(_on_reload_sequence_progress):
-			_player.ReloadSequenceProgress.connect(_on_reload_sequence_progress)
 
 	_log_to_file("Connected weapon signals for: %s (node: %s)" % [weapon_id, weapon.name])
 
@@ -475,11 +539,18 @@ func _on_shotgun_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 		return
 
-	# State 0 = reload fully complete — treat as reload done
+	# State 0 means the action was closed. Only dismiss if at least one shell was loaded;
+	# otherwise the player just opened/closed the bolt and the training must roll back.
 	if new_state == 0:
-		_log_to_file("Shotgun reload completed via ReloadStateChanged(0)")
-		_on_reload_completed()
+		if _shotgun_reload_loaded_shell:
+			_log_to_file("Shotgun reload completed after shell load")
+			_on_reload_completed()
+		else:
+			_rollback_shotgun_reload_hint()
 		return
+
+	if new_state == 2 or new_state == 3:
+		_shotgun_reload_loaded_shell = new_state == 3
 
 	var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
 	if is_instance_valid(label):
@@ -519,6 +590,30 @@ func _on_grenade_launcher_fired() -> void:
 	_log_to_file("Grenade launcher fired — launcher hint dismissed")
 
 
+func _update_grenade_hint() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var grenade_hint_visible := _hint_labels.has(HINT_KEY_GRENADE)
+	var should_track_grenade_hint := _hints_active and (_player_has_grenades() or (grenade_hint_visible and _player_has_active_grenade_sequence()))
+	if not should_track_grenade_hint:
+		if _hint_labels.has(HINT_KEY_GRENADE):
+			_reset_grenade_hint_tracking()
+			_dismiss_hint(HINT_KEY_GRENADE)
+		return
+
+	var grenade_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	if not _hint_labels.has(HINT_KEY_GRENADE) and not grenade_pressed:
+		return
+
+	if not _hint_labels.has(HINT_KEY_GRENADE):
+		_reset_grenade_hint_tracking()
+		_add_hint(HINT_KEY_GRENADE, _build_grenade_hint_bbcode(0))
+		_log_to_file("Grenade hint shown after grenade_prepare")
+
+	_update_grenade_hint_step()
+
+
 ## Called when player completes a reload.
 ## Mirrors labyrinth_level.gd _on_tutorial_reload_completed(): dismisses reload hint.
 ## For M16: shows fire-mode hint after reload (mirrors Labyrinth).
@@ -533,6 +628,7 @@ func _on_reload_completed() -> void:
 		if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 			_dismiss_hint(HINT_KEY_BOLT_CYCLE)
 		_shotgun_full_reload_active = false
+		_shotgun_reload_loaded_shell = false
 
 	# M16: show fire-mode hint after reload (mirrors Labyrinth)
 	if _current_weapon_id == "m16":
@@ -675,6 +771,147 @@ func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 	return ""
 
 
+func _get_grenade_hint_actions() -> Array:
+	return [
+		"[%s]" % tr("HINT_GRENADE_HOLD_G_RMB"),
+		"[%s]" % tr("HINT_GRENADE_DRAG_RIGHT"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_RMB"),
+		"[%s]" % tr("HINT_GRENADE_HOLD_RMB"),
+		"[%s]" % tr("HINT_GRENADE_RELEASE_G"),
+		"[%s]" % tr("HINT_GRENADE_AIM_RELEASE_RMB"),
+	]
+
+
+func _get_grenade_hint_strikethrough_progress(completed_actions: int, actions: Array) -> float:
+	if completed_actions <= 0 or actions.is_empty():
+		return 0.0
+
+	var all_actions := PackedStringArray()
+	for action in actions:
+		all_actions.append(str(action))
+	var total_text := " ".join(all_actions)
+	if total_text.is_empty():
+		return 0.0
+
+	var completed := PackedStringArray()
+	var completed_count := mini(completed_actions, actions.size())
+	for i in range(completed_count):
+		completed.append(str(actions[i]))
+	return float(" ".join(completed).length()) / float(total_text.length())
+
+
+func _build_grenade_hint_bbcode(step: int) -> String:
+	var parts := _get_grenade_hint_actions()
+	var clamped_step := clampi(step, 0, parts.size() - 1)
+	_extend_hint_strikethrough(
+		HINT_KEY_GRENADE,
+		_get_grenade_hint_strikethrough_progress(clamped_step, parts)
+	)
+
+	var styled: PackedStringArray = []
+	for i in range(parts.size()):
+		if i < clamped_step:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+		elif i == clamped_step:
+			styled.append("[color=#ff4444]%s[/color]" % parts[i])
+		else:
+			styled.append("[color=#888888]%s[/color]" % parts[i])
+	return " ".join(styled)
+
+
+func _reset_grenade_hint_tracking() -> void:
+	_grenade_hint_step = 0
+	_grenade_g_was_held = false
+	_grenade_drag_completed = false
+	_grenade_rmb_held_after_release = false
+	_grenade_rmb_was_pressed = false
+	_grenade_hint_drag_start = Vector2.ZERO
+
+
+func _reset_grenade_hint_to_start() -> void:
+	_reset_grenade_hint_tracking()
+	if _hint_labels.has(HINT_KEY_GRENADE):
+		var label: RichTextLabel = _hint_labels[HINT_KEY_GRENADE]
+		if is_instance_valid(label):
+			label.text = _build_grenade_hint_bbcode(0)
+	_reset_hint_strikethrough(HINT_KEY_GRENADE)
+
+
+func _update_grenade_hint_step() -> void:
+	if not _hint_labels.has(HINT_KEY_GRENADE):
+		_reset_grenade_hint_tracking()
+		return
+
+	var grenade_state := _get_player_grenade_state()
+	var g_pressed: bool = Input.is_action_pressed("grenade_prepare")
+	var rmb_pressed: bool = Input.is_action_pressed("grenade_throw")
+	var current_mouse_pos := _get_grenade_mouse_position()
+	var rmb_just_pressed := rmb_pressed and not _grenade_rmb_was_pressed
+
+	if grenade_state == 0 and _grenade_hint_step > 0:
+		var awaiting_pin_state := (
+			_grenade_hint_step == 2
+			and g_pressed
+			and not rmb_pressed
+			and _grenade_drag_completed
+			and _grenade_rmb_was_pressed
+		)
+		if not ((g_pressed and rmb_pressed and _grenade_hint_step <= 2) or awaiting_pin_state):
+			_reset_grenade_hint_to_start()
+	elif grenade_state == 1 and _grenade_hint_step > 3:
+		_reset_grenade_hint_to_start()
+	elif _grenade_hint_step == 0 and not (g_pressed and rmb_pressed):
+		if g_pressed or rmb_pressed or _grenade_rmb_was_pressed:
+			_reset_grenade_hint_to_start()
+	elif _grenade_hint_step == 1 and not g_pressed and not _grenade_drag_completed:
+		_reset_grenade_hint_to_start()
+	elif _grenade_hint_step == 2 and not g_pressed and not rmb_pressed:
+		_reset_grenade_hint_to_start()
+	elif _grenade_hint_step == 3 and not g_pressed and not rmb_pressed:
+		_reset_grenade_hint_to_start()
+	elif _grenade_hint_step == 4 and not rmb_pressed and not _grenade_rmb_held_after_release:
+		_reset_grenade_hint_to_start()
+
+	if _grenade_hint_step <= 1 and g_pressed and rmb_pressed and rmb_just_pressed:
+		_grenade_drag_completed = false
+		_grenade_hint_drag_start = current_mouse_pos
+
+	if _grenade_hint_step == 1 and g_pressed and rmb_pressed:
+		if current_mouse_pos.x - _grenade_hint_drag_start.x > 20.0:
+			_grenade_drag_completed = true
+			_grenade_hint_step = 2
+
+	if _grenade_hint_step == 0 and g_pressed and rmb_pressed:
+		_grenade_hint_step = 1
+		_grenade_g_was_held = true
+	elif _grenade_hint_step == 2 and _grenade_drag_completed and not rmb_pressed and grenade_state >= 1:
+		_grenade_hint_step = 3
+	elif _grenade_hint_step == 3 and g_pressed and rmb_just_pressed and grenade_state >= 1:
+		_grenade_rmb_held_after_release = true
+		_grenade_hint_step = 4
+	elif _grenade_hint_step == 4 and not g_pressed and rmb_pressed and _grenade_rmb_held_after_release and grenade_state >= 2:
+		_grenade_hint_step = 5
+		_grenade_g_was_held = false
+
+	var label: RichTextLabel = _hint_labels[HINT_KEY_GRENADE]
+	if is_instance_valid(label):
+		var new_text := _build_grenade_hint_bbcode(_grenade_hint_step)
+		if label.text != new_text:
+			label.text = new_text
+
+	_grenade_rmb_was_pressed = rmb_pressed
+
+
+func _on_player_grenade_thrown() -> void:
+	if not _hint_labels.has(HINT_KEY_GRENADE):
+		return
+
+	_last_dismiss_was_player_action = true
+	_reset_grenade_hint_tracking()
+	_dismiss_hint(HINT_KEY_GRENADE)
+	_log_to_file("Grenade thrown — grenade hint dismissed")
+
+
 ## Build BBCode for sniper bolt-cycle hint showing 4-step sequence.
 ## Mirrors labyrinth_level.gd _build_tutorial_sniper_bolt_hint_bbcode().
 func _build_sniper_bolt_hint_bbcode(step: int) -> String:
@@ -715,13 +952,43 @@ func _ak_gl_has_round_loaded() -> bool:
 	return true  # Assume loaded if property not found
 
 
+func _player_has_grenades() -> bool:
+	if _player == null or not is_instance_valid(_player):
+		return false
+
+	if _player.has_method("GetCurrentGrenades"):
+		return int(_player.call("GetCurrentGrenades")) > 0
+
+	var grenade_count = _player.get("GrenadeCount")
+	if grenade_count != null:
+		return int(grenade_count) > 0
+
+	return false
+
+
+func _get_player_grenade_state() -> int:
+	if _player != null and is_instance_valid(_player) and _player.has_method("GetGrenadeState"):
+		return int(_player.call("GetGrenadeState"))
+	return 0
+
+
+func _player_has_active_grenade_sequence() -> bool:
+	return _get_player_grenade_state() > 0
+
+
+func _get_grenade_mouse_position() -> Vector2:
+	if _player != null and is_instance_valid(_player):
+		return _player.get_global_mouse_position()
+	return Vector2.ZERO
+
+
 ## Extend the strikethrough progress for a hint (used by BBCode builders).
 ## Mirrors labyrinth_level.gd _extend_tutorial_hint_strikethrough().
 func _extend_hint_strikethrough(hint_key: String, progress: float) -> void:
 	if not _hint_strike_progress.has(hint_key):
 		return
 	var current: float = _hint_strike_progress[hint_key]
-	if progress <= current:
+	if progress <= current and hint_key != HINT_KEY_GRENADE:
 		return
 	_hint_strike_progress[hint_key] = progress
 	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
@@ -732,9 +999,16 @@ func _extend_hint_strikethrough(hint_key: String, progress: float) -> void:
 
 
 ## Called when the global dismiss timer times out — clear all remaining hints.
+## The grenade hint is excluded: it must only be dismissed when the throw is performed.
 func _on_dismiss_timer_timeout() -> void:
 	_log_to_file("Auto-dismiss timer: clearing all remaining hints for %s" % _current_weapon_id)
-	dismiss_hints()
+	if _hint_labels.has(HINT_KEY_GRENADE):
+		var keys_to_dismiss: Array = _hint_labels.keys().filter(func(k): return k != HINT_KEY_GRENADE)
+		for key in keys_to_dismiss:
+			_dismiss_hint(key)
+		_log_to_file("Auto-dismiss timer: grenade hint kept active (waiting for throw)")
+	else:
+		dismiss_hints()
 
 
 ## Add a single hint label with Labyrinth-style BBCode, shadows, fade-in, and strikethrough Line2D.
@@ -752,7 +1026,6 @@ func _add_hint(hint_key: String, text: String) -> void:
 	label.name = "WeaponHint_" + hint_key
 	label.bbcode_enabled = true
 	label.text = text
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("normal_font_size", 20)
 
 	label.add_theme_color_override("default_color", _get_hint_color(hint_key))
@@ -760,6 +1033,10 @@ func _add_hint(hint_key: String, text: String) -> void:
 	label.add_theme_constant_override("shadow_offset_x", 2)
 	label.add_theme_constant_override("shadow_offset_y", 2)
 	label.custom_minimum_size = HINT_MIN_SIZE
+	# Issue #1881: set explicit width so RichTextLabel computes word-wrap and content height
+	# before the first layout frame — otherwise get_content_height() returns 0 and multi-line
+	# hints (grenade: 4 lines) are placed as if they were 1 line, overlapping the player sprite.
+	label.size = Vector2(HINT_WIDTH, HINT_MIN_HEIGHT)
 	label.fit_content = true
 	label.scroll_active = false
 
@@ -775,15 +1052,18 @@ func _add_hint(hint_key: String, text: String) -> void:
 	_hint_strike_lines[hint_key] = []
 	_hint_strike_progress[hint_key] = 0.0
 
+	# Issue #1881: Seed tracked height from a BBCode-aware text estimate so the first-frame
+	# placement is realistic before layout runs.
+	_hint_heights[hint_key] = maxf(_estimate_hint_height(text), HINT_MIN_HEIGHT)
+
 	# Set up Line2D strikethrough nodes after one frame
 	_setup_strikethrough_lines.call_deferred(hint_key, label)
 
-	# Position immediately
-	var index := _hint_labels.size() - 1
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
-	var screen_pos: Vector2 = canvas_transform * (_player.global_position if _player else Vector2.ZERO)
-	label.custom_minimum_size = HINT_MIN_SIZE
-	label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
+	# Issue #1881: bottom-align the new hint above the player using the tracked heights of all
+	# already-shown hints, so a multi-line hint grows upward instead of overlapping the player.
+	_update_hint_positions()
+	# Re-position once layout has run so content heights are accurate for multi-line hints.
+	_update_hint_positions.call_deferred()
 
 	# Fade-in animation
 	var tween := create_tween()
@@ -798,10 +1078,11 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 	if not is_instance_valid(label):
 		return
 
-	const LINE_HEIGHT := 26.0
-
+	# Issue #1890: Use get_line_count() for the actual rendered line count instead of
+	# estimating from content_height / constant, which overcounts when the real line
+	# height differs from the hard-coded value and shifts strikethroughs above the text.
 	var content_height := label.get_content_height()
-	var line_count := maxi(1, roundi(content_height / LINE_HEIGHT))
+	var line_count := maxi(1, label.get_line_count())
 	_hint_line_counts[hint_key] = line_count
 
 	var line_widths: Array = []
@@ -829,9 +1110,10 @@ func _setup_strikethrough_lines(hint_key: String, label: RichTextLabel) -> void:
 			line_widths.append(fallback_width)
 	_hint_line_widths[hint_key] = line_widths
 
+	var actual_line_height := float(content_height) / float(line_count)
 	var lines: Array = []
 	for line_idx in range(line_count):
-		var line_y := line_idx * LINE_HEIGHT + LINE_HEIGHT * 0.55
+		var line_y := line_idx * actual_line_height + actual_line_height * 0.5
 		var seg := Line2D.new()
 		seg.name = "StrikeLine_%s_%d" % [hint_key, line_idx]
 		seg.width = 1.5
@@ -917,8 +1199,11 @@ func _finalize_hint_dismiss(hint_key: String, label: RichTextLabel) -> void:
 	_hint_strike_progress.erase(hint_key)
 	_hint_line_counts.erase(hint_key)
 	_hint_line_widths.erase(hint_key)
+	_hint_heights.erase(hint_key)
 	if is_instance_valid(label):
 		label.queue_free()
+	# Issue #1881: Re-pack remaining hints so the vacated slot closes and later hints bubble down.
+	_update_hint_positions()
 	if _hint_labels.is_empty() and _animating_hints.is_empty():
 		_hints_showing = false
 		_hints_active = false
@@ -956,6 +1241,7 @@ func _dismiss_hints_immediate() -> void:
 	_hint_strike_progress.clear()
 	_hint_line_counts.clear()
 	_hint_line_widths.clear()
+	_hint_heights.clear()
 	_animating_hints.clear()
 	_disconnect_weapon_signals()
 	_log_to_file("All hints dismissed immediately")
@@ -963,33 +1249,30 @@ func _dismiss_hints_immediate() -> void:
 
 ## Disconnect signals from the current weapon node.
 func _disconnect_weapon_signals() -> void:
-	if _current_weapon_node == null or not is_instance_valid(_current_weapon_node):
-		_current_weapon_node = null
-		return
-
 	var weapon := _current_weapon_node
 	_current_weapon_node = null
 
-	if weapon.has_signal("Fired") and weapon.Fired.is_connected(_on_weapon_fired):
-		weapon.Fired.disconnect(_on_weapon_fired)
-	if weapon.has_signal("ShotFired") and weapon.ShotFired.is_connected(_on_weapon_fired):
-		weapon.ShotFired.disconnect(_on_weapon_fired)
-	if weapon.has_signal("ActionStateChanged") and weapon.ActionStateChanged.is_connected(_on_shotgun_action_state_changed):
-		weapon.ActionStateChanged.disconnect(_on_shotgun_action_state_changed)
-	if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_shotgun_reload_state_changed):
-		weapon.ReloadStateChanged.disconnect(_on_shotgun_reload_state_changed)
-	if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_revolver_reload_state_changed):
-		weapon.ReloadStateChanged.disconnect(_on_revolver_reload_state_changed)
-	if weapon.has_signal("BoltStepChanged") and weapon.BoltStepChanged.is_connected(_on_sniper_bolt_step_changed):
-		weapon.BoltStepChanged.disconnect(_on_sniper_bolt_step_changed)
-	if weapon.has_signal("ScopeStateChanged") and weapon.ScopeStateChanged.is_connected(_on_scope_state_changed):
-		weapon.ScopeStateChanged.disconnect(_on_scope_state_changed)
-	if weapon.has_signal("HammerCocked") and weapon.HammerCocked.is_connected(_on_hammer_cocked):
-		weapon.HammerCocked.disconnect(_on_hammer_cocked)
-	if weapon.has_signal("FireModeChanged") and weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
-		weapon.FireModeChanged.disconnect(_on_fire_mode_changed)
-	if weapon.has_signal("GrenadeFired") and weapon.GrenadeFired.is_connected(_on_grenade_launcher_fired):
-		weapon.GrenadeFired.disconnect(_on_grenade_launcher_fired)
+	if weapon != null and is_instance_valid(weapon):
+		if weapon.has_signal("Fired") and weapon.Fired.is_connected(_on_weapon_fired):
+			weapon.Fired.disconnect(_on_weapon_fired)
+		if weapon.has_signal("ShotFired") and weapon.ShotFired.is_connected(_on_weapon_fired):
+			weapon.ShotFired.disconnect(_on_weapon_fired)
+		if weapon.has_signal("ActionStateChanged") and weapon.ActionStateChanged.is_connected(_on_shotgun_action_state_changed):
+			weapon.ActionStateChanged.disconnect(_on_shotgun_action_state_changed)
+		if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_shotgun_reload_state_changed):
+			weapon.ReloadStateChanged.disconnect(_on_shotgun_reload_state_changed)
+		if weapon.has_signal("ReloadStateChanged") and weapon.ReloadStateChanged.is_connected(_on_revolver_reload_state_changed):
+			weapon.ReloadStateChanged.disconnect(_on_revolver_reload_state_changed)
+		if weapon.has_signal("BoltStepChanged") and weapon.BoltStepChanged.is_connected(_on_sniper_bolt_step_changed):
+			weapon.BoltStepChanged.disconnect(_on_sniper_bolt_step_changed)
+		if weapon.has_signal("ScopeStateChanged") and weapon.ScopeStateChanged.is_connected(_on_scope_state_changed):
+			weapon.ScopeStateChanged.disconnect(_on_scope_state_changed)
+		if weapon.has_signal("HammerCocked") and weapon.HammerCocked.is_connected(_on_hammer_cocked):
+			weapon.HammerCocked.disconnect(_on_hammer_cocked)
+		if weapon.has_signal("FireModeChanged") and weapon.FireModeChanged.is_connected(_on_fire_mode_changed):
+			weapon.FireModeChanged.disconnect(_on_fire_mode_changed)
+		if weapon.has_signal("GrenadeFired") and weapon.GrenadeFired.is_connected(_on_grenade_launcher_fired):
+			weapon.GrenadeFired.disconnect(_on_grenade_launcher_fired)
 
 	if _player and is_instance_valid(_player):
 		if _player.has_signal("ReloadCompleted") and _player.ReloadCompleted.is_connected(_on_reload_completed):
@@ -998,6 +1281,10 @@ func _disconnect_weapon_signals() -> void:
 			_player.reload_completed.disconnect(_on_reload_completed)
 		if _player.has_signal("ReloadSequenceProgress") and _player.ReloadSequenceProgress.is_connected(_on_reload_sequence_progress):
 			_player.ReloadSequenceProgress.disconnect(_on_reload_sequence_progress)
+		if _player.has_signal("GrenadeThrown") and _player.GrenadeThrown.is_connected(_on_player_grenade_thrown):
+			_player.GrenadeThrown.disconnect(_on_player_grenade_thrown)
+		if _player.has_signal("grenade_thrown") and _player.grenade_thrown.is_connected(_on_player_grenade_thrown):
+			_player.grenade_thrown.disconnect(_on_player_grenade_thrown)
 
 
 ## Reset per-weapon hint tracking state.
@@ -1010,7 +1297,10 @@ func _reset_hint_state() -> void:
 	_fire_mode_hint_pending = false
 	_shotgun_full_reload_active = false
 	_shotgun_node = null
+	_shotgun_reload_loaded_shell = false
+	_revolver_reload_loaded_cartridge = false
 	_ak_gl_launcher_hint_shown = false
+	_reset_grenade_hint_tracking()
 	_last_dismiss_was_player_action = false
 	_disconnect_weapon_signals()
 	# Note: _pending_unlock is NOT cleared here — it is consumed by _on_weapon_selected
@@ -1018,6 +1308,8 @@ func _reset_hint_state() -> void:
 
 ## Update positions of all hint labels to float above the player.
 ## Mirrors labyrinth_level.gd _update_tutorial_hint_positions().
+## Issue #1881: Stacks hints above the player using tracked content heights so multi-line
+## hints (e.g. the grenade tutorial) never overlap hints below them or the player sprite.
 func _update_hint_positions() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -1025,14 +1317,49 @@ func _update_hint_positions() -> void:
 	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
 	var screen_pos: Vector2 = canvas_transform * _player.global_position
 
-	var index := 0
+	var cumulative_y: float = 0.0
 	for hint_key in _hint_labels:
 		var label: RichTextLabel = _hint_labels[hint_key]
 		if label == null or not is_instance_valid(label):
 			continue
 		label.custom_minimum_size = HINT_MIN_SIZE
-		label.position = screen_pos + Vector2(HINT_OFFSET_X, HINT_OFFSET_Y - index * HINT_SPACING)
-		index += 1
+		# Keep the width fixed so word-wrap is stable frame-to-frame.
+		label.size = Vector2(HINT_WIDTH, label.size.y)
+		# Refresh tracked height from measured content once layout has run. Keep the
+		# larger of tracked and measured so transient zeros during animation don't
+		# collapse the stack.
+		var measured: float = label.get_content_height()
+		if measured > HINT_MIN_HEIGHT:
+			_hint_heights[hint_key] = measured
+			label.size = Vector2(HINT_WIDTH, measured)
+		var h: float = _hint_heights.get(hint_key, HINT_MIN_HEIGHT)
+		label.position = screen_pos + Vector2(
+			-HINT_WIDTH * 0.5,
+			-HINT_PLAYER_CLEARANCE - cumulative_y - h
+		)
+		cumulative_y += h + HINT_SPACING
+
+
+## Estimate rendered height of a hint text before Godot has laid out the RichTextLabel.
+## Issue #1881: RichTextLabel.get_content_height() returns 0 until after the first layout
+## frame because the label must know its width to compute word-wrap. We approximate the
+## wrapped line count from character count so the first-frame position is realistic.
+##
+## Important: only known Godot BBCode tags are stripped — action labels like "[hold G+RMB]"
+## and "[flick mouse right]" used in the grenade hint are LITERAL brackets (not BBCode) and
+## must be counted toward line length. Stripping them would turn the 91-character grenade
+## hint into ~5 characters, yielding a 1-line (26 px) estimate instead of the real 4 lines
+## (~104 px), placing the hint bottom on top of the player sprite.
+func _estimate_hint_height(text: String) -> float:
+	const LINE_HEIGHT := 26.0
+	const AVG_CHAR_WIDTH := 10.0  # conservative estimate at font size 20
+	var plain := text
+	var known_bbcode := RegEx.new()
+	known_bbcode.compile("\\[/?(?:color(?:=#[0-9a-fA-F]{3,8})?|b|i|u|s|center|right|left|indent|code|url(?:=[^\\]]*)?|img(?:=[^\\]]*)?|font(?:=[^\\]]*)?|size=\\d+|bgcolor(?:=#[0-9a-fA-F]{3,8})?|fgcolor(?:=#[0-9a-fA-F]{3,8})?)\\]")
+	plain = known_bbcode.sub(plain, "", true)
+	var chars_per_line := int(HINT_WIDTH / AVG_CHAR_WIDTH)
+	var lines := maxi(1, int(ceil(float(plain.length()) / float(chars_per_line))))
+	return lines * LINE_HEIGHT
 
 
 ## Called when revolver reload state changes — updates hint text step-by-step.
@@ -1042,10 +1369,14 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if not _hint_labels.has(HINT_KEY_RELOAD):
 		return
 
-	# State 0 = reload fully complete — dismiss hint (mirrors shotgun handler).
+	# State 0 means the cylinder closed. Only dismiss after a cartridge was inserted;
+	# opening and closing without loading is an aborted taught action.
 	if new_state == 0:
-		_log_to_file("Revolver reload completed via ReloadStateChanged(0)")
-		_on_reload_completed()
+		if _revolver_reload_loaded_cartridge:
+			_log_to_file("Revolver reload completed after cartridge load")
+			_on_reload_completed()
+		else:
+			_rollback_revolver_reload_hint()
 		return
 
 	var hint_step: int = 0
@@ -1054,6 +1385,7 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 			hint_step = 1  # CylinderOpen → highlight insert cartridge
 		2:
 			hint_step = 2  # Loading → highlight close cylinder
+			_revolver_reload_loaded_cartridge = true
 		_:
 			hint_step = 3  # Done (shouldn't normally reach here now)
 
@@ -1061,6 +1393,37 @@ func _on_revolver_reload_state_changed(new_state: int) -> void:
 	if is_instance_valid(label):
 		label.text = _build_revolver_reload_hint_bbcode(hint_step)
 	_log_to_file("Revolver reload state %d → hint step %d updated" % [new_state, hint_step])
+
+
+func _rollback_shotgun_reload_hint() -> void:
+	_shotgun_reload_loaded_shell = false
+	if _hint_labels.has(HINT_KEY_BOLT_CYCLE):
+		_reset_hint_strikethrough(HINT_KEY_BOLT_CYCLE)
+		var label: RichTextLabel = _hint_labels[HINT_KEY_BOLT_CYCLE]
+		if is_instance_valid(label):
+			label.text = _build_shotgun_full_reload_hint_bbcode(0)
+	_log_to_file("Shotgun reload closed without loading — hint rolled back")
+
+
+func _rollback_revolver_reload_hint() -> void:
+	_revolver_reload_loaded_cartridge = false
+	if _hint_labels.has(HINT_KEY_RELOAD):
+		_reset_hint_strikethrough(HINT_KEY_RELOAD)
+		var label: RichTextLabel = _hint_labels[HINT_KEY_RELOAD]
+		if is_instance_valid(label):
+			label.text = _build_revolver_reload_hint_bbcode(0)
+	_log_to_file("Revolver reload closed without loading — hint rolled back")
+
+
+func _reset_hint_strikethrough(hint_key: String) -> void:
+	if not _hint_strike_progress.has(hint_key):
+		return
+	_hint_strike_progress[hint_key] = 0.0
+	var strike_lines: Array = _hint_strike_lines.get(hint_key, [])
+	var line_count: int = _hint_line_counts.get(hint_key, 1)
+	var line_widths: Array = _hint_line_widths.get(hint_key, [])
+	if not strike_lines.is_empty():
+		_update_strikethrough_points(strike_lines, line_count, line_widths, 0.0)
 
 
 ## Clean up when component is removed.
@@ -1075,7 +1438,7 @@ func _exit_tree() -> void:
 	_disconnect_weapon_signals()
 
 	for hint_key in _hint_labels.keys():
-		var label: RichTextLabel = _hint_labels[hint_key]
+		var label = _hint_labels[hint_key]
 		if label != null and is_instance_valid(label):
 			label.queue_free()
 	_hint_labels.clear()

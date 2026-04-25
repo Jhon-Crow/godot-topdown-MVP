@@ -20,15 +20,15 @@ const RANK_ORDER: Array[String] = ["F", "D", "C", "B", "A", "A+", "S"]
 ## Issue #1000: update unlock system
 const UNLOCK_CONDITIONS: Dictionary = {
 	"res://scenes/levels/LabyrinthLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["mini_uzi"],
 		"grenades": [],
 		"active_items": []
 	},
 	"res://scenes/levels/BuildingLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["shotgun"],
-		"grenades": [1],    # GrenadeManager.GrenadeType.FRAG = 1 (Issue #1000 req.1)
+		"grenades": [1],    # GrenadeManager.GrenadeType.FRAG = 1; Building completion on any rank (Issue #1826)
 		"active_items": []
 	},
 	"res://scenes/levels/BuildingLevel.tscn:S": {
@@ -38,7 +38,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []
 	},
 	"res://scenes/levels/TestTier.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["sniper"],
 		"grenades": [],
 		"active_items": [1]  # ActiveItemManager.ActiveItemType.FLASHLIGHT = 1
@@ -50,7 +50,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []  # Teleport moved to Double Corridor (Issue #1000 req.3)
 	},
 	"res://scenes/levels/RevolverLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": [],
 		"grenades": [],
 		"active_items": [3]  # ActiveItemManager.ActiveItemType.TELEPORT_BRACERS = 3 (Issue #1000 req.3)
@@ -62,7 +62,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": [8]  # ActiveItemManager.ActiveItemType.TRAJECTORY_GLASSES = 8 (Issue #1692 req.2)
 	},
 	"res://scenes/levels/BeachLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["m16"],  # Issue #1053 req.3: changed from ak_gl to m16
 		"grenades": [],
 		"active_items": []
@@ -74,7 +74,7 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"active_items": []
 	},
 	"res://scenes/levels/DocksLevel.tscn": {
-		"min_rank": "D",
+		"min_rank": "F",
 		"weapons": ["silenced_pistol"],  # Issue #1000 req.7
 		"grenades": [3],    # GrenadeManager.GrenadeType.AGGRESSION_GAS = 3 (Issue #1624 req.4)
 		"active_items": []
@@ -96,12 +96,6 @@ const UNLOCK_CONDITIONS: Dictionary = {
 		"weapons": [],
 		"grenades": [],
 		"active_items": [16]  # ActiveItemManager.ActiveItemType.RECOIL_COMPENSATOR = 16 (Issue #1423 req.2)
-	},
-	"res://scenes/levels/RevolverLevel.tscn:A": {
-		"min_rank": "A",
-		"weapons": [],
-		"grenades": [],
-		"active_items": [10]  # ActiveItemManager.ActiveItemType.EXTENDED_MAGAZINE = 10 (Issue #1692 req.1)
 	},
 	"res://scenes/levels/DecadenceLevel.tscn:A+": {
 		"min_rank": "A+",
@@ -195,17 +189,17 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 		"active_items": [17]  # ActiveItemManager.ActiveItemType.COMBAT_DISPOSITION = 17
 	},
 	{
-		# 7 levels completed at rank A or higher → unlock Breaker Bullets (Issue #1589 req.3)
-		"stat": "levels_completed_rank_a_or_higher",
+		# 7 unique maps completed at rank S → unlock Breaker Bullets (Issue #1892 req.2)
+		"stat": "levels_completed_rank_s",
 		"min_kills": 7,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [6]  # ActiveItemManager.ActiveItemType.BREAKER_BULLETS = 6
 	},
 	{
-		# 50 kills through walls (any weapon) → unlock Drilling Bullets (Issue #1624 req.3)
+		# 15 kills through walls (any weapon) → unlock Drilling Bullets (Issue #1892 req.3)
 		"stat": "kills_through_wall",
-		"min_kills": 50,
+		"min_kills": 15,
 		"weapons": [],
 		"grenades": [],
 		"active_items": [15]  # ActiveItemManager.ActiveItemType.DRILLING_BULLETS = 15
@@ -228,6 +222,16 @@ const KILL_UNLOCK_CONDITIONS: Array[Dictionary] = [
 ##   - "active_items": List of active item type ints to unlock
 ## Issue #1000: req.5 and req.8
 const MULTI_UNLOCK_CONDITIONS: Array[Dictionary] = [
+	{
+		# Polygon S + Double Corridor S → Extended Magazine (Issue #1892 req.1)
+		"levels": [
+			{"path": "res://scenes/levels/TestTier.tscn", "min_rank": "S"},
+			{"path": "res://scenes/levels/RevolverLevel.tscn", "min_rank": "S"}
+		],
+		"weapons": [],
+		"grenades": [],
+		"active_items": [10]  # ActiveItemManager.ActiveItemType.EXTENDED_MAGAZINE = 10
+	},
 	{
 		# Beach S + Building S → Invisibility (Issue #1000 req.5)
 		"levels": [
@@ -278,6 +282,8 @@ func _ready() -> void:
 			game_manager.no_damage_levels_completed_updated.connect(_on_no_damage_levels_completed_updated)
 		if game_manager.has_signal("levels_completed_rank_a_or_higher_updated"):
 			game_manager.levels_completed_rank_a_or_higher_updated.connect(_on_levels_completed_rank_a_or_higher_updated)
+		if game_manager.has_signal("levels_completed_rank_s_updated"):
+			game_manager.levels_completed_rank_s_updated.connect(_on_levels_completed_rank_s_updated)
 		if game_manager.has_signal("kills_through_wall_updated"):
 			game_manager.kills_through_wall_updated.connect(_on_kills_through_wall_updated)
 		if game_manager.has_signal("levels_completed_with_silenced_pistol_updated"):
@@ -360,13 +366,23 @@ func _on_no_damage_levels_completed_updated(_new_count: int) -> void:
 
 
 ## Called when GameManager emits levels_completed_rank_a_or_higher_updated.
-## Checks if the Breaker Bullets rank-A condition is now satisfied.
 ## Issue #1589.
 func _on_levels_completed_rank_a_or_higher_updated(_new_count: int) -> void:
 	for kill_condition in KILL_UNLOCK_CONDITIONS:
 		if kill_condition.get("stat", "") == "levels_completed_rank_a_or_higher" and is_kill_condition_met(kill_condition):
 			items_unlocked_by_kill_condition.emit()
-			_log("Rank-A level condition met — Breaker Bullets now available to unlock in armory")
+			_log("Rank-A level condition met — items now available to unlock in armory")
+			break
+
+
+## Called when GameManager emits levels_completed_rank_s_updated.
+## Checks if the Breaker Bullets rank-S condition is now satisfied.
+## Issue #1892.
+func _on_levels_completed_rank_s_updated(_new_count: int) -> void:
+	for kill_condition in KILL_UNLOCK_CONDITIONS:
+		if kill_condition.get("stat", "") == "levels_completed_rank_s" and is_kill_condition_met(kill_condition):
+			items_unlocked_by_kill_condition.emit()
+			_log("Rank-S level condition met — Breaker Bullets now available to unlock in armory")
 			break
 
 
@@ -1086,6 +1102,8 @@ func _build_kill_condition_description(kill_condition: Dictionary) -> String:
 		return tr("UNLOCK_COND_NO_DAMAGE_LEVELS") % min_kills
 	if stat == "levels_completed_rank_a_or_higher":
 		return tr("UNLOCK_COND_RANK_A_LEVELS") % min_kills
+	if stat == "levels_completed_rank_s":
+		return tr("UNLOCK_COND_RANK_S_LEVELS") % min_kills
 	if stat == "kills_through_wall":
 		return tr("UNLOCK_COND_WALL_KILLS") % min_kills
 	if stat == "levels_completed_with_silenced_pistol":

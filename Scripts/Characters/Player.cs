@@ -145,6 +145,12 @@ public partial class Player : BaseCharacter
     private bool _isTutorialLevel = false;
 
     /// <summary>
+    /// Whether the player is currently piloting a drone grenade (Issue #1628 / #1895).
+    /// When true, movement and shooting are suppressed but model rotation still runs.
+    /// </summary>
+    private bool _isDronePiloting = false;
+
+    /// <summary>
     /// Grenade state machine states.
     /// 2-step mechanic:
     /// Step 1: G + RMB drag right → timer starts (pin pulled)
@@ -570,6 +576,12 @@ public partial class Player : BaseCharacter
     /// </summary>
     [Signal]
     public delegate void ReloadStartedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when an in-progress reload sequence is canceled or reset before completion.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadSequenceCanceledEventHandler();
 
     /// <summary>
     /// Signal emitted when player tries to shoot with empty weapon.
@@ -1263,12 +1275,19 @@ public partial class Player : BaseCharacter
         ConnectActiveItemChangedSignal();
 
         // Log ready status with full info
-        int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
-        int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
+        var readyAmmo = GetCurrentWeaponReadyAmmoDisplay();
         int currentHealth = (int)(HealthComponent?.CurrentHealth ?? 0);
         int maxHealth = (int)(HealthComponent?.MaxHealth ?? 0);
-        LogToFile($"[Player] Ready! Ammo: {currentAmmo}/{maxAmmo}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
+        LogToFile($"[Player] Ready! Ammo: {readyAmmo.Current}/{readyAmmo.Maximum}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
         LogToFile("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)");
+    }
+
+    private (int Current, int Maximum) GetCurrentWeaponReadyAmmoDisplay()
+    {
+        if (CurrentWeapon is Shotgun shotgun)
+            return (shotgun.ShellsInTube, shotgun.TubeMagazineCapacity);
+
+        return (CurrentWeapon?.CurrentAmmo ?? 0, CurrentWeapon?.WeaponData?.MagazineSize ?? 0);
     }
 
     /// <summary>
@@ -1450,6 +1469,17 @@ public partial class Player : BaseCharacter
         if (!IsAlive)
             return;
 
+        // Issue #1895: While piloting the drone the player body should stay still,
+        // but the model must keep rotating toward the mouse so that weapon aim,
+        // laser sight, and flashlight all track the cursor correctly.
+        if (_isDronePiloting)
+        {
+            Velocity = Velocity.MoveToward(Vector2.Zero, 2000.0f * (float)delta);
+            MoveAndSlide();
+            UpdatePlayerModelRotation();
+            return;
+        }
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -1494,6 +1524,15 @@ public partial class Player : BaseCharacter
 
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
+
+        // Level-7 loudspeaker ending: player can move while the delayed ending is pending,
+        // but all weapon and item inputs are blocked until the end screen takes over.
+        HandleLoudspeakerVictoryDelay((float)delta);
+        if (IsLoudspeakerVictoryWeaponLocked())
+        {
+            _semiAutoShootBuffered = false;
+            return;
+        }
 
         // Handle sniper scope input (RMB) when SniperRifle is equipped
         // This takes priority over grenade input since the sniper uses RMB for scoping
@@ -1724,7 +1763,7 @@ public partial class Player : BaseCharacter
             {
                 // Step 1 (only R pressed, waiting for F): shooting resets the combo
                 GD.Print("[Player] Shooting during reload step 1 - resetting reload sequence");
-                ResetReloadSequence();
+                ResetReloadSequence(true);
                 Shoot();
             }
             else if (_reloadSequenceStep == 2)
@@ -2280,7 +2319,7 @@ public partial class Player : BaseCharacter
                 GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
                 // Restart animation from grab phase
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
-                ResetReloadSequence();
+                ResetReloadSequence(true);
             }
         }
     }
@@ -2432,8 +2471,9 @@ public partial class Player : BaseCharacter
     /// Resets the reload sequence to the beginning.
     /// Also cancels the weapon's reload sequence state.
     /// </summary>
-    private void ResetReloadSequence()
+    private void ResetReloadSequence(bool emitCanceled = false)
     {
+        bool wasReloading = _isReloadingSequence || _reloadSequenceStep > 0;
         _reloadSequenceStep = 0;
         _isReloadingSequence = false;
         _ammoAtReloadStart = 0;
@@ -2446,6 +2486,11 @@ public partial class Player : BaseCharacter
 
         // Cancel weapon's reload sequence state
         CurrentWeapon?.CancelReloadSequence();
+
+        if (emitCanceled && wasReloading)
+        {
+            EmitSignal(SignalName.ReloadSequenceCanceled);
+        }
     }
 
     /// <summary>
@@ -2486,6 +2531,89 @@ public partial class Player : BaseCharacter
 
         // Otherwise use direct bullet spawning (original behavior)
         SpawnBullet(shootDirection);
+    }
+
+    /// <summary>
+    /// Enables or disables drone-piloting mode (Issue #1628 / #1895).
+    /// When active the player body freezes but the model keeps rotating toward the cursor
+    /// so that weapon aim, laser sight, and flashlight track correctly.
+    /// Called by DroneGrenade via GDScript's call("SetDronePiloting", ...).
+    /// </summary>
+    public void SetDronePiloting(bool active)
+    {
+        _isDronePiloting = active;
+        LogToFile($"[Player] Drone piloting mode: {active}");
+    }
+
+    /// <summary>
+    /// Fires the player's current weapon (or spawns a bullet) aimed from the drone's
+    /// position toward the mouse cursor. Called by DroneGrenade while the player is
+    /// piloting the drone (Issue #1895).
+    /// </summary>
+    /// <param name="dronePosition">World position of the drone used to compute aim direction.</param>
+    public void ShootFromDrone(Vector2 dronePosition)
+    {
+        Vector2 mousePos = GetGlobalMousePosition();
+        Vector2 shootDirection = (mousePos - dronePosition).Normalized();
+
+        if (CurrentWeapon != null)
+        {
+            CurrentWeapon.Fire(shootDirection);
+            return;
+        }
+
+        // Fallback: direct bullet spawn from drone position.
+        if (BulletScene == null)
+            return;
+        var bullet = BulletScene.Instantiate<Node2D>();
+        bullet.GlobalPosition = dronePosition + shootDirection * BulletSpawnOffset;
+        if (bullet.HasMethod("SetDirection"))
+            bullet.Call("SetDirection", shootDirection);
+        GetTree().CurrentScene?.AddChild(bullet);
+    }
+
+    /// <summary>
+    /// Delegates active-item (Space key) input handling to the player while the drone
+    /// is being piloted (Issue #1895). The player's position stays frozen; the drone
+    /// camera ensures the mouse cursor is in the right place for aim-based items.
+    /// </summary>
+    /// <param name="delta">Physics frame delta from the drone's _physics_process.</param>
+    public void TriggerActiveItemFromDrone(float delta)
+    {
+        HandleFlashlightInput();
+        HandleTeleportBracersInput();
+        HandleHomingBulletsInput(delta);
+        HandleBffPendantInput();
+        HandleInvisibilitySuitInput();
+        HandleForceFieldInput(delta);
+        HandleTrajectoryGlassesInput();
+        HandleBreachingChargesInput();
+        HandleLoudspeakerInput(delta);
+        HandleRecoilCompensatorInput(delta);
+        HandleExperimentalSampleInput();
+        HandleDrillingBulletsInput();
+        HandleFineMotorSkillsInput();
+        HandleDashInput();
+    }
+
+    /// <summary>
+    /// Fires the AKGL underbarrel grenade launcher toward the mouse cursor when RMB is
+    /// pressed while piloting the drone (Issue #1895).
+    /// Called by DroneGrenade on grenade_throw (RMB just-pressed).
+    /// </summary>
+    public void FireAKGLFromDrone()
+    {
+        var akgl = CurrentWeapon as AKGL;
+        if (akgl == null)
+            return;
+        if (!akgl.GrenadeAvailable)
+        {
+            LogToFile("[Player] AKGL grenade launcher empty - no grenade available");
+            return;
+        }
+        Vector2 direction = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+        akgl.FireGrenadeLauncher(direction);
+        LogToFile("[Player] AKGL grenade launcher fired from drone!");
     }
 
     /// <summary>
@@ -2614,6 +2742,10 @@ public partial class Player : BaseCharacter
         _lastCaliberData = caliberData;
         TakeDamage(damage);
     }
+
+    public void on_hit_with_bullet_info(Vector2 hitDirection, Godot.Resource? caliberData,
+        bool hasRicocheted, bool hasPenetrated, float damage, bool isFromPlayer, Node2D? attackerNode)
+        => on_hit_with_bullet_info(hitDirection, caliberData, hasRicocheted, hasPenetrated, damage, isFromPlayer);
 
     /// <inheritdoc/>
     public override void TakeDamage(float amount)
@@ -2971,7 +3103,16 @@ public partial class Player : BaseCharacter
             weapon.Name = weaponNodeName;
             AddChild(weapon);
             CurrentWeapon = weapon;
-            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+            // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
+            // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().
+            // LabyrinthLevel._configure_labyrinth_weapon_ammo() handles ammo setup with explicit
+            // magazine sizes so it works regardless of WeaponData state.
+            if (weapon.WeaponData == null)
+            {
+                LogToFile($"[Player.Weapon] WARNING: {weaponNodeName} WeaponData is null after AddChild (Issue #1774 first-load race). DeferredReadyInit scheduled.");
+            }
+            var equippedAmmo = GetCurrentWeaponReadyAmmoDisplay();
+            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {equippedAmmo.Current}/{equippedAmmo.Maximum})");
             // Re-detect arm pose so the player's arms match the new weapon immediately.
             _weaponPoseApplied = false;
             _weaponDetectFrameCount = 0;
@@ -3033,6 +3174,11 @@ public partial class Player : BaseCharacter
     public override void _UnhandledInput(InputEvent @event)
     {
         base._UnhandledInput(@event);
+
+        if (HandleLoudspeakerVictoryInput(@event))
+        {
+            return;
+        }
 
         var sniperRifle = CurrentWeapon as SniperRifle;
         if (sniperRifle == null || !sniperRifle.IsScopeActive)

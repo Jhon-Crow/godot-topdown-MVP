@@ -1,0 +1,1176 @@
+Run Unit Tests	Set up job	﻿2026-04-16T00:31:34.2290737Z Current runner version: '2.333.1'
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2314649Z ##[group]Runner Image Provisioner
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2316024Z Hosted Compute Agent
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2316665Z Version: 20260213.493
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2317221Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2317951Z Build Date: 2026-02-13T00:28:41Z
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2318617Z Worker ID: {bf7e9622-6fa3-4c05-a66b-7070cf001260}
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2319250Z Azure Region: westus
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2319838Z ##[endgroup]
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2321301Z ##[group]Operating System
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2321898Z Ubuntu
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2322307Z 24.04.4
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2322843Z LTS
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2323254Z ##[endgroup]
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2323731Z ##[group]Runner Image
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2324354Z Image: ubuntu-24.04
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2325038Z Version: 20260406.80.1
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2326030Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260406.80/images/ubuntu/Ubuntu2404-Readme.md
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2327676Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260406.80
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2328573Z ##[endgroup]
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2331185Z ##[group]GITHUB_TOKEN Permissions
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2333117Z Actions: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2333766Z ArtifactMetadata: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2334310Z Attestations: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2334769Z Checks: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2335567Z Contents: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2336027Z Deployments: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2336543Z Discussions: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2337029Z Issues: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2337519Z Metadata: read
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2337960Z Models: read
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2338504Z Packages: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2338986Z Pages: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2339565Z PullRequests: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2340135Z RepositoryProjects: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2340667Z SecurityEvents: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2341180Z Statuses: write
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2341649Z ##[endgroup]
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2343850Z Secret source: Actions
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2344514Z Prepare workflow directory
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2673932Z Prepare all required actions
+Run Unit Tests	Set up job	2026-04-16T00:31:34.2725335Z Getting action download info
+Run Unit Tests	Set up job	2026-04-16T00:31:34.7581624Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Run Unit Tests	Set up job	2026-04-16T00:31:34.9226180Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Run Unit Tests	Set up job	2026-04-16T00:31:35.5417139Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Run Unit Tests	Set up job	2026-04-16T00:31:35.7719856Z Complete job name: Run Unit Tests
+Run Unit Tests	Checkout	﻿2026-04-16T00:31:35.8587793Z ##[group]Run actions/checkout@v4
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8589099Z with:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8589890Z   ref: 1de1ac1845199c70a2f0bc9f9bddde9278c0b185
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8591113Z   repository: konard/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8592490Z   token: ***
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8593206Z   ssh-strict: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8593935Z   ssh-user: git
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8594713Z   persist-credentials: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8595791Z   clean: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8596565Z   sparse-checkout-cone-mode: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8597507Z   fetch-depth: 1
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8598239Z   fetch-tags: false
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8599008Z   show-progress: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8599796Z   lfs: false
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8600499Z   submodules: false
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8601272Z   set-safe-directory: true
+Run Unit Tests	Checkout	2026-04-16T00:31:35.8602387Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9690720Z Syncing repository: konard/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9693398Z ##[group]Getting Git version info
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9695478Z Working directory is '/home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP'
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9697821Z [command]/usr/bin/git version
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9731717Z git version 2.53.0
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9758613Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9772794Z Temporarily overriding HOME='/home/runner/work/_temp/258f91b0-1db3-41e9-8471-83dce21e18e7' before making global git config changes
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9776188Z Adding repository directory to the temporary git global config as a safe directory
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9779381Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9811543Z Deleting the contents of '/home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP'
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9814584Z ##[group]Initializing the repository
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9819500Z [command]/usr/bin/git init /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9911750Z hint: Using 'master' as the name for the initial branch. This default branch name
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9914218Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9916413Z hint: to use in all of your new repositories, which will suppress this warning,
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9918390Z hint: call:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9919103Z hint:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9919979Z hint: 	git config --global init.defaultBranch <name>
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9921109Z hint:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9922150Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9924419Z hint: 'development'. The just-created branch can be renamed via this command:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9926086Z hint:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9926795Z hint: 	git branch -m <name>
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9927688Z hint:
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9928949Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9931363Z Initialized empty Git repository in /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP/.git/
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9935392Z [command]/usr/bin/git remote add origin https://github.com/konard/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9955500Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9956882Z ##[group]Disabling automatic garbage collection
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9958902Z [command]/usr/bin/git config --local gc.auto 0
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9987268Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9988525Z ##[group]Setting up auth
+Run Unit Tests	Checkout	2026-04-16T00:31:35.9993503Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0023789Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0307955Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0339414Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0553097Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0590003Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0807508Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0843102Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0845826Z ##[group]Fetching the repository
+Run Unit Tests	Checkout	2026-04-16T00:31:36.0855494Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 1de1ac1845199c70a2f0bc9f9bddde9278c0b185
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2871595Z From https://github.com/konard/Jhon-Crow-godot-topdown-MVP
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2873492Z  * branch            1de1ac1845199c70a2f0bc9f9bddde9278c0b185 -> FETCH_HEAD
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2895772Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2896568Z ##[group]Determining the checkout info
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2898066Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2903518Z [command]/usr/bin/git sparse-checkout disable
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2939913Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2965264Z ##[group]Checking out the ref
+Run Unit Tests	Checkout	2026-04-16T00:31:40.2969186Z [command]/usr/bin/git checkout --progress --force 1de1ac1845199c70a2f0bc9f9bddde9278c0b185
+Run Unit Tests	Checkout	2026-04-16T00:31:41.3071584Z Updating files:  54% (1734/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.3258464Z Updating files:  55% (1749/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.3450536Z Updating files:  56% (1781/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.3676995Z Updating files:  57% (1813/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.4345459Z Updating files:  58% (1845/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.4503811Z Updating files:  59% (1877/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.4664647Z Updating files:  60% (1908/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.4783589Z Updating files:  61% (1940/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.4990178Z Updating files:  62% (1972/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.5181427Z Updating files:  63% (2004/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.5401736Z Updating files:  64% (2036/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.5922822Z Updating files:  65% (2067/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.6250562Z Updating files:  66% (2099/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.6291263Z Updating files:  67% (2131/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.6474516Z Updating files:  68% (2163/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.6792181Z Updating files:  69% (2195/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.7054414Z Updating files:  70% (2226/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.7360744Z Updating files:  71% (2258/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.7708840Z Updating files:  72% (2290/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.8566945Z Updating files:  73% (2322/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.8982988Z Updating files:  74% (2354/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9389694Z Updating files:  75% (2385/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9417722Z Updating files:  76% (2417/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9444734Z Updating files:  77% (2449/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9532581Z Updating files:  78% (2481/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9584041Z Updating files:  79% (2513/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9605664Z Updating files:  80% (2544/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9621397Z Updating files:  81% (2576/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9643801Z Updating files:  82% (2608/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9663833Z Updating files:  83% (2640/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9682249Z Updating files:  84% (2672/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9782741Z Updating files:  85% (2703/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9817062Z Updating files:  86% (2735/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9840865Z Updating files:  87% (2767/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9868493Z Updating files:  88% (2799/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9914303Z Updating files:  89% (2831/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9943332Z Updating files:  90% (2862/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9969452Z Updating files:  91% (2894/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:41.9995304Z Updating files:  92% (2926/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0024604Z Updating files:  93% (2958/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0048124Z Updating files:  94% (2990/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0074228Z Updating files:  95% (3021/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0100532Z Updating files:  96% (3053/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0129824Z Updating files:  97% (3085/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0156920Z Updating files:  98% (3117/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0187180Z Updating files:  99% (3149/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0187611Z Updating files: 100% (3180/3180)
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0190906Z Updating files: 100% (3180/3180), done.
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0228840Z Note: switching to '1de1ac1845199c70a2f0bc9f9bddde9278c0b185'.
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0229291Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0229635Z You are in 'detached HEAD' state. You can look around, make experimental
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0230379Z changes and commit them, and you can discard any commits you make in this
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0231118Z state without impacting any branches by switching back to a branch.
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0231564Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0231875Z If you want to create a new branch to retain commits you create, you may
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0232627Z do so (now or later) by using -c with the switch command. Example:
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233026Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233200Z   git switch -c <new-branch-name>
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233392Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233483Z Or undo this operation with:
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233629Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0233708Z   git switch -
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0234063Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0234258Z Turn off this advice by setting config variable advice.detachedHead to false
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0234549Z 
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0234975Z HEAD is now at 1de1ac1 Merge remote-tracking branch 'upstream/main' into issue-1823-08a665283274
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0328305Z ##[endgroup]
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0365668Z [command]/usr/bin/git log -1 --format=%H
+Run Unit Tests	Checkout	2026-04-16T00:31:42.0386457Z 1de1ac1845199c70a2f0bc9f9bddde9278c0b185
+Run Unit Tests	Setup .NET	﻿2026-04-16T00:31:42.0588016Z ##[group]Run actions/setup-dotnet@v4
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.0588277Z with:
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.0588449Z   dotnet-version: 8.0.x
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.0588646Z   cache: false
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.0588816Z ##[endgroup]
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.2392370Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.4951896Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.6/dotnet-runtime-10.0.6-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.7366673Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.6/dotnet-runtime-10.0.6-linux-x64.tar.gz size is 36703845 bytes.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:42.7369071Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.6/dotnet-runtime-10.0.6-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.3970308Z dotnet-install: Downloaded file size is 36703845 bytes.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.3971121Z dotnet-install: The remote and local file sizes are equal.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4253930Z dotnet-install: Installed version is 10.0.6
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4311647Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4313506Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4315523Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4317160Z dotnet-install: Installation finished successfully.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.4342348Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Run Unit Tests	Setup .NET	2026-04-16T00:31:43.6649761Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-04-16T00:31:45.1014006Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz size is 216822173 bytes.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:45.1017284Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.420/dotnet-sdk-8.0.420-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.6426313Z dotnet-install: Downloaded file size is 216822173 bytes.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.6427097Z dotnet-install: The remote and local file sizes are equal.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.8813443Z dotnet-install: Installed version is 8.0.420
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.8872236Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.8873748Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.8875770Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Run Unit Tests	Setup .NET	2026-04-16T00:31:49.8877495Z dotnet-install: Installation finished successfully.
+Run Unit Tests	Download Godot	﻿2026-04-16T00:31:49.9018429Z ##[group]Run wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9019389Z [36;1mwget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip[0m
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9020006Z [36;1munzip -q Godot_v4.3-stable_mono_linux_x86_64.zip[0m
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9020552Z [36;1mmv Godot_v4.3-stable_mono_linux_x86_64 godot[0m
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9020887Z [36;1mchmod +x godot/Godot_v4.3-stable_mono_linux.x86_64[0m
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9048414Z shell: /usr/bin/bash -e {0}
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9048668Z env:
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9048850Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Download Godot	2026-04-16T00:31:49.9049082Z ##[endgroup]
+Run Unit Tests	Import project assets	﻿2026-04-16T00:31:51.9319737Z ##[group]Run # Run Godot to import resources (required before running tests)
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9320255Z [36;1m# Run Godot to import resources (required before running tests)[0m
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9320754Z [36;1mtimeout 60 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --import . || true[0m
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9341859Z shell: /usr/bin/bash -e {0}
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9342080Z env:
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9342281Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9342502Z ##[endgroup]
+Run Unit Tests	Import project assets	2026-04-16T00:31:51.9935062Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Run Unit Tests	Import project assets	2026-04-16T00:31:52.0113831Z 
+Run Unit Tests	Import project assets	2026-04-16T00:31:52.0171758Z ERROR: No loader found for resource: res://resources/translations/translations.csv (expected type: )
+Run Unit Tests	Import project assets	2026-04-16T00:31:52.0172637Z    at: _load (core/io/resource_loader.cpp:291)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.3870912Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/GrenadeTimerHelper.cs' is not compiling.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.3872559Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4198661Z ERROR: Failed to create an autoload, script 'res://Scripts/Autoload/ReplayManager.cs' is not compiling.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4200210Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4527982Z SCRIPT ERROR: Parse Error: Class "ProjectilePoolManager" hides an autoload singleton.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4529083Z           at: GDScript::reload (res://scripts/autoload/projectile_pool_manager.gd:2)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4530299Z ERROR: Failed to load script "res://scripts/autoload/projectile_pool_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4531269Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4532317Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/projectile_pool_manager.gd' is not compiling.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.4533296Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5248486Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5250212Z           at: GDScript::reload (res://scripts/autoload/localization_settings.gd:100)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5251626Z ERROR: Failed to load script "res://scripts/autoload/localization_settings.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5252531Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5253265Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/localization_settings.gd' is not compiling.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5253982Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5407442Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5408824Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5411038Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5412380Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5414013Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5415576Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5416235Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5416892Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5418428Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5419484Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5420707Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5421825Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5422456Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5423092Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5424291Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5425451Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5426138Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.5426749Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9394418Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9395868Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9397847Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9399526Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9401050Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9402514Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9403429Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9404341Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9406128Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9407124Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9408014Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9408796Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9409388Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9409979Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9411093Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9412052Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9412891Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9413537Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:57.9651112Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0851313Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0852421Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0854366Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0856713Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0857911Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0858955Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-04-16T00:31:58.0859503Z GUT got some new images that are not imported yet.  Please restart Godot.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5197110Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5198150Z           at: GDScript::reload (res://experiments/test_asvk_casing_ejection.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5199044Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5199883Z           at: GDScript::reload (res://experiments/test_asvk_casing_ejection.gd:105)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5201001Z ERROR: Failed to load script "res://experiments/test_asvk_casing_ejection.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5201861Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5557010Z SCRIPT ERROR: Parse Error: Function "get_global_mouse_position()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5558120Z           at: GDScript::reload (res://experiments/test_final_validation.gd:165)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5559224Z ERROR: Failed to load script "res://experiments/test_final_validation.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5560063Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5655035Z SCRIPT ERROR: Parse Error: There is already a variable named "has_velocity" declared in this scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5658497Z           at: GDScript::reload (res://experiments/test_issue_393_fix.gd:75)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5659550Z ERROR: Failed to load script "res://experiments/test_issue_393_fix.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5660427Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5677647Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5678633Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:12)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5679636Z SCRIPT ERROR: Parse Error: Invalid operands to operator +, String and Nil.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5680577Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:12)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5681524Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5682415Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:15)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5683364Z SCRIPT ERROR: Parse Error: Invalid operands to operator +, Nil and String.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5684439Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:15)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5685925Z SCRIPT ERROR: Parse Error: Cannot infer the type of "weapon_data_name" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5687079Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:73)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5688260Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5689342Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:93)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5690600Z SCRIPT ERROR: Parse Error: Cannot infer the type of "caliber_name" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5691713Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:103)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5692976Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_caliber" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5694106Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:119)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5696050Z SCRIPT ERROR: Parse Error: Cannot infer the type of "weapon_data_path" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5697205Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:131)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5698426Z SCRIPT ERROR: Parse Error: Cannot infer the type of "caliber_path" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5699790Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:135)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5701168Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5702418Z           at: GDScript::reload (res://experiments/test_issue_765_weapon_data_persistence.gd:126)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5703632Z ERROR: Failed to load script "res://experiments/test_issue_765_weapon_data_persistence.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5704531Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5717384Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 4.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5718384Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5719397Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 2.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5720320Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:52)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5721205Z SCRIPT ERROR: Parse Error: Function "get_global_mouse_position()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5722052Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:75)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5723025Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 5.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5723928Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:98)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5725166Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 2.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5726116Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:149)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5727100Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 3.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5727989Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:150)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5728960Z SCRIPT ERROR: Parse Error: Too many arguments for "GDPrint()" call. Expected at most 1 but received 3.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5729855Z           at: GDScript::reload (res://experiments/test_laser_lag.gd:151)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5730772Z ERROR: Failed to load script "res://experiments/test_laser_lag.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5731533Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5774403Z SCRIPT ERROR: Parse Error: Function "get_global_mouse_position()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5775935Z           at: GDScript::reload (res://experiments/test_laser_translation_lag.gd:112)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5776954Z SCRIPT ERROR: Parse Error: Function "get_global_mouse_position()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5777876Z           at: GDScript::reload (res://experiments/test_laser_translation_lag.gd:149)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5778966Z ERROR: Failed to load script "res://experiments/test_laser_translation_lag.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5779841Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5822303Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5823183Z           at: GDScript::reload (res://experiments/test_projectile_pool.gd:28)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5824067Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5825237Z           at: GDScript::reload (res://experiments/test_projectile_pool.gd:30)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5826112Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5827255Z           at: GDScript::reload (res://experiments/test_projectile_pool.gd:57)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5828181Z SCRIPT ERROR: Parse Error: Invalid operands to operator *, String and int.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5829073Z           at: GDScript::reload (res://experiments/test_projectile_pool.gd:59)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5830085Z ERROR: Failed to load script "res://experiments/test_projectile_pool.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5831132Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5849982Z SCRIPT ERROR: Parse Error: Cannot infer the type of "loaded" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5851087Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:32)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5852202Z SCRIPT ERROR: Parse Error: Cannot infer the type of "spare" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5853191Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:33)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5854301Z SCRIPT ERROR: Parse Error: Cannot infer the type of "total" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5855606Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:34)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5856744Z SCRIPT ERROR: Parse Error: Cannot infer the type of "test_passed" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5857778Z           at: GDScript::reload (res://experiments/test_silenced_pistol_ammo.gd:40)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5858831Z ERROR: Failed to load script "res://experiments/test_silenced_pistol_ammo.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5859653Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5928880Z SCRIPT ERROR: Parse Error: There is already a parameter named "direction" declared in this scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5930005Z           at: GDScript::reload (res://experiments/test_translation_lag_focused.gd:121)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5931157Z ERROR: Failed to load script "res://experiments/test_translation_lag_focused.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.5932029Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7541551Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dir" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7542721Z           at: GDScript::reload (res://scripts/projectiles/rpg_rocket.gd:425)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7577727Z SCRIPT ERROR: Compile Error: 
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7578357Z           at: GDScript::reload (res://scripts/projectiles/bullet.gd:-1)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7587118Z ERROR: Failed to load script "res://scripts/projectiles/bullet.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7587895Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7656393Z WARNING: res://scenes/effects/Casing.tscn:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.7657696Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9008181Z WARNING: res://scenes/projectiles/FragGrenade.tscn:4 - ext_resource, invalid UID: uid://cfrag7qx4h3k5m2 - using text path instead: res://assets/sprites/weapons/frag_grenade.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9009225Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9220202Z SCRIPT ERROR: Parse Error: Cannot infer the type of "spawn_pos" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9221260Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9222272Z SCRIPT ERROR: Parse Error: Cannot infer the type of "player_pos" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9223199Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:87)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9224188Z SCRIPT ERROR: Parse Error: Cannot infer the type of "raycast" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9225735Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:90)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9226541Z SCRIPT ERROR: Parse Error: Cannot infer the type of "cover_pos" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9227267Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:94)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9228248Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_hidden" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9229002Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:97)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9229813Z SCRIPT ERROR: Parse Error: Cannot infer the type of "dist_to_player" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9230578Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:99)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9231385Z SCRIPT ERROR: Parse Error: Cannot infer the type of "total_score" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9232132Z           at: GDScript::reload (res://scripts/components/machine_gunner_component.gd:100)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9445378Z WARNING: res://scenes/projectiles/ChemicalGasGrenade.tscn:4 - ext_resource, invalid UID: uid://cagggas7qx4h3k5 - using text path instead: res://assets/sprites/weapons/aggression_gas_grenade.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9446617Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9772754Z SCRIPT ERROR: Compile Error: 
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9773336Z           at: GDScript::reload (res://scripts/objects/enemy.gd:-1)
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9871193Z ERROR: Failed to load script "res://scripts/objects/enemy.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:10.9872137Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0020116Z WARNING: res://resources/calibers/caliber_12p7x55.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0021283Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0436677Z SCRIPT ERROR: Parse Error: Cannot find member "PRESET_BOTTOM_CENTER" in base "Control".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0437606Z           at: GDScript::reload (res://scripts/autoload/replay_system.gd:1234)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0441781Z ERROR: Failed to load script "res://scripts/autoload/replay_system.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.0442452Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1302696Z SCRIPT ERROR: Parse Error: Cannot infer the type of "activated" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1303706Z           at: GDScript::reload (res://scripts/characters/player.gd:3873)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1304669Z SCRIPT ERROR: Parse Error: Cannot infer the type of "detonated" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1305905Z           at: GDScript::reload (res://scripts/characters/player.gd:4195)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1306854Z SCRIPT ERROR: Parse Error: Cannot infer the type of "placed" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1307672Z           at: GDScript::reload (res://scripts/characters/player.gd:4203)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1308590Z SCRIPT ERROR: Parse Error: Cannot infer the type of "detonated" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1309462Z           at: GDScript::reload (res://scripts/characters/player.gd:4572)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1341403Z ERROR: Failed to load script "res://scripts/characters/player.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1342025Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1607408Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1609043Z           at: GDScript::reload (res://scripts/components/player_loudspeaker_component.gd:244)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1615905Z ERROR: Failed to load script "res://scripts/components/player_loudspeaker_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.1616993Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2288823Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2290108Z           at: GDScript::reload (res://scripts/effects/flashlight_effect.gd:408)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2291817Z ERROR: Failed to load script "res://scripts/effects/flashlight_effect.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2292600Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2848785Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2849904Z           at: GDScript::reload (res://scripts/levels/arena_level.gd:769)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2863851Z ERROR: Failed to load script "res://scripts/levels/arena_level.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.2864501Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.3585769Z SCRIPT ERROR: Parse Error: Cannot infer the type of "local_pos" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.3586651Z           at: GDScript::reload (res://scripts/levels/building_level.gd:2131)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.3599655Z ERROR: Failed to load script "res://scripts/levels/building_level.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.3600262Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7302192Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7302998Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2150)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7303751Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7304403Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2150)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7305519Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7306174Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2151)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7306855Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7307478Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2154)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7308171Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7308792Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2155)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7309464Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7310406Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2156)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7311330Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7312285Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2157)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7313374Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7314401Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2158)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7315792Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7316911Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2160)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7318073Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7319224Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2160)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7320352Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7321406Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2161)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7322291Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7323710Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2162)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7324566Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7325637Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2163)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7326802Z SCRIPT ERROR: Parse Error: Identifier "_combo_tween" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7327637Z           at: GDScript::reload (res://scripts/levels/roguelike_level.gd:2164)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7328236Z ERROR: Failed to load script "res://scripts/levels/roguelike_level.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.7328702Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.8839801Z SCRIPT ERROR: Parse Error: Expression is of type "Area2D" so it can't be of type "Sprite2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.8840963Z           at: GDScript::reload (res://scripts/objects/water_body.gd:251)
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.8841966Z ERROR: Failed to load script "res://scripts/objects/water_body.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:11.8842743Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.0841220Z WARNING: res://resources/themes/neon_label_settings.tres:3 - ext_resource, invalid UID: uid://c3qneonfont01 - using text path instead: res://assets/fonts/neon/Comfortaa-Bold.ttf
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.0842823Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.0851413Z WARNING: res://resources/themes/neon_button_theme.tres:3 - ext_resource, invalid UID: uid://c3qneonfont01 - using text path instead: res://assets/fonts/neon/Comfortaa-Bold.ttf
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.0852754Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3025269Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3026241Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:111)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3027169Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3027983Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:132)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3028866Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3029638Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:133)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3030498Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3031262Z           at: GDScript::reload (res://tests/unit/test_aggression_cloud_visual.gd:214)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3033952Z ERROR: Failed to load script "res://tests/unit/test_aggression_cloud_visual.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3035037Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3219901Z SCRIPT ERROR: Parse Error: Member "velocity" redefined (original in native class 'CharacterBody2D')
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3220944Z           at: GDScript::reload (res://tests/unit/test_aggression_component.gd:21)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3227804Z ERROR: Failed to load script "res://tests/unit/test_aggression_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3228649Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3995750Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.3996663Z           at: GDScript::reload (res://tests/unit/test_animated_score_screen.gd:344)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4004035Z ERROR: Failed to load script "res://tests/unit/test_animated_score_screen.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4005126Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4589944Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4590853Z           at: GDScript::reload (res://tests/unit/test_armored_skin_shard.gd:157)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4591736Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4592916Z           at: GDScript::reload (res://tests/unit/test_armored_skin_shard.gd:214)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4597204Z ERROR: Failed to load script "res://tests/unit/test_armored_skin_shard.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.4598040Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5226682Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5228439Z           at: GDScript::reload (res://tests/unit/test_armory_menu.gd:233)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5229511Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "get(StringName) -> Variant".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5230479Z           at: GDScript::reload (res://tests/unit/test_armory_menu.gd:921)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5231968Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5233333Z           at: GDScript::reload (res://tests/unit/test_armory_menu.gd:233)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5234746Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5236345Z           at: GDScript::reload (res://tests/unit/test_armory_menu.gd:921)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5240548Z ERROR: Failed to load script "res://tests/unit/test_armory_menu.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5241356Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5396206Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5397463Z           at: GDScript::reload (res://tests/unit/test_armory_score_screen_highlight.gd:27)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5399112Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5400536Z           at: GDScript::reload (res://tests/unit/test_armory_score_screen_highlight.gd:27)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5405132Z ERROR: Failed to load script "res://tests/unit/test_armory_score_screen_highlight.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.5406036Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6454386Z SCRIPT ERROR: Parse Error: Expected statement, found "_" instead.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6455571Z           at: GDScript::reload (res://tests/unit/test_auto_reload.gd:481)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6456526Z ERROR: Failed to load script "res://tests/unit/test_auto_reload.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6457314Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6951118Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6952166Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:913)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6953095Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6953914Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:928)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6954813Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6955954Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:929)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6956842Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6957692Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:945)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6958646Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6959513Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:972)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6960866Z SCRIPT ERROR: Parse Error: Value of type "RefCounted" cannot be assigned to a variable of type "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6961713Z           at: GDScript::reload (res://tests/unit/test_bff_pendant.gd:975)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6965805Z ERROR: Failed to load script "res://tests/unit/test_bff_pendant.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.6966824Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7140243Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "get(StringName) -> Variant".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7141469Z           at: GDScript::reload (res://tests/unit/test_bff_targeting_component.gd:20)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7143024Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7144361Z           at: GDScript::reload (res://tests/unit/test_bff_targeting_component.gd:20)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7148592Z ERROR: Failed to load script "res://tests/unit/test_bff_targeting_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7149456Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7468424Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7469389Z           at: GDScript::reload (res://tests/unit/test_black_metal_lightning.gd:77)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7470257Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7471083Z           at: GDScript::reload (res://tests/unit/test_black_metal_lightning.gd:78)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7471912Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7472662Z           at: GDScript::reload (res://tests/unit/test_black_metal_lightning.gd:82)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7473468Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7474230Z           at: GDScript::reload (res://tests/unit/test_black_metal_lightning.gd:83)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7475301Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7476085Z           at: GDScript::reload (res://tests/unit/test_black_metal_lightning.gd:173)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7477125Z ERROR: Failed to load script "res://tests/unit/test_black_metal_lightning.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7477944Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7801662Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7802878Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:114)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7804132Z SCRIPT ERROR: Parse Error: Cannot infer the type of "calculated_alpha" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7805540Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:116)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7806734Z SCRIPT ERROR: Parse Error: Cannot infer the type of "initial" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7807711Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:122)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7808757Z SCRIPT ERROR: Parse Error: Cannot infer the type of "decay" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7809734Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:123)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7810819Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_1" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7811788Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:126)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7812888Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_2" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7813846Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:128)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7815622Z SCRIPT ERROR: Parse Error: Cannot infer the type of "alpha_3" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7816627Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:130)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7817706Z SCRIPT ERROR: Parse Error: Cannot infer the type of "steps" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7818930Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:139)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7820083Z SCRIPT ERROR: Parse Error: Cannot infer the type of "last_step_index" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7821128Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:140)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7822275Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected_alpha" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7823314Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:141)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7824469Z SCRIPT ERROR: Parse Error: Cannot infer the type of "bad_component" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7825705Z           at: GDScript::reload (res://tests/unit/test_bloody_feet_component.gd:152)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7826763Z ERROR: Failed to load script "res://tests/unit/test_bloody_feet_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.7827592Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8182355Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8183227Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:716)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8184033Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8184773Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:718)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8185850Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8186619Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:723)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8187419Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8188140Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:725)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8188919Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8189644Z           at: GDScript::reload (res://tests/unit/test_blood_effects.gd:735)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8192484Z ERROR: Failed to load script "res://tests/unit/test_blood_effects.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8193299Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8580027Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8580912Z           at: GDScript::reload (res://tests/unit/test_breaching_charges_effect.gd:414)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8581759Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8582599Z           at: GDScript::reload (res://tests/unit/test_breaching_charges_effect.gd:475)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8583478Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8584252Z           at: GDScript::reload (res://tests/unit/test_breaching_charges_effect.gd:477)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8585362Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8586165Z           at: GDScript::reload (res://tests/unit/test_breaching_charges_effect.gd:830)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8591067Z ERROR: Failed to load script "res://tests/unit/test_breaching_charges_effect.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8591938Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8769795Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8770621Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:243)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8771906Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8772643Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:268)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8773886Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8775454Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:264)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8776670Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8777756Z           at: GDScript::reload (res://tests/unit/test_breaker_bullet.gd:279)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8779523Z ERROR: Failed to load script "res://tests/unit/test_breaker_bullet.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8780312Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8953171Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8954060Z           at: GDScript::reload (res://tests/unit/test_breaker_shrapnel.gd:241)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8955122Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8955925Z           at: GDScript::reload (res://tests/unit/test_breaker_shrapnel.gd:380)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8962435Z ERROR: Failed to load script "res://tests/unit/test_breaker_shrapnel.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.8963245Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9359992Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9360867Z           at: GDScript::reload (res://tests/unit/test_bullet_hole.gd:142)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9361675Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9362412Z           at: GDScript::reload (res://tests/unit/test_bullet_hole.gd:144)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9366682Z ERROR: Failed to load script "res://tests/unit/test_bullet_hole.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9367497Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9975665Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9977200Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:41)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9978648Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9979871Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:128)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9980748Z SCRIPT ERROR: Parse Error: Cannot infer the type of "impulse" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9981528Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:143)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9982807Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9983957Z           at: GDScript::reload (res://tests/unit/test_casing_explosion_reaction.gd:41)
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9988853Z ERROR: Failed to load script "res://tests/unit/test_casing_explosion_reaction.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:12.9989926Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.0152987Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.0153758Z           at: GDScript::reload (res://tests/unit/test_castle_level.gd:178)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.0160793Z ERROR: Failed to load script "res://tests/unit/test_castle_level.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.0161489Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1066123Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1067513Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1324)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1068274Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1068967Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1326)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1069737Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1070609Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1328)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1071434Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1072121Z           at: GDScript::reload (res://tests/unit/test_cinema_effects_manager.gd:1330)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1082989Z ERROR: Failed to load script "res://tests/unit/test_cinema_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.1083681Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2540869Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2542030Z           at: GDScript::reload (res://tests/unit/test_cover_raycast_monitor.gd:29)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2543379Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2544582Z           at: GDScript::reload (res://tests/unit/test_cover_raycast_monitor.gd:29)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2549073Z ERROR: Failed to load script "res://tests/unit/test_cover_raycast_monitor.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.2549819Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3305989Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3307242Z           at: GDScript::reload (res://tests/unit/test_defensive_grenade.gd:35)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3308826Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3310169Z           at: GDScript::reload (res://tests/unit/test_defensive_grenade.gd:35)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3314966Z ERROR: Failed to load script "res://tests/unit/test_defensive_grenade.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3315965Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3766760Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3767636Z           at: GDScript::reload (res://tests/unit/test_difficulty_manager.gd:616)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3768473Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3769205Z           at: GDScript::reload (res://tests/unit/test_difficulty_manager.gd:689)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3779964Z ERROR: Failed to load script "res://tests/unit/test_difficulty_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.3780853Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5282516Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5283391Z           at: GDScript::reload (res://tests/unit/test_drone_operator.gd:376)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5284102Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5284760Z           at: GDScript::reload (res://tests/unit/test_drone_operator.gd:383)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5285803Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5286418Z           at: GDScript::reload (res://tests/unit/test_drone_operator.gd:391)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5287070Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5287657Z           at: GDScript::reload (res://tests/unit/test_drone_operator.gd:401)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5295242Z ERROR: Failed to load script "res://tests/unit/test_drone_operator.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5296607Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5462621Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5463314Z           at: GDScript::reload (res://tests/unit/test_effects.gd:395)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5464277Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5465163Z           at: GDScript::reload (res://tests/unit/test_effects.gd:396)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5465775Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5466313Z           at: GDScript::reload (res://tests/unit/test_effects.gd:397)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5466886Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5467419Z           at: GDScript::reload (res://tests/unit/test_effects.gd:398)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5470790Z ERROR: Failed to load script "res://tests/unit/test_effects.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.5471403Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6498302Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6499121Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:2288)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6499773Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6500662Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:2295)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6501574Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6502155Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:2306)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6502754Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6503307Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:2308)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6504298Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6505532Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:326)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6522388Z ERROR: Failed to load script "res://tests/unit/test_enemy.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.6523116Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.7795990Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.7797318Z           at: GDScript::reload (res://tests/unit/test_enemy_flashlight_component.gd:168)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.7807651Z ERROR: Failed to load script "res://tests/unit/test_enemy_flashlight_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.7808498Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8903077Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8904302Z           at: GDScript::reload (res://tests/unit/test_enemy_path_monitor.gd:31)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8906101Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8907447Z           at: GDScript::reload (res://tests/unit/test_enemy_path_monitor.gd:31)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8914374Z ERROR: Failed to load script "res://tests/unit/test_enemy_path_monitor.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.8915393Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.9845134Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.9846029Z           at: GDScript::reload (res://tests/unit/test_enemy_sniper_component.gd:81)
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.9858676Z ERROR: Failed to load script "res://tests/unit/test_enemy_sniper_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:13.9860142Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0062179Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0063042Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:150)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0063831Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0065262Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:200)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0066089Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0066835Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:206)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0067620Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0068326Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:212)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0069075Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0069771Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:218)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0070508Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0071186Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:224)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0071930Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0072610Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:230)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0073363Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0074040Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:238)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0074765Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0075682Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:246)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0076459Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0077188Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:254)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0077976Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0078684Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:262)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0079487Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0080187Z           at: GDScript::reload (res://tests/unit/test_enemy_spawner_1342.gd:426)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0081116Z ERROR: Failed to load script "res://tests/unit/test_enemy_spawner_1342.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0081921Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0436487Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0437733Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:55)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0464080Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0465450Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:76)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0466579Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0467605Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:83)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0468690Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0469662Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:90)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0470711Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0471668Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:98)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0473120Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0474087Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:106)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0475416Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0476670Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:115)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0477745Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0478714Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:122)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0479765Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0480721Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:135)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0481785Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0482736Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:142)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0483795Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0484763Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:149)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0486087Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0487050Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:161)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0488087Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0488998Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:169)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0490003Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0490922Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:182)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0491945Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0492888Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:193)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0493936Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0495083Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:204)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0496145Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0497102Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:221)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0498143Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0499126Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:232)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0500190Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0501142Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:244)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0502198Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0503155Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:257)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0504203Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0505373Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:269)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0506426Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0507618Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:283)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0508674Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0509631Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:299)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0510866Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0511851Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:316)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0512907Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0513867Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:336)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0515115Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0516103Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:347)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0517164Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0518119Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:364)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0519203Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0520168Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:400)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0521220Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0522164Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:419)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0523217Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0524194Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:437)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0525634Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0526617Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:449)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0527663Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0528626Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:465)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0529678Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0530612Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:478)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0532152Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0533525Z           at: GDScript::reload (res://tests/unit/test_enemy_states.gd:55)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0534454Z ERROR: Failed to load script "res://tests/unit/test_enemy_states.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.0535427Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.1510824Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.1512950Z           at: GDScript::reload (res://tests/unit/test_experimental_sample_item_popup.gd:98)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.1519356Z ERROR: Failed to load script "res://tests/unit/test_experimental_sample_item_popup.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.1520633Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.2290539Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.2291429Z           at: GDScript::reload (res://tests/unit/test_explosion_scorch_mark.gd:295)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.2299401Z ERROR: Failed to load script "res://tests/unit/test_explosion_scorch_mark.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.2300323Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5065707Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5067126Z           at: GDScript::reload (res://tests/unit/test_flashlight_effect.gd:201)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5078802Z ERROR: Failed to load script "res://tests/unit/test_flashlight_effect.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5079309Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5425280Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "get(StringName) -> Variant".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5426304Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5427309Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "set(StringName, Variant) -> void".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5428223Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:46)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5429153Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "get(StringName) -> Variant".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5429997Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:73)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5430934Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "set(StringName, Variant) -> void".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5431956Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:82)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5433400Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5434447Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5435881Z SCRIPT ERROR: Parse Error: The method "set()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5436924Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:46)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5438102Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5439141Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:73)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5440298Z SCRIPT ERROR: Parse Error: The method "set()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5441329Z           at: GDScript::reload (res://tests/unit/test_force_field_tracer_trail.gd:82)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5442139Z ERROR: Failed to load script "res://tests/unit/test_force_field_tracer_trail.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5442777Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5615205Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5616090Z           at: GDScript::reload (res://tests/unit/test_force_field_visual.gd:380)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5616954Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5617687Z           at: GDScript::reload (res://tests/unit/test_force_field_visual.gd:382)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5624210Z ERROR: Failed to load script "res://tests/unit/test_force_field_visual.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5625344Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5971664Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5973922Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5976061Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5977505Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5979288Z ERROR: Failed to load script "res://tests/unit/test_frag_grenade.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.5980092Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7386150Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7387081Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:747)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7388743Z SCRIPT ERROR: Parse Error: The method "force_raycast_update()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7390233Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:63)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7391787Z SCRIPT ERROR: Parse Error: The method "is_colliding()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7393184Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:67)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7394727Z SCRIPT ERROR: Parse Error: The method "get_collider()" overrides a method from native class "RayCast2D". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7396434Z           at: GDScript::reload (res://tests/unit/test_grenade_avoidance_component.gd:70)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7398867Z ERROR: Failed to load script "res://tests/unit/test_grenade_avoidance_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7399559Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7790485Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7791341Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:395)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7792119Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7792834Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:402)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7793568Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7794238Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:652)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7795335Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7796071Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:726)
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7802074Z ERROR: Failed to load script "res://tests/unit/test_grenade_base.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:14.7802733Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.0431661Z SCRIPT ERROR: Parse Error: Cannot infer the type of "light" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.0432722Z           at: GDScript::reload (res://tests/unit/test_impact_effects_manager.gd:433)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.0451109Z ERROR: Failed to load script "res://tests/unit/test_impact_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.0451975Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1638280Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1639225Z           at: GDScript::reload (res://tests/unit/test_invisible_player_suppressive_fire.gd:349)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1646290Z ERROR: Failed to load script "res://tests/unit/test_invisible_player_suppressive_fire.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1647198Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1835405Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1836715Z           at: GDScript::reload (res://tests/unit/test_issue_716_comprehensive.gd:17)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1845023Z ERROR: Failed to load script "res://tests/unit/test_issue_716_comprehensive.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.1846357Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2181908Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2182928Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:15)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2183901Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2184767Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:36)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2185898Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2186742Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:51)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2187613Z SCRIPT ERROR: Parse Error: Identifier "cock_result" not declared in the current scope.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2188410Z           at: GDScript::reload (res://tests/unit/test_issue_716_integration.gd:52)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2193983Z ERROR: Failed to load script "res://tests/unit/test_issue_716_integration.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2195036Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2374423Z SCRIPT ERROR: Parse Error: Preload file "res://scripts/weapons/csharp/Revolver.cs" does not exist.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2375682Z           at: GDScript::reload (res://tests/unit/test_issue_716_verification.gd:23)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2385210Z ERROR: Failed to load script "res://tests/unit/test_issue_716_verification.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.2386212Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4829283Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4830196Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1157)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4831068Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4831844Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1158)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4832698Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4833479Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1159)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4834334Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4835581Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1160)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4836486Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4837271Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1161)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4838133Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4839170Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1162)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4840264Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4841044Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1214)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4841707Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4842305Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1215)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4842966Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4843563Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1216)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4844223Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4845544Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1217)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4846358Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4846968Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1218)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4847798Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4848407Z           at: GDScript::reload (res://tests/unit/test_last_chance_effects_manager.gd:1219)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4849255Z ERROR: Failed to load script "res://tests/unit/test_last_chance_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.4849903Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.5168984Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.5170144Z           at: GDScript::reload (res://tests/unit/test_levels_menu_roguelike_exit.gd:30)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.5174617Z ERROR: Failed to load script "res://tests/unit/test_levels_menu_roguelike_exit.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.5175692Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.7891578Z SCRIPT ERROR: Parse Error: The member "Range" shadows a native class.
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.7892403Z           at: GDScript::reload (res://tests/unit/test_makarov_pm.gd:26)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.7903839Z ERROR: Failed to load script "res://tests/unit/test_makarov_pm.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.7904561Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8093375Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8094306Z           at: GDScript::reload (res://tests/unit/test_mini_uzi_init.gd:50)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8095540Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "get(StringName) -> Variant".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8096349Z           at: GDScript::reload (res://tests/unit/test_mini_uzi_init.gd:53)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8097548Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8098528Z           at: GDScript::reload (res://tests/unit/test_mini_uzi_init.gd:50)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8099571Z SCRIPT ERROR: Parse Error: The method "get()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8100490Z           at: GDScript::reload (res://tests/unit/test_mini_uzi_init.gd:53)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8104476Z ERROR: Failed to load script "res://tests/unit/test_mini_uzi_init.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.8105291Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9567890Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9569040Z           at: GDScript::reload (res://tests/unit/test_pacifist_state.gd:32)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9570371Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9571341Z           at: GDScript::reload (res://tests/unit/test_pacifist_state.gd:32)
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9578916Z ERROR: Failed to load script "res://tests/unit/test_pacifist_state.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:15.9579523Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0762723Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0763592Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1034)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0765153Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0766106Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1035)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0766877Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0767781Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1036)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0768527Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0769192Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1037)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0769922Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0770581Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1038)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0771364Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0772048Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1039)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0772724Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0773351Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1367)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0774034Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0774660Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1368)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0775566Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0776183Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1369)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0777136Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0778050Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1370)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0778745Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0779368Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1371)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0780045Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0780669Z           at: GDScript::reload (res://tests/unit/test_penultimate_hit_effects_manager.gd:1372)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0781557Z ERROR: Failed to load script "res://tests/unit/test_penultimate_hit_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.0782242Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2909701Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2910873Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2912362Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2913683Z           at: GDScript::reload (res://tests/unit/test_power_fantasy_effects_manager.gd:40)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2925897Z ERROR: Failed to load script "res://tests/unit/test_power_fantasy_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.2926711Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4090127Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4090836Z           at: GDScript::reload (res://tests/unit/test_radio_wave_effect.gd:226)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4091483Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4092057Z           at: GDScript::reload (res://tests/unit/test_radio_wave_effect.gd:228)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4099215Z ERROR: Failed to load script "res://tests/unit/test_radio_wave_effect.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.4099852Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6712763Z SCRIPT ERROR: Parse Error: Function "assert_neq()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6713634Z           at: GDScript::reload (res://tests/unit/test_revolver_initialization.gd:149)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6715158Z SCRIPT ERROR: Parse Error: Function "assert_neq()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6716005Z           at: GDScript::reload (res://tests/unit/test_revolver_initialization.gd:173)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6719974Z ERROR: Failed to load script "res://tests/unit/test_revolver_initialization.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.6720840Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7687656Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_valid" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7688522Z           at: GDScript::reload (res://tests/unit/test_ricochet.gd:150)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7689381Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_valid" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7690100Z           at: GDScript::reload (res://tests/unit/test_ricochet.gd:166)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7690871Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_valid" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7691566Z           at: GDScript::reload (res://tests/unit/test_ricochet.gd:205)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7692341Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_valid_545" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7693045Z           at: GDScript::reload (res://tests/unit/test_ricochet.gd:222)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7693817Z SCRIPT ERROR: Parse Error: Cannot infer the type of "is_valid_762" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7694516Z           at: GDScript::reload (res://tests/unit/test_ricochet.gd:223)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7708543Z ERROR: Failed to load script "res://tests/unit/test_ricochet.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7709166Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7896297Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7897159Z           at: GDScript::reload (res://tests/unit/test_roguelike_branching_map.gd:165)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7905242Z ERROR: Failed to load script "res://tests/unit/test_roguelike_branching_map.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.7906296Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8091696Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8092604Z           at: GDScript::reload (res://tests/unit/test_roguelike_isaac_improvements.gd:256)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8093576Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8094393Z           at: GDScript::reload (res://tests/unit/test_roguelike_isaac_improvements.gd:334)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8095534Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8096327Z           at: GDScript::reload (res://tests/unit/test_roguelike_isaac_improvements.gd:354)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8101982Z ERROR: Failed to load script "res://tests/unit/test_roguelike_isaac_improvements.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8102934Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8569960Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8570870Z           at: GDScript::reload (res://tests/unit/test_roguelike_special_enemies.gd:202)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8578544Z ERROR: Failed to load script "res://tests/unit/test_roguelike_special_enemies.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8579418Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8779869Z SCRIPT ERROR: Parse Error: Function "auto_free()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8781129Z           at: GDScript::reload (res://tests/unit/test_rpg_obstacle_destruction.gd:421)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8782020Z SCRIPT ERROR: Parse Error: Function "auto_free()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8782836Z           at: GDScript::reload (res://tests/unit/test_rpg_obstacle_destruction.gd:450)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8790764Z ERROR: Failed to load script "res://tests/unit/test_rpg_obstacle_destruction.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8791627Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8948139Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8948936Z           at: GDScript::reload (res://tests/unit/test_rpg_rocket.gd:227)
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8955618Z ERROR: Failed to load script "res://tests/unit/test_rpg_rocket.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:16.8956571Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0327171Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0328433Z           at: GDScript::reload (res://tests/unit/test_search_path_monitor.gd:29)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0329971Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0331359Z           at: GDScript::reload (res://tests/unit/test_search_path_monitor.gd:29)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0335507Z ERROR: Failed to load script "res://tests/unit/test_search_path_monitor.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.0336596Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1032595Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1033801Z           at: GDScript::reload (res://tests/unit/test_shield_hit_area.gd:60)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1035315Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1036411Z           at: GDScript::reload (res://tests/unit/test_shield_hit_area.gd:70)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1037912Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1039247Z           at: GDScript::reload (res://tests/unit/test_shield_hit_area.gd:60)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1040709Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1041983Z           at: GDScript::reload (res://tests/unit/test_shield_hit_area.gd:70)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1042976Z ERROR: Failed to load script "res://tests/unit/test_shield_hit_area.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1043760Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1233701Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1234507Z           at: GDScript::reload (res://tests/unit/test_shrapnel.gd:369)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1242489Z ERROR: Failed to load script "res://tests/unit/test_shrapnel.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1243277Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1461845Z SCRIPT ERROR: Parse Error: Member "velocity" redefined (original in native class 'CharacterBody2D')
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1462876Z           at: GDScript::reload (res://tests/unit/test_sniper_aim_inertia.gd:74)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1463798Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1464550Z           at: GDScript::reload (res://tests/unit/test_sniper_aim_inertia.gd:36)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1465708Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1466979Z           at: GDScript::reload (res://tests/unit/test_sniper_aim_inertia.gd:38)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1476589Z ERROR: Failed to load script "res://tests/unit/test_sniper_aim_inertia.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1477407Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1735530Z SCRIPT ERROR: Parse Error: Invalid argument for "process_pursuing()" function: argument 3 should be "Node" but is "MockNode2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1736704Z           at: GDScript::reload (res://tests/unit/test_sniper_enemy_fix.gd:204)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1737918Z SCRIPT ERROR: Parse Error: Invalid argument for "process_pursuing()" function: argument 3 should be "Node" but is "MockNode2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1738981Z           at: GDScript::reload (res://tests/unit/test_sniper_enemy_fix.gd:215)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1740119Z SCRIPT ERROR: Parse Error: Invalid argument for "process_pursuing()" function: argument 3 should be "Node" but is "MockNode2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1741184Z           at: GDScript::reload (res://tests/unit/test_sniper_enemy_fix.gd:235)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1742215Z SCRIPT ERROR: Parse Error: Value of type "MockEnemy" cannot be assigned to a variable of type "Node2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1743104Z           at: GDScript::reload (res://tests/unit/test_sniper_enemy_fix.gd:191)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1751863Z ERROR: Failed to load script "res://tests/unit/test_sniper_enemy_fix.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.1752684Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2142689Z SCRIPT ERROR: Parse Error: Cannot infer the type of "expected" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2143785Z           at: GDScript::reload (res://tests/unit/test_sniper_laser_sight.gd:136)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2155540Z ERROR: Failed to load script "res://tests/unit/test_sniper_laser_sight.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2156592Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2298819Z SCRIPT ERROR: Parse Error: The member "Range" shadows a native class.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2299658Z           at: GDScript::reload (res://tests/unit/test_sniper_rifle_loudness.gd:23)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2305810Z ERROR: Failed to load script "res://tests/unit/test_sniper_rifle_loudness.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.2306660Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3647188Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3648429Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3649679Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3650791Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3652459Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3653905Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:24)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3655729Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3657138Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3658737Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3660158Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:549)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3661699Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3663522Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:564)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3664585Z ERROR: Failed to load script "res://tests/unit/test_status_effects_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.3665828Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4252215Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4253400Z           at: GDScript::reload (res://tests/unit/test_tactical_group.gd:32)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4254212Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4255243Z           at: GDScript::reload (res://tests/unit/test_tactical_group.gd:78)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4256360Z SCRIPT ERROR: Parse Error: Invalid argument for "new()" function: argument 1 should be "Node2D" but is "MockEnemy2D".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4257333Z           at: GDScript::reload (res://tests/unit/test_tactical_group.gd:169)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4258814Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4260135Z           at: GDScript::reload (res://tests/unit/test_tactical_group.gd:32)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4261642Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4262945Z           at: GDScript::reload (res://tests/unit/test_tactical_group.gd:35)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4263888Z ERROR: Failed to load script "res://tests/unit/test_tactical_group.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4264672Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4425633Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4427131Z           at: GDScript::reload (res://tests/unit/test_tactical_group_component.gd:21)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4432597Z ERROR: Failed to load script "res://tests/unit/test_tactical_group_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.4433449Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.5419814Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.5421337Z           at: GDScript::reload (res://tests/unit/test_threat_sphere.gd:122)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.5428060Z ERROR: Failed to load script "res://tests/unit/test_threat_sphere.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.5428884Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.7993945Z SCRIPT ERROR: Parse Error: Cannot return value of type "MockProgressManager" because the function return type is "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.7995645Z           at: GDScript::reload (res://tests/unit/test_unlock_manager.gd:345)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.7996919Z SCRIPT ERROR: Parse Error: Cannot return value of type "MockGameManager" because the function return type is "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.7998005Z           at: GDScript::reload (res://tests/unit/test_unlock_manager.gd:347)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.7999051Z SCRIPT ERROR: Parse Error: Cannot return value of type "MockActiveItemManager" because the function return type is "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8000016Z           at: GDScript::reload (res://tests/unit/test_unlock_manager.gd:349)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8001009Z SCRIPT ERROR: Parse Error: Cannot return value of type "MockGrenadeManager" because the function return type is "Node".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8002253Z           at: GDScript::reload (res://tests/unit/test_unlock_manager.gd:351)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8003710Z SCRIPT ERROR: Parse Error: The method "get_node_or_null()" overrides a method from native class "Node". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8005256Z           at: GDScript::reload (res://tests/unit/test_unlock_manager.gd:342)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8007876Z ERROR: Failed to load script "res://tests/unit/test_unlock_manager.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8008575Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8806001Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8807005Z           at: GDScript::reload (res://tests/unit/test_vog_grenade.gd:20)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8807997Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8808896Z           at: GDScript::reload (res://tests/unit/test_vog_grenade.gd:40)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8810152Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8811266Z           at: GDScript::reload (res://tests/unit/test_vog_grenade.gd:20)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8812842Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8814154Z           at: GDScript::reload (res://tests/unit/test_vog_grenade.gd:40)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8815221Z ERROR: Failed to load script "res://tests/unit/test_vog_grenade.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.8815938Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9180336Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9181156Z           at: GDScript::reload (res://tests/unit/test_water_body.gd:170)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9181766Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9182301Z           at: GDScript::reload (res://tests/unit/test_water_body.gd:171)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9182923Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9183465Z           at: GDScript::reload (res://tests/unit/test_water_body.gd:172)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9184049Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9184562Z           at: GDScript::reload (res://tests/unit/test_water_body.gd:173)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9190678Z ERROR: Failed to load script "res://tests/unit/test_water_body.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9191206Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9633727Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9635387Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:410)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9636482Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9637468Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:417)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9638313Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9639051Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:424)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9639871Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9640616Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:431)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9641767Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9642517Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:438)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9643331Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9644195Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:445)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9645252Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9645997Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:454)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9647278Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9648277Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:463)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9648892Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9649463Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:476)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9650091Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9650661Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:484)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9651292Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9651851Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:494)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9652494Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9653056Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:504)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9653673Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9654226Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:513)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9654828Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9655637Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:520)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9656244Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9656785Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:527)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9657390Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9657932Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:534)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9658544Z SCRIPT ERROR: Parse Error: Cannot infer the type of "config" variable because the value doesn't have a set type.
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9659092Z           at: GDScript::reload (res://tests/unit/test_weapon_config_component.gd:541)
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9659700Z ERROR: Failed to load script "res://tests/unit/test_weapon_config_component.gd" with error "Parse error".
+Run Unit Tests	Import project assets	2026-04-16T00:32:17.9660189Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9020806Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9022008Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9026763Z WARNING: res://resources/calibers/caliber_9x18.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9027859Z      at: load (scene/resources/resource_format_text.cpp:453)
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9029952Z WARNING: res://scenes/weapons/csharp/MakarovPM.tscn:7 - ext_resource, invalid UID: uid://makarov_pm_topdown - using text path instead: res://assets/sprites/weapons/makarov_pm_topdown.png
+Run Unit Tests	Import project assets	2026-04-16T00:32:18.9030985Z      at: load (scene/resources/resource_format_text.cpp:453)

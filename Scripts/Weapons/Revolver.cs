@@ -272,6 +272,13 @@ public partial class Revolver : BaseWeapon
     public delegate void CylinderStateChangedEventHandler();
 
     /// <summary>
+    /// Signal emitted when the cylinder is explicitly rotated by scroll input.
+    /// Provides the new chamber index after rotation.
+    /// </summary>
+    [Signal]
+    public delegate void CylinderRotatedEventHandler(int chamberIndex);
+
+    /// <summary>
     /// Timer for the delay between hammer cock and actual shot (Issue #661).
     /// The hammer cocks and cylinder rotates first, then the shot fires.
     /// </summary>
@@ -1280,7 +1287,9 @@ public partial class Revolver : BaseWeapon
 
         // Calculate maximum laser length based on viewport size
         Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        // Issue #1895: extend laser to reach mouse cursor during drone mode.
+        float distToMouse = GlobalPosition.DistanceTo(GetGlobalMousePosition());
+        float maxLaserLength = Mathf.Max(viewportSize.Length(), distToMouse + 200f);
 
         // Calculate the end point of the laser
         Vector2 endPoint = laserDirection * maxLaserLength;
@@ -1576,6 +1585,8 @@ public partial class Revolver : BaseWeapon
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
+
+        EmitSignal(SignalName.CylinderRotated, _currentChamberIndex);
 
         // Issue #691: Notify UI of cylinder state change
         EmitSignal(SignalName.CylinderStateChanged);

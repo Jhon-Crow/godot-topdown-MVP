@@ -23,6 +23,8 @@ class MockSceneLoader:
 
 	## Simulates the valid resource paths.
 	var _valid_paths: Dictionary = {}
+	var overlay_hidden: bool = false
+	var change_scene_error: int = OK
 
 	## Register a path as valid (simulates ResourceLoader.exists).
 	func register_valid_path(path: String) -> void:
@@ -53,6 +55,16 @@ class MockSceneLoader:
 	func finish_loading() -> void:
 		_is_loading = false
 		_current_load_path = ""
+		overlay_hidden = true
+
+	## Simulate the real loader's scene-change completion branch.
+	func finish_loading_with_change_result(error: int) -> void:
+		change_scene_error = error
+		if error != OK:
+			_is_loading = false
+			_current_load_path = ""
+			return
+		finish_loading()
 
 
 var loader: MockSceneLoader
@@ -144,6 +156,28 @@ func test_finish_loading_resets_state() -> void:
 	assert_eq(loader.get_current_load_path(), "", "Path should be cleared after finish")
 
 
+func test_failed_scene_change_keeps_overlay_visible() -> void:
+	loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+
+	loader.finish_loading_with_change_result(ERR_CANT_CREATE)
+
+	assert_false(loader.is_loading(), "Failed scene change should release loading state")
+	assert_eq(loader.get_current_load_path(), "", "Failed scene change should clear path")
+	assert_false(loader.overlay_hidden,
+		"Loading overlay should remain visible instead of exposing an empty gray scene")
+
+
+func test_successful_scene_change_hides_overlay() -> void:
+	loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+
+	loader.finish_loading_with_change_result(OK)
+
+	assert_false(loader.is_loading(), "Successful scene change should finish loading")
+	assert_true(loader.overlay_hidden, "Successful scene change should hide the overlay")
+
+
 # ============================================================================
 # Path Validation Tests
 # ============================================================================
@@ -188,13 +222,21 @@ func test_multiple_invalid_paths_all_rejected() -> void:
 class MockSceneLoaderWithFallback extends MockSceneLoader:
 	## Tracks whether fallback sync load was triggered.
 	var fallback_triggered: bool = false
+	var overlay_visible: bool = false
+	var fallback_change_error: int = OK
 
 	## Simulates THREAD_LOAD_INVALID_RESOURCE — should trigger fallback, not silent fail.
 	func simulate_invalid_resource_during_poll() -> void:
 		# The fix: fall back to sync load instead of silently hiding the screen
 		fallback_triggered = true
-		_is_loading = false
-		_current_load_path = ""
+		overlay_visible = true
+		if fallback_change_error == OK:
+			_is_loading = false
+			_current_load_path = ""
+			overlay_visible = false
+
+	func fallback_overlay_is_visible() -> bool:
+		return overlay_visible
 
 
 func test_invalid_resource_during_poll_triggers_fallback() -> void:
@@ -226,3 +268,58 @@ func test_after_invalid_resource_can_load_again() -> void:
 	fallback_loader.load_level("res://scenes/levels/CastleLevel.tscn")
 	assert_true(fallback_loader.is_loading(),
 		"Should be able to load a new level after INVALID_RESOURCE fallback")
+
+
+# ============================================================================
+# Exported Build Fallback Source Tests
+# ============================================================================
+
+func _read_scene_loader_source() -> String:
+	var file := FileAccess.open("res://scripts/autoload/scene_loader.gd", FileAccess.READ)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
+
+
+func test_sync_fallback_uses_resource_loader_for_exported_pck() -> void:
+	## Regression guard for the exported exe gray-screen report from PR #1661.
+	## Godot 4.3 docs warn that bare GDScript load() can fail on converted resources
+	## inside an exported PCK; the fallback path must use ResourceLoader.load().
+	var source := _read_scene_loader_source()
+	assert_ne(source.find('ResourceLoader.load(path, "PackedScene")'), -1,
+		"SceneLoader sync fallback should load scenes through ResourceLoader with PackedScene type hint")
+	assert_eq(source.find("var loaded_scene := load(_current_load_path)"), -1,
+		"SceneLoader sync fallback must not use bare GDScript load() for exported builds")
+
+
+func test_threaded_request_uses_packed_scene_type_hint_without_subthreads() -> void:
+	var source := _read_scene_loader_source()
+	assert_ne(source.find('ResourceLoader.load_threaded_request(_current_load_path, "PackedScene", false)'), -1,
+		"Threaded scene load should request PackedScene directly and avoid Godot 4.3 sub-thread export flakiness")
+
+
+func test_hide_loading_screen_disables_processing() -> void:
+	var source := _read_scene_loader_source()
+	assert_ne(source.find("func _hide_loading_screen() -> void:\n\tset_process(false)"), -1,
+		"Hiding the loading screen should stop polling immediately after fallback or completion")
+
+
+func test_invalid_resource_fallback_keeps_overlay_on_scene_change_error() -> void:
+	## Issue #1817: exported startup can report THREAD_LOAD_INVALID_RESOURCE and
+	## then fail the sync scene change. In that case the loading overlay must stay
+	## visible instead of exposing a blank/gray scene.
+	var fallback_loader := MockSceneLoaderWithFallback.new()
+	fallback_loader.register_valid_path("res://scenes/levels/RoguelikeLevel.tscn")
+	fallback_loader.fallback_change_error = ERR_CANT_CREATE
+
+	fallback_loader.load_level("res://scenes/levels/RoguelikeLevel.tscn")
+	fallback_loader.simulate_invalid_resource_during_poll()
+
+	assert_true(fallback_loader.fallback_triggered,
+		"Invalid threaded resource should still attempt sync fallback")
+	assert_true(fallback_loader.is_loading(),
+		"Failed sync fallback should keep loader state active for diagnostics")
+	assert_true(fallback_loader.fallback_overlay_is_visible(),
+		"Failed sync fallback should keep the loading overlay visible")

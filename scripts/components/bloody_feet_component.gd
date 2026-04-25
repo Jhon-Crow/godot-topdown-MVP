@@ -11,8 +11,21 @@ extends Node
 ## - Uses distance_squared_to() for faster distance comparisons
 class_name BloodyFeetComponent
 
+## Emitted immediately when the character steps in blood (Issue #1627).
+## SnowyFeetComponent connects to this to set its red-print counter synchronously,
+## avoiding the race condition where _blood_level drains before SnowyFeet checks it.
+signal blood_contact(blood_color: Color)
+
 ## Number of bloody footprints before the blood runs out.
 @export var blood_steps_count: int = 12
+
+## When true, exactly snow_blood_steps_count red oval footprints are spawned on snow
+## after stepping in blood, then SnowyFeetComponent resumes normal white prints (Issue #1627).
+## Set by the Winter Forest level script.
+@export var on_snow: bool = false
+
+## Number of red oval bloody footprints to leave on snow after stepping in blood (Issue #1627).
+@export var snow_blood_steps_count: int = 5
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -29,7 +42,7 @@ class_name BloodyFeetComponent
 ## Enable debug logging.
 @export var debug_logging: bool = false
 
-## Preloaded footprint scene.
+## Preloaded footprint scene (regular BloodFootprint for non-snow surfaces).
 var _footprint_scene: PackedScene = null
 
 ## Current blood level (number of steps remaining).
@@ -71,6 +84,13 @@ var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
 ## Performance fix: Use signals instead of polling get_overlapping_areas() every frame.
 var _is_overlapping_blood: bool = false
 
+## Area2D used to detect overlap with snow-surface areas (group "snow_area").
+## Used when on_snow = true to restrict footprints to snow surfaces only.
+var _snow_detector: Area2D = null
+
+## Whether currently overlapping a snow surface (signal-based detection).
+var _is_overlapping_snow: bool = false
+
 ## Counter for throttled fallback distance check.
 ## Performance fix: Only check distance every N frames instead of every frame.
 var _fallback_check_counter: int = 0
@@ -103,6 +123,9 @@ func _ready() -> void:
 	# Create Area2D for blood puddle detection (deferred to ensure parent is in tree)
 	# Performance fix: Defer setup to ensure Area2D is properly in scene tree
 	call_deferred("_setup_blood_detector")
+
+	# Create Area2D for snow-surface detection (used when on_snow = true).
+	call_deferred("_setup_snow_detector")
 
 	# Find the character's model node for facing direction
 	_find_character_model()
@@ -172,6 +195,61 @@ func _setup_blood_detector() -> void:
 	_log_info("Blood detector created and attached to %s" % _parent_body.name)
 
 
+## Sets up the Area2D for detecting snow-surface areas (used when on_snow = true).
+func _setup_snow_detector() -> void:
+	if _parent_body == null:
+		return
+
+	_snow_detector = Area2D.new()
+	_snow_detector.name = "SnowDetectorForBlood"
+	_snow_detector.collision_layer = 0
+	_snow_detector.collision_mask = 128  # Layer 8 = snow_area layer.
+	_snow_detector.monitoring = true
+	_snow_detector.monitorable = false
+
+	var collision_shape := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = 8.0
+	collision_shape.shape = shape
+	_snow_detector.add_child(collision_shape)
+
+	_parent_body.add_child(_snow_detector)
+
+	_snow_detector.area_entered.connect(_on_snow_area_entered)
+	_snow_detector.area_exited.connect(_on_snow_area_exited)
+
+	_log_info("Snow surface detector created on %s" % _parent_body.name)
+
+
+## Called when the detector enters a snow-surface area.
+func _on_snow_area_entered(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		_is_overlapping_snow = true
+
+
+## Called when the detector exits a snow-surface area.
+func _on_snow_area_exited(area: Area2D) -> void:
+	if area.is_in_group("snow_area"):
+		if _snow_detector:
+			var still_on_snow := false
+			for other in _snow_detector.get_overlapping_areas():
+				if other.is_in_group("snow_area"):
+					still_on_snow = true
+					break
+			_is_overlapping_snow = still_on_snow
+
+
+## Returns true when the character is standing on a snow surface.
+func _is_on_snow() -> bool:
+	if _is_overlapping_snow:
+		return true
+	if _snow_detector and _snow_detector.is_inside_tree():
+		for area in _snow_detector.get_overlapping_areas():
+			if area.is_in_group("snow_area"):
+				return true
+	return false
+
+
 func _physics_process(delta: float) -> void:
 	if not _initialized or _parent_body == null:
 		return
@@ -226,6 +304,9 @@ func _check_blood_puddle_throttled() -> void:
 ## Radius in pixels for distance-based blood detection fallback.
 const BLOOD_DETECTION_RADIUS := 20.0
 
+## Fallback blood color used when a puddle has no readable visual color.
+const DEFAULT_BLOOD_COLOR := Color(0.545, 0.0, 0.0, 1.0)
+
 ## Squared radius for faster distance comparisons (avoids sqrt).
 const BLOOD_DETECTION_RADIUS_SQUARED := BLOOD_DETECTION_RADIUS * BLOOD_DETECTION_RADIUS
 
@@ -261,36 +342,77 @@ func _check_blood_puddle_by_distance() -> void:
 				return
 
 
-## Extracts the color from a blood puddle node.
-## Returns the modulate color of the puddle, or default red if not available.
+## Extracts the blood color from a puddle node for use as a tint on snow prints.
+## BloodDecal.tscn stores the actual blood color in its GradientTexture2D while
+## keeping modulate white — so we read the gradient for Sprite2D nodes.
 func _get_puddle_color(puddle_node: Node) -> Color:
 	if puddle_node == null:
-		return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+		return DEFAULT_BLOOD_COLOR
 
-	# If it's a CanvasItem (Sprite2D, etc.), get its modulate color
+	var parent := puddle_node.get_parent()
+	if puddle_node is Area2D and parent != null and parent.is_in_group("blood_puddle"):
+		return _get_puddle_color(parent)
+
+	if puddle_node is Sprite2D:
+		var texture_color := _get_sprite_gradient_blood_color(puddle_node as Sprite2D)
+		if texture_color.a >= 0.0:
+			if debug_logging:
+				_log_info("Puddle gradient color: %s (R=%.2f, G=%.2f, B=%.2f)" % [
+					texture_color, texture_color.r, texture_color.g, texture_color.b])
+			return texture_color
+
 	if puddle_node is CanvasItem:
 		var color := (puddle_node as CanvasItem).modulate
 		if debug_logging:
 			_log_info("Puddle color: %s (R=%.2f, G=%.2f, B=%.2f)" % [color, color.r, color.g, color.b])
 		return color
 
-	return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+	return DEFAULT_BLOOD_COLOR
+
+
+## Reads the dominant color from a Sprite2D's GradientTexture2D.
+## BloodDecal stores the actual red blood color in the gradient; modulate stays white.
+func _get_sprite_gradient_blood_color(sprite: Sprite2D) -> Color:
+	var gradient_texture := sprite.texture as GradientTexture2D
+	if gradient_texture == null or gradient_texture.gradient == null:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var colors: PackedColorArray = gradient_texture.gradient.colors
+	if colors.size() == 0:
+		return Color(0.0, 0.0, 0.0, -1.0)
+
+	var strongest_color: Color = colors[0]
+	for color in colors:
+		if color.a > strongest_color.a:
+			strongest_color = color
+
+	strongest_color.r *= sprite.modulate.r
+	strongest_color.g *= sprite.modulate.g
+	strongest_color.b *= sprite.modulate.b
+	strongest_color.a = sprite.modulate.a
+	return strongest_color
 
 
 ## Called when the character contacts a blood puddle.
 ## puddle_color: The color of the blood puddle stepped in.
 func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
-	# Reset blood level to maximum
+	# Reset blood level: on snow use snow_blood_steps_count (default 2) oval red prints,
+	# then SnowyFeetComponent resumes normal white snow prints (Issue #1627).
+	var target_level := snow_blood_steps_count if on_snow else blood_steps_count
+	_apply_blood_contact(target_level, puddle_color)
+
+func _apply_blood_contact(target_level: int, puddle_color: Color) -> void:
 	var previous_level := _blood_level
-	_blood_level = blood_steps_count
-
-	# Store the blood color for footprints
+	_blood_level = target_level
 	_blood_color = puddle_color
-
 	if previous_level == 0:
 		_log_info("Stepped in blood! %d footprints to spawn, color: %s" % [_blood_level, puddle_color])
 		# Reset distance counter when first stepping in blood
 		_distance_since_last_footprint = 0.0
+
+	# Notify SnowyFeetComponent immediately so it can arm its red-print counter
+	# before any _blood_level decrements happen (Issue #1627 race-condition fix).
+	blood_contact.emit(puddle_color)
 
 
 ## Called when an area enters the blood detector.
@@ -390,9 +512,27 @@ func _is_on_blood_puddle() -> bool:
 
 
 ## Spawns a footprint at the current position.
-## Footprints are only spawned on floor without blood.
+## Footprints are only spawned on floors without blood.
+## On snow levels (on_snow = true), SnowyFeetComponent handles all snow prints
+## (both normal and bloody), so this component only spawns boot-print footprints
+## on non-snow surfaces (Issue #1627).
 func _spawn_footprint() -> void:
-	if _footprint_scene == null or _blood_level <= 0:
+	if _blood_level <= 0:
+		return
+
+	# On snow levels, SnowyFeetComponent handles all footprint rendering (both normal
+	# white and red blood-snow prints). This component only tracks the blood level so
+	# SnowyFeetComponent can read it via has_bloody_feet() and _blood_color (Issue #1627).
+	# Also defer to SnowyFeetComponent if one exists as a sibling — this covers the case
+	# where on_snow wasn't set before the first blood contact (Issue #1909: enemies).
+	var has_snowy_feet: bool = _parent_body != null and _parent_body.get_node_or_null("SnowyFeetComponent") != null
+	if on_snow or has_snowy_feet:
+		if debug_logging:
+			_log_info("On snow — SnowyFeetComponent handles prints (blood steps remaining: %d)" % _blood_level)
+		return
+
+	# Non-snow level: use regular boot-print BloodFootprint scene.
+	if _footprint_scene == null:
 		return
 
 	# Don't spawn footprint if currently standing on blood
@@ -406,8 +546,7 @@ func _spawn_footprint() -> void:
 	if footprint == null:
 		return
 
-	# Calculate alpha based on remaining steps
-	# First step has highest alpha, last step has lowest
+	# Calculate alpha based on remaining steps.
 	var steps_taken := blood_steps_count - _blood_level
 	var alpha := initial_alpha - (steps_taken * alpha_decay_rate)
 	alpha = maxf(alpha, 0.05)  # Minimum visible alpha
@@ -434,14 +573,9 @@ func _spawn_footprint() -> void:
 	footprint.global_position += perpendicular * foot_offset
 	_is_left_foot = not _is_left_foot
 
-	# Set the blood color (same or darker than puddle)
-	if footprint.has_method("set_blood_color"):
-		footprint.set_blood_color(_blood_color)
-	else:
-		# Fallback: apply color directly to modulate
-		footprint.modulate.r = _blood_color.r
-		footprint.modulate.g = _blood_color.g
-		footprint.modulate.b = _blood_color.b
+	# Regular boot-print textures already contain the red blood color as pixels.
+	# Applying _blood_color (extracted from the puddle gradient) as a modulate tint
+	# would darken them further — keep modulate white so the texture shows naturally.
 
 	# Set alpha using the footprint's method (after color to preserve alpha)
 	if footprint.has_method("set_alpha"):
@@ -468,14 +602,32 @@ func _spawn_footprint() -> void:
 
 ## Manually set blood level (for testing or external triggers).
 func set_blood_level(level: int) -> void:
-	_blood_level = clampi(level, 0, blood_steps_count)
-	_distance_since_last_footprint = 0.0
+	var max_level := snow_blood_steps_count if on_snow else blood_steps_count
+	var clamped_level := clampi(level, 0, max_level)
+	if clamped_level > 0:
+		_apply_blood_contact(clamped_level, _blood_color)
+	else:
+		_blood_level = 0
+		_distance_since_last_footprint = 0.0
 	_log_info("Blood level set to %d" % _blood_level)
 
 
 ## Get current blood level.
 func get_blood_level() -> int:
 	return _blood_level
+
+
+## Called by SnowyFeetComponent after it renders one red snow footprint.
+## Keeps blood-state ownership synchronized without letting this component drain
+## the counter before SnowyFeetComponent has rendered the visible red oval print.
+func consume_snow_blood_step() -> void:
+	if _blood_level <= 0:
+		return
+	_blood_level -= 1
+	if debug_logging:
+		_log_info("Snow blood step consumed (blood steps remaining: %d)" % _blood_level)
+	if _blood_level <= 0:
+		_log_info("Blood ran out on snow")
 
 
 ## Check if currently has bloody feet.

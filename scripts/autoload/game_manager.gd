@@ -27,6 +27,10 @@ var no_damage_levels_completed: int = 0
 ## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1589).
 var levels_completed_rank_a_or_higher: int = 0
 
+## Cumulative unique maps completed at rank S.
+## Persists across sessions — used as the unlock condition for Breaker Bullets (Issue #1892).
+var levels_completed_rank_s: int = 0
+
 ## Cumulative kills made through walls (using Drilling Bullets or any wall-piercing effect).
 ## Persists across sessions — used as the unlock condition for Drilling Bullets (Issue #1624).
 var kills_through_wall: int = 0
@@ -132,6 +136,10 @@ signal levels_completed_rank_a_or_higher_updated(new_count: int)
 ## Issue #1624.
 signal kills_through_wall_updated(new_count: int)
 
+## Signal emitted when levels_completed_rank_s changes (for S-rank unlock checks).
+## Issue #1892.
+signal levels_completed_rank_s_updated(new_count: int)
+
 ## Signal emitted when levels_completed_with_silenced_pistol changes.
 ## Issue #1624.
 signal levels_completed_with_silenced_pistol_updated(new_count: int)
@@ -167,6 +175,18 @@ var _f8_spawn_triggered: bool = false
 
 ## Hold duration in seconds required to trigger F8 spawn (Issue #1112).
 const F8_HOLD_THRESHOLD: float = 0.2
+
+## Whether Q is currently being held down for quick restart (Issue #1822).
+var _q_restart_held: bool = false
+
+## Tracks how long Q has been held for quick restart (Issue #1822).
+var _q_restart_hold_time: float = 0.0
+
+## Whether quick restart already triggered during the current Q hold (Issue #1822).
+var _q_restart_triggered: bool = false
+
+## Hold duration in seconds required to trigger quick restart with Q (Issue #1822).
+const Q_RESTART_HOLD_THRESHOLD: float = 1.0
 
 ## ── Roguelike session state (Issue #1061) ─────────────────────────────────
 ## Persists across room-to-room scene reloads so the run can advance
@@ -285,12 +305,19 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
-		if event.pressed and event.physical_keycode == KEY_Q:
+		if event.physical_keycode == KEY_Q:
 			# Block restart while the score screen animation is playing — the player
 			# may not have seen the Armory button yet (Issue #1589).
 			if score_screen_active:
+				if not event.pressed:
+					_reset_q_restart_hold()
 				return
-			restart_scene()
+			if event.pressed and not event.echo:
+				_q_restart_held = true
+				_q_restart_hold_time = 0.0
+				_q_restart_triggered = false
+			elif not event.pressed:
+				_reset_q_restart_hold()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:
 			toggle_invincibility()
@@ -310,6 +337,15 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if _q_restart_held and not _q_restart_triggered:
+		if score_screen_active:
+			_reset_q_restart_hold()
+		else:
+			_q_restart_hold_time += delta
+			if _q_restart_hold_time >= Q_RESTART_HOLD_THRESHOLD:
+				_q_restart_triggered = true
+				restart_scene()
+
 	# F8 hold-to-spawn: after holding F8 for 200ms outside a menu, spawn the selected enemy (Issue #1112).
 	if _f8_held and not _f8_spawn_triggered:
 		_f8_hold_time += delta
@@ -514,6 +550,12 @@ func restart_scene() -> void:
 ## Issue #1334: Deferred callback to clear the reload guard.
 func _reset_reloading() -> void:
 	_reloading = false
+
+
+func _reset_q_restart_hold() -> void:
+	_q_restart_held = false
+	_q_restart_hold_time = 0.0
+	_q_restart_triggered = false
 
 
 ## Sets the player reference and connects to the player's death signal.
@@ -881,6 +923,18 @@ func _on_score_calculated(score_data: Dictionary) -> void:
 			_log_to_file("Rank-A level completed (new unique map) — levels_completed_rank_a_or_higher: %d" % levels_completed_rank_a_or_higher)
 		else:
 			_log_to_file("Rank-A level completed (already counted for this map) — levels_completed_rank_a_or_higher unchanged: %d" % levels_completed_rank_a_or_higher)
+	# Track unique maps completed at rank S for Breaker Bullets unlock (Issue #1892).
+	if rank == "S":
+		var already_counted_s: bool = false
+		var progress_manager_s: Node = get_node_or_null("/root/ProgressManager")
+		if progress_manager_s and progress_manager_s.has_method("is_level_completed_rank_s_any_difficulty"):
+			var current_scene_s: Node = get_tree().current_scene
+			if current_scene_s and not current_scene_s.scene_file_path.is_empty():
+				already_counted_s = progress_manager_s.is_level_completed_rank_s_any_difficulty(current_scene_s.scene_file_path)
+		if not already_counted_s:
+			levels_completed_rank_s += 1
+			levels_completed_rank_s_updated.emit(levels_completed_rank_s)
+			_log_to_file("Rank-S level completed (new unique map) — levels_completed_rank_s: %d" % levels_completed_rank_s)
 	# Track levels completed with silenced pistol for Auto Reload unlock (Issue #1624).
 	if selected_weapon == "silenced_pistol":
 		levels_completed_with_silenced_pistol += 1

@@ -1,4 +1,6 @@
 extends Node2D
+
+const LEVEL_SCENE_PATH := "res://scenes/levels/RevolverLevel.tscn"
 ## Double Corridor Level - Map designed for revolver and penetration gameplay.
 ##
 ## Map features:
@@ -41,6 +43,8 @@ var _saturation_overlay: ColorRect = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+## Reference to active combo tween (to cancel if needed).
+var _combo_tween: Tween = null
 
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
@@ -275,15 +279,26 @@ func _on_combo_changed(combo: int, points: int) -> void:
 		return
 
 	if combo > 0:
-		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.text = "x%d COMBO\n+%d" % [combo, points]
 		_combo_label.visible = true
 		var combo_color := _get_combo_color(combo)
 		_combo_label.add_theme_color_override("font_color", combo_color)
-		_combo_label.modulate = Color.WHITE
-		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
+		# Combo pop animation: scale bounce + fade in (stays visible until combo resets)
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_label.scale = Vector2(0.7, 0.7)
+		_combo_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_combo_tween = create_tween()
+		_combo_tween.set_parallel(true)
+		_combo_tween.tween_property(_combo_label, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_combo_tween.tween_property(_combo_label, "modulate:a", 1.0, 0.1)
+		_combo_tween.set_parallel(false)
 	else:
-		_combo_label.visible = false
+		if _combo_tween != null and _combo_tween.is_valid():
+			_combo_tween.kill()
+		_combo_tween = create_tween()
+		_combo_tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		_combo_tween.tween_callback(_combo_label.hide)
 
 
 ## Returns a color based on the current combo count.
@@ -460,10 +475,12 @@ func _setup_debug_ui() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
+	var level_label: Label = ui.get_node_or_null("LevelLabel")
+	LevelLocalization.apply_level_label(level_label, LEVEL_SCENE_PATH)
 
 	_difficulty_label = Label.new()
 	_difficulty_label.name = "DifficultyLabel"
-	_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+	_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 	_difficulty_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_difficulty_label.offset_left = 10
 	_difficulty_label.offset_top = 80
@@ -473,7 +490,7 @@ func _setup_debug_ui() -> void:
 
 	_magazines_label = Label.new()
 	_magazines_label.name = "MagazinesLabel"
-	_magazines_label.text = "MAGS: -"
+	_magazines_label.text = LevelLocalization.get_magazines_text([])
 	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_magazines_label.offset_left = 10
 	_magazines_label.offset_top = 115
@@ -481,17 +498,22 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 145
 	ui.add_child(_magazines_label)
 
+	var gameplay_settings: Node = get_node_or_null("/root/GameplaySettings")
+	var combo_size: int = gameplay_settings.get_combo_font_size() if gameplay_settings and gameplay_settings.has_method("get_combo_font_size") else 112
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
 	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_combo_label.offset_left = -350
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_combo_label.offset_left = 10
 	_combo_label.offset_right = -10
 	_combo_label.offset_top = 80
-	_combo_label.offset_bottom = 120
-	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.offset_bottom = _combo_label.offset_top + combo_size * 2 + 20
+	_combo_label.add_theme_font_size_override("font_size", combo_size)
+	_combo_label.add_theme_constant_override("line_spacing", 0)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.add_theme_font_override("font", load("res://assets/fonts/gothic_bitmap.fnt"))
+	_combo_label.clip_contents = true
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -517,7 +539,7 @@ func _update_debug_ui() -> void:
 		return
 
 	if _difficulty_label:
-		_difficulty_label.text = "Difficulty: " + DifficultyManager.get_difficulty_name()
+		_difficulty_label.text = LevelLocalization.get_difficulty_text(DifficultyManager.get_difficulty_name())
 
 
 ## Called when an enemy dies.
@@ -720,7 +742,7 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current, maximum]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current, maximum)
 
 	if current <= 2:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -735,7 +757,7 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 	if _ammo_label == null:
 		return
 
-	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+	_ammo_label.text = LevelLocalization.get_ammo_text(current_mag, reserve)
 
 	if current_mag <= 2:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -750,57 +772,21 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
 
-	# Find equipped weapon to check type and get magazine capacities
-	var weapon: Node = null
-	if _player != null:
-		for _wn in ["Revolver", "Shotgun", "MiniUzi", "SilencedPistol", "SniperRifle", "AssaultRifle", "AKGL", "MakarovPM"]:
-			weapon = _player.get_node_or_null(_wn)
-			if weapon != null:
-				break
+	var weapon: Node = LevelLocalization.get_active_player_weapon(_player)
 
-	if weapon != null and weapon.get("UsesTubeMagazine") == true:
-		_magazines_label.visible = false
-		return
-	if weapon != null and weapon.has_signal("CylinderStateChanged"):
+	if LevelLocalization.weapon_hides_magazines(weapon):
 		_magazines_label.visible = false
 		return
 	_magazines_label.visible = true
 
-	if magazine_ammo_counts.is_empty():
-		_magazines_label.text = "MAGS: -"
-		return
-
-	# Get magazine capacities to distinguish full vs partial spares
-	var mag_max_counts: Array = []
-	if weapon != null and weapon.has_method("GetMagazineMaxCounts"):
-		mag_max_counts = Array(weapon.GetMagazineMaxCounts())
-
-	var parts: Array = []
-	# Current magazine always shown in brackets
-	parts.append("[%d]" % magazine_ammo_counts[0])
-
-	# Spare magazines: skip empty, show partial individually, abbreviate full as + xN
-	var full_spare_count: int = 0
-	for i in range(1, magazine_ammo_counts.size()):
-		var ammo: int = magazine_ammo_counts[i]
-		if ammo <= 0:
-			continue
-		var cap: int = mag_max_counts[i] if i < mag_max_counts.size() else 0
-		if cap > 0 and ammo >= cap:
-			full_spare_count += 1
-		else:
-			parts.append("%d" % ammo)
-
-	if full_spare_count > 0:
-		parts.append("+ x%d" % full_spare_count)
-
-	_magazines_label.text = "MAGS: " + " | ".join(parts)
+	var parts: Array[String] = LevelLocalization.get_magazine_display_parts(weapon, magazine_ammo_counts)
+	_magazines_label.text = LevelLocalization.get_magazines_text(parts)
 
 
 ## Update the enemy count label in UI.
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
-		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+		_enemy_count_label.text = LevelLocalization.get_enemy_count_text(_current_enemy_count)
 
 
 ## Show death message when player dies.

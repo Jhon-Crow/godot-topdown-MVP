@@ -2950,6 +2950,25 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
+; === FORCE FIELD ENEMIES ON CENTRAL WALKWAY (between upper and lower train pairs) ===
+[node name="CentralWalkway_ForceFieldLeft" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(1700, 2300)
+rotation = 1.5708
+behavior_mode = 1
+has_force_field = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="CentralWalkway_ForceFieldRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(2300, 2300)
+rotation = 1.5708
+behavior_mode = 1
+has_force_field = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
 ; === DRONE OPERATORS AT MAP EXIT (embankment area y≈1100, south of exit wall gaps) ===
 [node name="Exit_DroneOperator1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(700, 1100)
@@ -3041,6 +3060,15 @@ enable_cover = true
 position = Vector2(3800, 3500)
 behavior_mode = 1
 is_teleporter = true
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Platform_ShieldRight" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(3600, 3650)
+rotation = -1.5708
+behavior_mode = 1
+has_swat_shield = true
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true

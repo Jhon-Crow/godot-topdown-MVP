@@ -793,7 +793,10 @@ func _shoot() -> void:
 			if _homing_active and bullet.has_method("enable_homing"):
 				bullet.enable_homing()
 			if _breaker_bullets_active:
-				bullet.is_breaker_bullet = true
+				# Use setter so pooled bullets reload the shrapnel scene (Issue #1634).
+				# Direct property assignment bypasses set_is_breaker_bullet() which
+				# re-loads _breaker_shrapnel_scene cleared by pool_activate/_reset_state().
+				bullet.call("set_is_breaker_bullet", true)
 
 	# Fallback to instantiation if pool not available or failed
 	if bullet == null:
@@ -1194,7 +1197,7 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource, incoming_d
 ## @param is_from_player: Unused for the player (hits to the player come from enemies).
 func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource,
 		_has_ricocheted: bool, _has_penetrated: bool, damage: float = 1.0,
-		_is_from_player: bool = false) -> void:
+		_is_from_player: bool = false, _attacker_node: Node2D = null) -> void:
 	on_hit_with_info(hit_direction, caliber_data, damage)
 
 
@@ -1766,6 +1769,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 	# If G is released while RMB is still held, enter Aiming state
 	if not Input.is_action_pressed("grenade_prepare"):
+		# Issue #1819: releasing G before the right hand actually takes the grenade
+		# should drop it instead of entering aiming.
+		if _grenade_anim_phase == GrenadeAnimPhase.HANDS_APPROACH and _grenade_anim_timer > 0.0:
+			FileLogger.info("[Player.Grenade] G released before hand transfer completed - dropping grenade at feet")
+			_drop_grenade_at_feet()
+			return
+
 		_grenade_state = GrenadeState.AIMING
 		_aim_drag_start = get_global_mouse_position()
 		_prev_mouse_pos = _aim_drag_start
@@ -1780,8 +1790,13 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 
 ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
 func _handle_grenade_aiming_state() -> void:
-	# In this state, G is already released (that's how we got here)
-	# We only care about RMB
+	# Complex aiming is only valid after G has been released.
+	# If we somehow re-enter aiming with G still held, block the throw until the
+	# handoff sequence is completed correctly.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade] Aiming state entered while G is still held - returning to waiting for G release")
+		_grenade_state = GrenadeState.WAITING_FOR_G_RELEASE
+		return
 
 	# Update wind-up intensity based on mouse drag during aiming
 	_update_wind_up_intensity()
@@ -1834,6 +1849,12 @@ func _handle_simple_grenade_timer_started_state() -> void:
 ## Cursor position = landing point. Release RMB to throw.
 ## G can be released while RMB is held - grenade stays ready.
 func _handle_simple_grenade_aiming_state() -> void:
+	# Issue #1819: simple trajectory mode still requires the left hand to let go
+	# before the grenade can be aimed or thrown with the right hand.
+	if Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade.Simple] G still held during right-hand aiming - waiting for release before aim/throw")
+		return
+
 	# Request redraw for trajectory visualization (always show in simple mode)
 	queue_redraw()
 
@@ -1908,6 +1929,10 @@ func _throw_simple_grenade() -> void:
 
 	# Unfreeze and throw the grenade
 	_active_grenade.freeze = false
+
+	# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
+	if _active_grenade.has_method("set_aim_point"):
+		_active_grenade.set_aim_point(target_pos)
 
 	# Use the simple throw method for direct speed control
 	# This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
@@ -2069,6 +2094,10 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	# Raycast from player to intended spawn position to check for walls
 	var spawn_position := _get_safe_grenade_spawn_position(global_position, intended_spawn_position, throw_direction)
+
+	# Issue #1896: pass the mouse cursor world position so DroneGrenade can fly there first.
+	if _active_grenade.has_method("set_aim_point"):
+		_active_grenade.set_aim_point(drag_end)
 
 	# Use direction-based throwing (FIX for issue #313)
 	# Priority: throw_grenade_with_direction > throw_grenade_velocity_based > throw_grenade > direct physics
@@ -3675,7 +3704,7 @@ func _init_breaker_bullets() -> void:
 		return
 
 	_breaker_bullets_active = true
-	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 60px before walls")
+	FileLogger.info("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)")
 
 # Force Field (Issue #676)
 ## Whether force field is equipped.
@@ -4429,6 +4458,23 @@ var _experimental_sample_equipped: bool = false
 var _experimental_sample_charges: int = 0
 const EXPERIMENTAL_SAMPLE_MIN_CHARGES: int = 1
 const EXPERIMENTAL_SAMPLE_MAX_CHARGES: int = 5
+## All active item types that the Experimental Sample can trigger.
+## To add a new triggerable item: append its type ID here AND handle it in _trigger_experimental_sample_effect().
+## Excludes purely passive or hold-to-activate items (FLASHLIGHT=1, TELEPORT_BRACERS=3,
+## BREAKER_BULLETS=6, LASER_SIGHT=9, EXTENDED_MAGAZINE=10, ARMORED_SKIN=13, AUTO_RELOAD=14,
+## DRILLING_BULLETS=15, COMBAT_DISPOSITION=17, GRENADE_BAG=21) and NONE=0 and self=18.
+const EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES: Array = [
+	2,  # HOMING_BULLETS
+	4,  # BFF_PENDANT
+	5,  # INVISIBILITY_SUIT
+	7,  # FORCE_FIELD (Issue #1635)
+	8,  # TRAJECTORY_GLASSES
+	11, # LOUDSPEAKER
+	12, # BREACHING_CHARGES
+	16, # RECOIL_COMPENSATOR (Issue #1635)
+	19, # FINE_MOTOR_SKILLS (Issue #1315)
+	20, # DASH (Issue #1071)
+]
 ## Preloaded icon popup script for the experimental sample (Issue #1127).
 const ExperimentalSampleItemPopupScript = preload("res://scripts/ui/experimental_sample_item_popup.gd")
 ## Floating icon popup node shown above the player when an effect fires (Issue #1127).
@@ -4469,13 +4515,14 @@ func _handle_experimental_sample_input() -> void:
 	_experimental_sample_charges -= 1
 	experimental_sample_charges_changed.emit(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
 	_show_active_item_charge_bar(_experimental_sample_charges, EXPERIMENTAL_SAMPLE_MAX_CHARGES)
-	# Pick a random active item type (all types except NONE=0 and EXPERIMENTAL_SAMPLE=18).
+	# Pick a random active item type from the eligible pool (Issue #1635).
 	# Re-roll if the chosen type has no visible on-press action, so every charge spend is meaningful.
+	# To include a new item: add its type to EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES and handle it below.
 	const MAX_ATTEMPTS := 20
 	var effect_fired := false
 	var fired_type: int = -1
 	for attempt in range(MAX_ATTEMPTS):
-		var random_type: int = randi_range(1, 17)
+		var random_type: int = EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES[randi() % EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES.size()]
 		FileLogger.info("[Player.ExperimentalSample] Charges: %d — type %d attempt %d" % [_experimental_sample_charges, random_type, attempt + 1])
 		effect_fired = _trigger_experimental_sample_effect(random_type)
 		if effect_fired:
@@ -4496,15 +4543,10 @@ func _handle_experimental_sample_input() -> void:
 			_experimental_sample_popup.show_icon(mgr.get_active_item_icon_path(fired_type))
 
 ## Trigger on-press effect of item_type chosen by experimental sample.
-## Returns true if a visible effect fired, false if passive/unavailable (caller re-rolls).
+## Returns true if a visible effect fired, false if unavailable (caller re-rolls).
+## Only types listed in EXPERIMENTAL_SAMPLE_ELIGIBLE_TYPES should reach this function.
 func _trigger_experimental_sample_effect(item_type: int) -> bool:
 	FileLogger.info("[Player.ExperimentalSample] Executing effect type %d" % item_type)
-	# Passive/hold/aim-only types always re-roll (FLASHLIGHT, TELEPORT_BRACERS, BREAKER_BULLETS,
-	# FORCE_FIELD, LASER_SIGHT, EXTENDED_MAGAZINE, ARMORED_SKIN, AUTO_RELOAD, DRILLING_BULLETS,
-	# RECOIL_COMPENSATOR, COMBAT_DISPOSITION)
-	if item_type in [1, 3, 6, 7, 9, 10, 13, 14, 15, 16, 17]:
-		return false
-
 	match item_type:
 		2:  # HOMING_BULLETS — activate homing for one burst (always available)
 			if _homing_active: return false
@@ -4520,40 +4562,76 @@ func _trigger_experimental_sample_effect(item_type: int) -> bool:
 			_summon_bff_companion()
 			FileLogger.info("[Player.ExperimentalSample] BFF companion summoned via experimental sample")
 			return true
-		5:  # INVISIBILITY_SUIT — activate invisibility if the node is available
-			if _invisibility_suit_equipped and _invisibility_suit != null \
-					and is_instance_valid(_invisibility_suit) and not _invisibility_suit.is_active:
+		5:  # INVISIBILITY_SUIT — create temp node if needed, activate briefly (Issue #1635)
+			if _invisibility_suit == null or not is_instance_valid(_invisibility_suit):
+				_experimental_sample_init_temp_invisibility()
+			if _invisibility_suit != null and is_instance_valid(_invisibility_suit) \
+					and not _invisibility_suit.is_active:
 				_invisibility_suit.activate()
 				FileLogger.info("[Player.ExperimentalSample] Invisibility suit activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Invisibility suit not equipped or already active; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Invisibility suit unavailable or already active; re-roll")
 			return false
-		8:  # TRAJECTORY_GLASSES — activate glasses if node exists, else skip
-			if _trajectory_glasses_equipped and _trajectory_glasses != null \
-					and is_instance_valid(_trajectory_glasses) and not _trajectory_glasses.is_active:
+		7:  # FORCE_FIELD — create temp node if needed, activate briefly (Issue #1635)
+			if _force_field == null or not is_instance_valid(_force_field):
+				_experimental_sample_init_temp_force_field()
+			if _force_field != null and is_instance_valid(_force_field) and not _force_field.is_active:
+				_force_field.activate()
+				FileLogger.info("[Player.ExperimentalSample] Force field activated via experimental sample")
+				_experimental_sample_activate_force_field_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Force field unavailable or already active; re-roll")
+			return false
+		8:  # TRAJECTORY_GLASSES — create temp node if needed, activate (Issue #1635)
+			if _trajectory_glasses == null or not is_instance_valid(_trajectory_glasses):
+				_experimental_sample_init_temp_trajectory_glasses()
+			if _trajectory_glasses != null and is_instance_valid(_trajectory_glasses) \
+					and not _trajectory_glasses.is_active:
 				_update_trajectory_glasses_weapon()
 				_trajectory_glasses.activate()
 				FileLogger.info("[Player.ExperimentalSample] Trajectory glasses activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses not equipped or already active; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Trajectory glasses unavailable or already active; re-roll")
 			return false
-		11: # LOUDSPEAKER — trigger loudspeaker effect if progress system allows it
-			var lp := get_loudspeaker_progress()
-			if has_loudspeaker() and lp != null and lp.can_activate():
-				var is_first_use: bool = not lp.used_this_level
-				lp.use()
-				_loudspeaker_component.apply_loudspeaker_effect(_get_aim_direction(),
-					1.0 if is_first_use else lp.get_effect_chance(),
-					lp.get_hostility_chance())
+		11: # LOUDSPEAKER — trigger effect directly via component (Issue #1635)
+			if _loudspeaker_component != null and is_instance_valid(_loudspeaker_component):
+				var aim_dir := _get_aim_direction()
+				_loudspeaker_component.apply_loudspeaker_effect(aim_dir, 1.0, 0.0)
 				FileLogger.info("[Player.ExperimentalSample] Loudspeaker activated via experimental sample")
 				return true
-			FileLogger.info("[Player.ExperimentalSample] Loudspeaker not equipped or no charges; re-roll")
+			FileLogger.info("[Player.ExperimentalSample] Loudspeaker component unavailable; re-roll")
 			return false
 		12: # BREACHING_CHARGES — detonate existing charges if any placed, else skip
 			if _breaching_charges != null and is_instance_valid(_breaching_charges):
 				var detonated := _breaching_charges.detonate()
 				FileLogger.info("[Player.ExperimentalSample] Breaching charges detonated: %s" % str(detonated))
 				return detonated
+			return false
+		16: # RECOIL_COMPENSATOR — activate for a brief burst (Issue #1635)
+			if not _recoil_compensator_active:
+				_recoil_compensator_active = true
+				FileLogger.info("[Player.ExperimentalSample] Recoil compensator activated via experimental sample")
+				_experimental_sample_activate_recoil_compensator_briefly()
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Recoil compensator already active; re-roll")
+			return false
+		19: # FINE_MOTOR_SKILLS — instant reload regardless of whether FMS is equipped (Issue #1635)
+			if _fine_motor_skills_active:
+				FileLogger.info("[Player.ExperimentalSample] Fine Motor Skills already active; re-roll")
+				return false
+			_fine_motor_skills_active = true
+			_fine_motor_skills_activate_async()
+			FileLogger.info("[Player.ExperimentalSample] Fine motor skills instant reload triggered via experimental sample")
+			return true
+		20: # DASH — create temporary dash effect if needed, then dash (Issue #1635)
+			if _dash_effect == null or not is_instance_valid(_dash_effect):
+				_experimental_sample_init_temp_dash()
+			if _dash_effect != null and is_instance_valid(_dash_effect) and not _dash_effect.is_dashing():
+				var dir := (get_global_mouse_position() - global_position).normalized()
+				_dash_effect.activate(dir)
+				FileLogger.info("[Player.ExperimentalSample] Dash triggered via experimental sample")
+				return true
+			FileLogger.info("[Player.ExperimentalSample] Dash unavailable; re-roll")
 			return false
 		_:
 			return false
@@ -4565,6 +4643,63 @@ func get_experimental_sample_charges() -> int:
 ## Get the maximum experimental sample charges constant.
 func get_max_experimental_sample_charges() -> int:
 	return EXPERIMENTAL_SAMPLE_MAX_CHARGES
+
+## Briefly deactivate recoil compensator after ~1.8s (Issue #1635).
+const EXPERIMENTAL_SAMPLE_RECOIL_DURATION: float = 1.8
+func _experimental_sample_activate_recoil_compensator_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_RECOIL_DURATION).timeout
+	_recoil_compensator_active = false
+	FileLogger.info("[Player.ExperimentalSample] Recoil compensator brief window ended")
+
+## Briefly deactivate force field after ~1.8s (Issue #1635).
+const EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION: float = 1.8
+func _experimental_sample_activate_force_field_briefly() -> void:
+	await get_tree().create_timer(EXPERIMENTAL_SAMPLE_FORCE_FIELD_DURATION).timeout
+	if _force_field != null and is_instance_valid(_force_field) and _force_field.is_active:
+		_force_field.deactivate()
+	FileLogger.info("[Player.ExperimentalSample] Force field brief window ended")
+
+## Create a temporary dash effect node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_dash() -> void:
+	if not ResourceLoader.exists(DASH_EFFECT_SCENE):
+		FileLogger.info("[Player.ExperimentalSample] Dash effect scene not found; skip")
+		return
+	var scene: PackedScene = load(DASH_EFFECT_SCENE)
+	if scene == null:
+		return
+	_dash_effect = scene.instantiate()
+	add_child(_dash_effect)
+	_dash_effect.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary dash effect node created")
+
+## Create a temporary invisibility suit node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_invisibility() -> void:
+	_invisibility_suit = InvisibilitySuitEffectScript.new()
+	_invisibility_suit.name = "ExperimentalSampleInvisibilityEffect"
+	add_child(_invisibility_suit)
+	_invisibility_suit.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary invisibility effect node created")
+
+## Create a temporary force field node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_force_field() -> void:
+	const FORCE_FIELD_SCENE: String = "res://scenes/effects/ForceFieldEffect.tscn"
+	if not ResourceLoader.exists(FORCE_FIELD_SCENE):
+		FileLogger.info("[Player.ExperimentalSample] Force field scene not found; skip")
+		return
+	var scene: PackedScene = load(FORCE_FIELD_SCENE)
+	if scene == null:
+		return
+	_force_field = scene.instantiate()
+	add_child(_force_field)
+	FileLogger.info("[Player.ExperimentalSample] Temporary force field node created")
+
+## Create a temporary trajectory glasses node for Experimental Sample use (Issue #1635).
+func _experimental_sample_init_temp_trajectory_glasses() -> void:
+	_trajectory_glasses = TrajectoryGlassesEffectScript.new()
+	_trajectory_glasses.name = "ExperimentalSampleTrajectoryGlassesEffect"
+	add_child(_trajectory_glasses)
+	_trajectory_glasses.initialize(self)
+	FileLogger.info("[Player.ExperimentalSample] Temporary trajectory glasses node created")
 
 # =========================================================================
 # Fine Motor Skills Active Item (Issue #1315)

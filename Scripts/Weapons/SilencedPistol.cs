@@ -355,8 +355,10 @@ public partial class SilencedPistol : BaseWeapon
         }
 
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
-        // Use diagonal of viewport to ensure laser reaches edge in any direction
-        float maxLaserLength = viewportSize.Length();
+        // Issue #1895: extend laser to reach mouse cursor during drone mode where the
+        // player can be far from the camera/target. Use whichever is larger.
+        float distToMouse = GlobalPosition.DistanceTo(GetGlobalMousePosition());
+        float maxLaserLength = Mathf.Max(viewportSize.Length(), distToMouse + 200f);
 
         // Calculate the end point of the laser using viewport-based length
         // Use laserDirection (with recoil) instead of base direction
