@@ -155,7 +155,7 @@ flashlight_toggle={
 
 [dotnet]
 
-project/assembly_name="GodotTopDownTemplate"
+project/assembly_name="TacticLine"
 
 [internationalization]
 
