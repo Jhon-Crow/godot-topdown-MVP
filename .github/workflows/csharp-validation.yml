@@ -51,13 +51,13 @@ jobs:
           echo "C# build succeeded!"
 
           # Check that DLL was actually produced (Godot places it in .godot/mono/temp/bin/)
-          DLL_PATH=".godot/mono/temp/bin/Debug/TacticLine.dll"
+          DLL_PATH=".godot/mono/temp/bin/Debug/GodotTopDownTemplate.dll"
           if [ -f "$DLL_PATH" ]; then
             echo "✓ Assembly built: $DLL_PATH"
             ls -la .godot/mono/temp/bin/Debug/*.dll 2>/dev/null || true
           else
             # Alternative path for standard dotnet build
-            ALT_PATH="bin/Debug/net6.0/TacticLine.dll"
+            ALT_PATH="bin/Debug/net6.0/GodotTopDownTemplate.dll"
             if [ -f "$ALT_PATH" ]; then
               echo "✓ Assembly built: $ALT_PATH"
               ls -la bin/Debug/net6.0/*.dll 2>/dev/null || true
