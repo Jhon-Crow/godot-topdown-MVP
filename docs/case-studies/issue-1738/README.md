@@ -328,6 +328,46 @@ Regression coverage was added to `tests/unit/test_water_body.gd` to lock in the 
 
 ---
 
+## Fifth Investigation — 2026-04-25 (Still Doubling)
+
+### User Feedback
+
+Owner comment on PR #1739 (2026-04-17):
+> "всё ещё двоится"
+
+Translation: "still doubles".
+
+### Finding 9: `mix(screen_col.rgb, refracted_tinted, 0.25)` still feeds 75% of the undistorted screen
+
+The fourth-iteration fix used:
+
+```glsl
+vec3 refracted_tinted = screen_col.rgb * water_col.rgb;
+vec3 final_rgb = mix(screen_col.rgb, refracted_tinted, 0.25);
+```
+
+With `mix(..., 0.25)` the output is `75% undistorted screen + 25% refracted_tinted`. The user sees both the undistorted background AND the tinted refracted version — exactly the doubling they reported.
+
+Additionally, the alpha remained `water_col.a ≈ 0.88`, meaning the Godot compositor was still blending 12% of whatever is drawn below this node, creating yet another potential doubling source.
+
+### Fix Applied — Fifth Iteration (2026-04-25)
+
+The shader now outputs **only the distorted+tinted view** — no undistorted screen copy:
+
+```glsl
+vec3 refracted_tinted = screen_col.rgb * water_col.rgb * 2.0;
+refracted_tinted = clamp(refracted_tinted, 0.0, 1.0);
+vec3 final_rgb = refracted_tinted;
+```
+
+Key changes:
+- `mix(screen_col.rgb, ...)` removed — the undistorted screen no longer contributes.
+- The water alpha in the interior is now `1.0` (driven by the shore fade logic), so the Godot compositor does not blend any background below the water.
+- Multiply by `2.0` compensates for the darkening effect of multiplying two `[0..1]` values.
+- Shore fade and bottom wash still use their own separate alpha so the shoreline blends smoothly.
+
+---
+
 ## Prevention
 
 1. Never use `hint_screen_texture` blending as the **sole** distortion mechanism for opaque nodes — 88% opacity means only 12% of the distorted scene bleeds through, making the effect imperceptible.

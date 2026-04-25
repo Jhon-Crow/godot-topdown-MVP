@@ -12,8 +12,8 @@ shader_type canvas_item;
 //     within a radius around each obstacle UV coordinate.
 //   - Wave-band shimmer distortion (Issue #1738) — prominent horizontal bands
 //     of lighter/darker water scroll across the surface, making waves look real.
-//     Uses the distorted screen sample as the primary image, then tints it with
-//     animated water colour so the stable/original image does not double up.
+//     Outputs ONLY the refracted+tinted view (no undistorted layer shown),
+//     so you look through moving waves without seeing the original image doubled.
 
 // --- Wave animation (primary — broad horizontal bands) ---
 uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
@@ -63,11 +63,11 @@ uniform vec2 obstacle_uvs[8];
 uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
 // --- Wave-band shimmer distortion (Issue #1738) ---
-// Primary distortion mechanism: modulates the water's own colour with bright wave
-// crests and dark troughs, then uses that result as a tint over the refracted
-// scene. This keeps only the moving distorted view visible through the water.
-// shimmer_strength = 0.35 → wave crests are 35% brighter, troughs 35% darker.
-// Also drives the screen-space refraction component.
+// Controls two effects simultaneously:
+//   1. Wave-band shimmer: modulates the water colour brightness (crests bright, troughs dark).
+//   2. Screen-space refraction offset: bends what you see through the water.
+// shimmer_strength = 0.35 → crests 35% brighter, troughs 35% darker.
+// The final output uses ONLY the distorted+tinted view — no undistorted layer.
 // Set to 0.0 by WaterBody.set_time_stopped() when time is paused.
 uniform float distortion_strength : hint_range(0.0, 1.0) = 0.35;
 
@@ -156,19 +156,22 @@ void fragment() {
 	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
 
 	// ---- Compose final colour ----
-	// Keep the distorted screen sample as the primary visible image, then apply
-	// the animated water colour as a tint. This removes the stable original layer
-	// while preserving blue depth and foam/wave brightness.
-	vec3 refracted_tinted = screen_col.rgb * water_col.rgb;
-	vec3 final_rgb = mix(screen_col.rgb, refracted_tinted, 0.25);
+	// Use ONLY the refracted + water-tinted view — no undistorted screen copy.
+	// Multiplying the distorted screen sample by the water colour gives a blue-tinted
+	// "looking through moving waves" result without any stable original layer visible.
+	// Brighten slightly so the tint does not make the water too dark.
+	vec3 refracted_tinted = screen_col.rgb * water_col.rgb * 2.0;
+	refracted_tinted = clamp(refracted_tinted, 0.0, 1.0);
+	vec3 final_rgb = refracted_tinted;
 
 	// ---- Blood diffusion tint ----
 	final_rgb = mix(final_rgb, blood_tint.rgb, blood_tint.a);
-	float alpha = water_col.a;
 
 	// ---- Shore fade at the top edge (transition from land to water) ----
+	// Alpha drives edge transparency — water body is opaque in the interior so
+	// only the distorted+tinted view is visible (no doubling with original scene).
 	float shore_fade = smoothstep(0.0, shore_fade_width, uv.y);
-	alpha *= shore_fade;
+	float alpha = shore_fade;
 
 	// ---- Bottom shore wash (Issue #1573): wave gradient onto land ----
 	float bottom_t = smoothstep(1.0, 1.0 - shore_wash_width, uv.y);
