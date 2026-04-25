@@ -18,6 +18,7 @@ point_count = 4
 
 [node name="BreakerShrapnel" type="Area2D"]
 collision_layer = 16
+z_index = 2
 collision_mask = 39
 script = ExtResource("1_breaker_shrapnel")
 

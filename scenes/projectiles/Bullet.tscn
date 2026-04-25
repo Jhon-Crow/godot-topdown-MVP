@@ -18,6 +18,7 @@ point_count = 2
 [node name="Bullet" type="Area2D"]
 collision_layer = 16
 collision_mask = 39
+z_index = 2
 script = ExtResource("1_bullet")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
