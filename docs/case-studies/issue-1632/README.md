@@ -10,7 +10,7 @@
 - `github/pr-1914.json`
 - `github/pr-1914-comments.json`
 
-The first two gameplay logs were attached to PR #1914 on 2026-04-25 after the owner reported that the gas cloud was visible but illusion copies did not seem to appear. A third gameplay log was attached later the same day after the owner reported that the effect could trigger when the player did not touch the smoke and that too few copies appeared.
+The first two gameplay logs were attached to PR #1914 on 2026-04-25 after the owner reported that the gas cloud was visible but illusion copies did not seem to appear. A third gameplay log was attached later the same day after the owner reported that the effect could trigger when the player did not touch the smoke and that too few copies appeared. The owner then clarified that the first touch of gas should immediately create 3-4 illusion copies per affected enemy, with only later copies added progressively over time.
 
 ## Timeline
 
@@ -19,6 +19,7 @@ The first two gameplay logs were attached to PR #1914 on 2026-04-25 after the ow
 - 2026-04-25: The owner reported that illusion copies appeared absent while gas was visible and attached two Windows gameplay logs.
 - 2026-04-25: PR #1914 sorted alive enemies by distance to the chemical cloud before spending the per-cloud cap.
 - 2026-04-25: The owner reported two follow-up regressions: the effect can trigger before the player touches visible smoke, and some clouds create too few copies.
+- 2026-04-25: The owner clarified that first gas contact should immediately create 3-4 copies per enemy, before progressive spawning adds later copies.
 - 2026-04-25: This case study preserved the logs and PR/issue metadata in this directory.
 
 ## Log Reconstruction
@@ -44,6 +45,7 @@ The follow-up regressions had separate causes:
 
 - The grow-in visual scaled the cloud from zero to full size, but `_is_player_in_range()` still checked against the full final radius.
 - The local-priority fix preserved the old per-cloud cap of 10 while the global cap is 12. When gas-mask enemies throw several chemical grenades close together, one cloud can consume most of the global illusion budget and leave the next visible cloud with only 1-2 copies.
+- The initial cluster size was still using the historical 2-6 random range. That allowed first-contact clusters smaller than the owner-specified 3-4 copies per enemy.
 
 ## Fix Direction
 
@@ -52,12 +54,14 @@ Prioritize alive enemies by distance to the chemical cloud before spending the p
 For the follow-up reports:
 
 - Use the effective grown cloud radius for player-trigger checks while the gas visual is still growing.
-- Avoid spending the last few initial-spawn slots on partial clusters that visibly look too small compared with the intended 2-6 copies per enemy.
+- Use a dedicated 3-4 copy range for first-contact clusters, then leave progressive spawning to add later copies over time.
+- Avoid spending the last few initial-spawn slots on partial clusters that visibly look too small compared with the intended 3-4 first-contact copies per enemy.
 
 ## Verification Targets
 
 - Unit coverage should assert that alive enemies are sorted nearest to the cloud first and dead enemies are excluded.
 - Existing wall validation tests should continue to reject destinations inside walls and paths crossing walls.
 - Unit coverage should assert that grow-in range checks use the effective visible cloud radius.
+- Unit coverage should assert that first-contact clusters use the owner-specified 3-4 copy range.
 - Unit coverage should assert that an initial cluster is skipped when remaining budget cannot create the randomized cluster size.
 - Manual verification should reproduce the Railway Station chemical grenade flow and confirm that illusion copies appear around enemies local to the visible gas encounter.

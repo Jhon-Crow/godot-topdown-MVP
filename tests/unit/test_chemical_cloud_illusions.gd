@@ -48,6 +48,15 @@ func test_min_copies_per_enemy_default_is_2() -> void:
 	cloud.free()
 
 
+func test_initial_copies_per_enemy_defaults_to_3_to_4() -> void:
+	var cloud := ChemicalCloud.new()
+	assert_eq(cloud.min_initial_copies_per_enemy, 3,
+		"First gas contact should immediately spawn at least 3 copies per enemy")
+	assert_eq(cloud.max_initial_copies_per_enemy, 4,
+		"First gas contact should immediately spawn at most 4 copies per enemy")
+	cloud.free()
+
+
 func test_copies_range_is_2_to_6() -> void:
 	# Verify that randi_range with min=2, max=6 produces values in [2, 6]
 	var cloud := ChemicalCloud.new()
@@ -61,6 +70,22 @@ func test_copies_range_is_2_to_6() -> void:
 	# With 500 iterations we should see all values 2-6
 	for v in range(2, 7):
 		assert_true(seen_values.has(v), "Should see value %d in copy range" % v)
+	cloud.free()
+
+
+func test_initial_copies_range_is_3_to_4() -> void:
+	var cloud := ChemicalCloud.new()
+	var seen_values: Dictionary = {}
+	for i in range(200):
+		var copies: int = randi_range(
+			cloud.min_initial_copies_per_enemy,
+			cloud.max_initial_copies_per_enemy
+		)
+		assert_true(copies >= 3, "Initial copies should be >= 3, got %d" % copies)
+		assert_true(copies <= 4, "Initial copies should be <= 4, got %d" % copies)
+		seen_values[copies] = true
+	for v in range(3, 5):
+		assert_true(seen_values.has(v), "Should see value %d in initial copy range" % v)
 	cloud.free()
 
 
@@ -422,8 +447,8 @@ func test_player_range_uses_effective_grow_in_radius() -> void:
 func test_cluster_spawn_skips_when_remaining_budget_is_too_small() -> void:
 	var cloud := ChemicalCloud.new()
 	add_child_autofree(cloud)
-	cloud.min_copies_per_enemy = 4
-	cloud.max_copies_per_enemy = 4
+	cloud.min_initial_copies_per_enemy = 4
+	cloud.max_initial_copies_per_enemy = 4
 
 	var enemy := MockEnemy.new()
 	add_child_autofree(enemy)

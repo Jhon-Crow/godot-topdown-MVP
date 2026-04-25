@@ -26,6 +26,10 @@ class_name ChemicalCloud
 ## Maximum copies per enemy.
 @export var max_copies_per_enemy: int = 6
 
+## First-contact illusion burst per enemy. Progressive spawning adds extras later.
+@export var min_initial_copies_per_enemy: int = 3
+@export var max_initial_copies_per_enemy: int = 4
+
 ## How long each illusion copy lasts (seconds).
 @export var illusion_duration: float = 20.0
 
@@ -194,7 +198,7 @@ func _get_alive_enemies_sorted_by_cloud_distance() -> Array[Node2D]:
 ## Spawn one enemy's illusion cluster and return the number of illusions created.
 func _spawn_illusion_cluster_for_enemy(enemy: Node2D, remaining_budget: int) -> int:
 	var spawned_count: int = 0
-	var copies: int = randi_range(min_copies_per_enemy, max_copies_per_enemy)
+	var copies: int = randi_range(min_initial_copies_per_enemy, max_initial_copies_per_enemy)
 	if copies > remaining_budget:
 		FileLogger.info("[ChemicalCloud] Skipping enemy at %s — cluster needs %d copies, only %d slots remain" % [
 			str(enemy.global_position), copies, remaining_budget
