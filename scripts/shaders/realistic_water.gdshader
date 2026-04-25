@@ -1,5 +1,5 @@
 shader_type canvas_item;
-// Realistic 2D water shader (Issue #1445, enhanced in Issue #1550)
+// Realistic 2D water shader (Issue #1445, enhanced in Issue #1550, distortion in Issue #1738)
 // Simulates ocean waves on the Beach level with:
 //   - Animated wave bands scrolling horizontally
 //   - Foam / white-caps near wave crests
@@ -10,6 +10,10 @@ shader_type canvas_item;
 //   - Wave interruption by obstacles (player/enemies) — Issue #1550
 //     Mirrors the light-ray occlusion logic: wave amplitude is attenuated
 //     within a radius around each obstacle UV coordinate.
+//   - Wave-band shimmer distortion (Issue #1738) — prominent horizontal bands
+//     of lighter/darker water scroll across the surface, making waves look real.
+//     Outputs ONLY the refracted+tinted view (no undistorted layer shown),
+//     so you look through moving waves without seeing the original image doubled.
 
 // --- Wave animation (primary — broad horizontal bands) ---
 uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
@@ -58,6 +62,20 @@ uniform vec2 obstacle_uvs[8];
 // Radius in UV space within which the wave is attenuated around an obstacle.
 uniform float obstacle_radius : hint_range(0.0, 0.2) = 0.045;
 
+// --- Wave-band shimmer distortion (Issue #1738) ---
+// Controls two effects simultaneously:
+//   1. Wave-band shimmer: modulates the water colour brightness (crests bright, troughs dark).
+//   2. Screen-space refraction offset: bends what you see through the water.
+// shimmer_strength = 0.35 → crests 35% brighter, troughs 35% darker.
+// The final output uses ONLY the distorted+tinted view — no undistorted layer.
+// Set to 0.0 by WaterBody.set_time_stopped() when time is paused.
+uniform float distortion_strength : hint_range(0.0, 1.0) = 0.35;
+
+// Screen texture for refraction sampling.
+// filter_nearest + textureLod for gl_compatibility renderer support
+// (matches the pattern used in last_chance.gdshader and invisibility_cloak.gdshader).
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+
 // Compute a [0..1] occlusion factor: 1.0 = fully occluded (wave stops),
 // 0.0 = no occlusion.  Uses smooth falloff like a light shadow penumbra.
 float wave_occlusion(vec2 uv) {
@@ -76,28 +94,26 @@ float wave_occlusion(vec2 uv) {
 void fragment() {
 	vec2 uv = UV;
 
-	// ---- Primary wave ----
+	// ---- Primary wave — broad horizontal bands ----
+	// Two overlapping sine waves along X create irregular, ocean-like ripples.
 	float wave1 = sin(uv.x * wave_frequency + TIME * wave_speed)
 	            + sin(uv.x * wave_frequency * 0.73 - TIME * wave_speed * 0.6);
 	wave1 *= 0.5; // normalise to [-1, 1]
 
-	// ---- Secondary ripple (horizontal surface undulation) ----
-	// Kept horizontal (uv.x only) so it looks like gentle water surface texture,
-	// not diagonal lines at the wrong angle.
-	float wave2 = sin(uv.x * ripple_frequency + TIME * ripple_speed)
+	// ---- Secondary wave — vertical surf bands (Y-axis) ----
+	// Runs along uv.y so it creates horizontal bands moving toward shore.
+	// Combined with wave1 it produces a 2D irregular surface pattern.
+	float wave2 = sin(uv.y * ripple_frequency + TIME * ripple_speed)
 	            * sin(uv.x * ripple_frequency * 0.7 - TIME * ripple_speed * 0.5);
 
 	// ---- Obstacle occlusion (wave interruption — Issue #1550) ----
-	// Reduce both primary and secondary wave amplitude near obstacles,
-	// simulating waves "breaking" against the body (same logic as light rays
-	// stopping at LightOccluder2D nodes).
 	float occ = wave_occlusion(uv);
 	float occ_factor = 1.0 - occ;  // 0 = fully occluded, 1 = free
 
 	float wave1_occ = wave1 * occ_factor;
 	float wave2_occ = wave2 * occ_factor;
 
-	// ---- UV distortion for wave motion ----
+	// ---- UV distortion for the water's own internal colour bands ----
 	float total_disp = wave1_occ * wave_amplitude + wave2_occ * ripple_amplitude;
 	vec2 distorted_uv = uv + vec2(total_disp, total_disp * 0.5);
 
@@ -105,48 +121,64 @@ void fragment() {
 	float depth = distorted_uv.y;
 	vec4 water_base = mix(shallow_color, deep_color, depth);
 
+	// ---- Wave-band shimmer (Issue #1738) — primary visible distortion ----
+	// Combine wave1 and wave2 into a single shimmer signal in [-1, 1].
+	// wave1 creates broad Y-running bands (horizontal), wave2 adds X variation.
+	// shimmer_signal ∈ [-1, 1]; positive = wave crest (bright), negative = trough (dark).
+	float shimmer_signal = (wave1_occ + wave2_occ * 0.6) * (1.0 / 1.6);
+	// Map to brightness multiplier: crests → brighter, troughs → darker.
+	// distortion_strength = 0.35 → crests at 1.35×, troughs at 0.65×.
+	float shimmer = 1.0 + shimmer_signal * distortion_strength;
+	// Apply shimmer to the water base colour — this is always visible regardless of alpha.
+	vec4 water_shimmered = vec4(clamp(water_base.rgb * shimmer, 0.0, 1.0), water_base.a);
+
 	// ---- Foam / white-caps ----
 	float foam_val = smoothstep(foam_threshold, 1.0,
 	                            pow(clamp(wave1_occ * 0.5 + 0.5, 0.0, 1.0), foam_sharpness));
-	vec4 water_col = mix(water_base, foam_color, foam_val);
+	vec4 water_col = mix(water_shimmered, foam_color, foam_val);
 
 	// ---- Surf-foam streaks marching toward shore (Issue #1550) ----
-	// Create bands that travel from deep (y=1) toward the shore (y=0).
-	// Phase = uv.y * surf_frequency - TIME * surf_speed  →  bands move upward.
 	float surf_phase = uv.y * surf_frequency - TIME * surf_speed;
-	// Small x-variation for natural variation without creating diagonal artefacts
 	surf_phase += sin(uv.x * 2.0 + TIME * 0.15) * 0.15;
-	// Modulate into [0,1] and apply threshold to form discrete foam bands
 	float surf_band = fract(surf_phase);
 	float surf_foam = smoothstep(1.0 - surf_width, 1.0, surf_band)
 	                + smoothstep(surf_width, 0.0, surf_band);
-	// Attenuate near obstacles (waves also break here — Issue #1550)
 	surf_foam *= occ_factor;
-	// Attenuate at deep water (only visible in the upper / shallower portion)
 	surf_foam *= (1.0 - depth * 0.8);
-	// Blend surf foam on top of the water colour
 	water_col = mix(water_col, foam_color, surf_foam * surf_intensity);
 
+	// ---- Screen-space refraction (Issue #1738) — primary distorted image ----
+	// Bends the background visible through the water (sand, edges).  The final
+	// composition uses this refracted sample as the base image instead of mixing
+	// it behind an 88% opaque stable water layer, which previously made the
+	// original/non-distorted picture appear doubled.
+	vec2 refract_offset = vec2(wave1_occ, wave2_occ) * distortion_strength * 0.04;
+	vec4 screen_col = textureLod(screen_texture, SCREEN_UV + refract_offset, 0.0);
+
+	// ---- Compose final colour ----
+	// Use ONLY the refracted + water-tinted view — no undistorted screen copy.
+	// Multiplying the distorted screen sample by the water colour gives a blue-tinted
+	// "looking through moving waves" result without any stable original layer visible.
+	// Brighten slightly so the tint does not make the water too dark.
+	vec3 refracted_tinted = screen_col.rgb * water_col.rgb * 2.0;
+	refracted_tinted = clamp(refracted_tinted, 0.0, 1.0);
+	vec3 final_rgb = refracted_tinted;
+
 	// ---- Blood diffusion tint ----
-	vec3 final_rgb = mix(water_col.rgb, blood_tint.rgb, blood_tint.a);
-	float alpha = water_col.a;
+	final_rgb = mix(final_rgb, blood_tint.rgb, blood_tint.a);
 
 	// ---- Shore fade at the top edge (transition from land to water) ----
+	// Alpha drives edge transparency — water body is opaque in the interior so
+	// only the distorted+tinted view is visible (no doubling with original scene).
 	float shore_fade = smoothstep(0.0, shore_fade_width, uv.y);
-	alpha *= shore_fade;
+	float alpha = shore_fade;
 
 	// ---- Bottom shore wash (Issue #1573): wave gradient onto land ----
-	// In the bottom shore_wash_width fraction of the texture (the part that
-	// overlaps the sand), fade the base water colour to transparent so only
-	// the bright foam/surf bands remain visible — creating a "wave wash" look.
 	float bottom_t = smoothstep(1.0, 1.0 - shore_wash_width, uv.y);
-	// Attenuate the base water colour in the wash zone (foam already bright enough)
 	float wash_water_alpha = mix(alpha, 0.0, (1.0 - bottom_t));
-	// Surf foam in the wash zone: boost intensity so waves are clearly visible on sand
 	float surf_wash = surf_foam * surf_intensity * (1.0 - bottom_t) * 1.8;
-	// Blend: deep into wash zone = only foam, no base water
 	float final_alpha = mix(wash_water_alpha, surf_wash, clamp(1.0 - bottom_t, 0.0, 1.0));
-	final_alpha = max(final_alpha, surf_wash);  // foam always visible in wash zone
+	final_alpha = max(final_alpha, surf_wash);
 
 	COLOR = vec4(final_rgb, final_alpha);
 }

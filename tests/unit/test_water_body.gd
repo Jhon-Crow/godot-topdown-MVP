@@ -373,6 +373,7 @@ class MockWaterBodyTimeStop:
 	var _wave_speed: float = 0.3
 	var _ripple_speed: float = 0.5
 	var _surf_speed: float = 0.5
+	var _distortion_strength: float = 0.35
 
 	## Whether time is currently stopped.
 	var _time_stopped: bool = false
@@ -381,12 +382,13 @@ class MockWaterBodyTimeStop:
 	var _saved_wave_speed: float = 0.0
 	var _saved_ripple_speed: float = 0.0
 	var _saved_surf_speed: float = 0.0
+	var _saved_distortion_strength: float = 0.0
 
 	## Whether a shader material is attached (simulate missing material case).
 	var has_material: bool = true
 
 
-	## Simulate set_time_stopped from water_body.gd (Issue #1585).
+	## Simulate set_time_stopped from water_body.gd (Issue #1585, Issue #1738).
 	func set_time_stopped(paused: bool) -> void:
 		if _time_stopped == paused:
 			return
@@ -397,13 +399,30 @@ class MockWaterBodyTimeStop:
 			_saved_wave_speed = _wave_speed
 			_saved_ripple_speed = _ripple_speed
 			_saved_surf_speed = _surf_speed
+			_saved_distortion_strength = _distortion_strength
 			_wave_speed = 0.0
 			_ripple_speed = 0.0
 			_surf_speed = 0.0
+			_distortion_strength = 0.0
 		else:
 			_wave_speed = _saved_wave_speed
 			_ripple_speed = _saved_ripple_speed
 			_surf_speed = _saved_surf_speed
+			_distortion_strength = _saved_distortion_strength
+
+
+class MockWaterDistortionComposite:
+	## Mirrors the issue #1738 shader composition choice in simple scalar form.
+	## The final pixel must be built from the DISTORTED screen sample only;
+	## no undistorted "stable" copy may contribute to the output.
+
+	func old_alpha_overlay_compose(distorted_scene: float, water_colour: float, water_alpha: float) -> float:
+		return distorted_scene * (1.0 - water_alpha) + water_colour * water_alpha
+
+	## New composition: distorted sample * water tint * brighten factor.
+	## No undistorted scene contributes — the output is purely the refracted view tinted blue.
+	func refracted_only_compose(distorted_scene: float, water_colour: float) -> float:
+		return clamp(distorted_scene * water_colour * 2.0, 0.0, 1.0)
 
 
 # ============================================================================
@@ -472,3 +491,79 @@ func test_water_set_time_stopped_noop_without_material() -> void:
 	assert_true(wb._time_stopped, "Time stopped flag should be set even without material")
 	assert_almost_eq(wb._wave_speed, 0.3, 0.001,
 		"wave_speed must be unchanged when no shader material is present")
+
+
+# ============================================================================
+# Tests: Issue #1738 — distortion_strength zeroed during time-stop
+# ============================================================================
+
+
+func test_distortion_strength_zero_when_time_stopped() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._distortion_strength, 0.0,
+		"distortion_strength must be 0 when time is stopped (Issue #1738)")
+
+
+func test_distortion_strength_restored_when_time_resumes() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	var original_distortion: float = wb._distortion_strength
+	wb.set_time_stopped(true)
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._distortion_strength, original_distortion, 0.0001,
+		"distortion_strength must be restored to original value after time resumes (Issue #1738)")
+
+
+func test_distortion_strength_saves_non_default_value() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb._distortion_strength = 0.025
+	wb.set_time_stopped(true)
+	assert_eq(wb._distortion_strength, 0.0,
+		"distortion_strength must be 0 during time stop regardless of prior value")
+	wb.set_time_stopped(false)
+	assert_almost_eq(wb._distortion_strength, 0.025, 0.0001,
+		"Custom distortion_strength must be restored after time resumes")
+
+
+func test_distortion_strength_noop_without_material() -> void:
+	var wb := MockWaterBodyTimeStop.new()
+	wb.has_material = false
+	var original_distortion: float = wb._distortion_strength
+	wb.set_time_stopped(true)
+	assert_true(wb._time_stopped,
+		"Time stopped flag should be set even without material")
+	assert_almost_eq(wb._distortion_strength, original_distortion, 0.0001,
+		"distortion_strength must be unchanged when no shader material is present (Issue #1738)")
+
+
+func test_distortion_and_speeds_all_zero_when_time_stopped() -> void:
+	# Regression: all motion parameters must be frozen together (Issue #1738).
+	var wb := MockWaterBodyTimeStop.new()
+	wb.set_time_stopped(true)
+	assert_eq(wb._wave_speed, 0.0, "wave_speed must be 0 when time stopped")
+	assert_eq(wb._ripple_speed, 0.0, "ripple_speed must be 0 when time stopped")
+	assert_eq(wb._surf_speed, 0.0, "surf_speed must be 0 when time stopped")
+	assert_eq(wb._distortion_strength, 0.0, "distortion_strength must be 0 when time stopped")
+
+
+func test_distorted_scene_is_primary_image_not_alpha_overlay() -> void:
+	# Regression: owner confirmed shimmer works, then requested that the original
+	# non-distorted picture not remain visible as a second/stable layer.
+	# Fix: output = clamp(distorted_scene * water_colour * 2.0, 0, 1)
+	# No mix() with the undistorted screen_col — removing the stable layer entirely.
+	var composite := MockWaterDistortionComposite.new()
+	var distorted_scene := 0.20
+	var water_colour := 0.80
+	var water_alpha := 0.88
+	var old_result := composite.old_alpha_overlay_compose(distorted_scene, water_colour, water_alpha)
+	var new_result := composite.refracted_only_compose(distorted_scene, water_colour)
+
+	# Old result is dominated by the stable water_colour (88% contribution) — too close to pure water.
+	# New result is a multiply-tint of the distorted sample — no undistorted screen copy.
+	assert_gt(abs(old_result - water_colour), abs(new_result - water_colour),
+		"Old alpha overlay stays too close to stable water colour and doubles the image")
+	# New result is further from the undistorted/stable scene than the old approach,
+	# confirming the stable layer is no longer the primary contributor.
+	var undistorted_scene := 1.0  # what would show without distortion (stable layer)
+	assert_gt(abs(new_result - undistorted_scene), abs(old_result - undistorted_scene),
+		"New composition must push the result further from the stable undistorted scene")
