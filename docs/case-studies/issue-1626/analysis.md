@@ -325,6 +325,23 @@ Four new unit tests read the shader source text and assert on its structure so t
 
 ---
 
+### Iteration 10 — Persistent White Squares After Shader Fix (2026-04-25)
+
+**User feedback:** "всё ещё белые квадраты вместо луж" — still white squares instead of puddles.
+
+The previous fix removed `hint_screen_texture`, but it kept the same fragile rendering path: `PuddleManager` was still a `CanvasGroup` with a custom shader. A `CanvasGroup` renders children into an offscreen texture and then draws the group's bounding quad. If that intermediate texture is unavailable, interpreted incorrectly, or not transparent in uncovered areas on the active renderer, the quad itself becomes visible as a white rectangle. The owner's repeated symptom matches this failure mode, so the root fix is to remove the CanvasGroup/shader path entirely.
+
+**Fix applied:**
+
+- `PuddleManager` now extends `Node2D`.
+- `DocksLevel.tscn` now declares `PuddleManager` as `type="Node2D"`.
+- The custom `puddle_merge.gdshader` file and runtime `ShaderMaterial` assignment were removed.
+- Regression tests now assert that `PuddleManager` uses normal `Node2D` rendering and does not attach a shader material.
+
+**Tradeoff:** overlapping puddles no longer use the experimental alpha-clamp merge shader. This is intentional: normal `Sprite2D` rendering is deterministic across renderers and cannot draw a full bounding rectangle over the play-field. The owner-visible blocker is white squares replacing puddles, and eliminating `CanvasGroup` addresses that root cause directly.
+
+---
+
 ## Data Files in This Folder
 
 | File | Source | Description |

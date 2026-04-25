@@ -1,4 +1,4 @@
-extends CanvasGroup
+extends Node2D
 ## Manages rain puddles on the Docks map (Issue #1626).
 ##
 ## Spawns a set of puddles at logically placed positions across the outdoor
@@ -14,19 +14,16 @@ extends CanvasGroup
 ## look identical.  If there are more puddles than shape variants the shapes
 ## cycle but are shuffled so repetition is spread out.
 ##
+## This manager intentionally uses plain Node2D/Sprite2D rendering. Previous
+## CanvasGroup merge-shader attempts produced renderer-dependent white
+## rectangles on gl_compatibility builds.
+##
 ## All puddles are pre-instantiated at _ready() so they are available
 ## immediately; start_growing() is called on each one right away so they
 ## begin their staggered appearance sequence from the moment the level loads.
 
 ## Path to the PuddleEffect scene.
 const PUDDLE_SCENE_PATH: StringName = &"res://scenes/effects/PuddleEffect.tscn"
-
-## Path to the shader that clamps accumulated alpha so overlapping puddles
-## merge into one body instead of showing a darker intersection area.
-const PUDDLE_MERGE_SHADER_PATH: StringName = &"res://scripts/shaders/puddle_merge.gdshader"
-
-## Maximum alpha any single puddle can reach (matches phase-3 cap in puddle_effect.gd).
-const MAX_PUDDLE_ALPHA: float = 0.55
 
 ## Puddle texture variants — each has a distinct irregular shape so puddles
 ## don't all look identical.  16 variants are provided (enough to cover all
@@ -151,17 +148,6 @@ func _ready() -> void:
 	if _puddle_scene == null:
 		push_warning("[PuddleManager] PuddleEffect scene not found at %s" % PUDDLE_SCENE_PATH)
 		return
-
-	# Attach the merge shader so overlapping puddles blend into one body
-	# (no darker colour at intersections).
-	var merge_shader: Shader = load(PUDDLE_MERGE_SHADER_PATH)
-	if merge_shader != null:
-		var mat := ShaderMaterial.new()
-		mat.shader = merge_shader
-		mat.set_shader_parameter("max_alpha", MAX_PUDDLE_ALPHA)
-		material = mat
-	else:
-		push_warning("[PuddleManager] Merge shader not found at %s" % PUDDLE_MERGE_SHADER_PATH)
 
 	# Pre-load all puddle texture variants.
 	for path in PUDDLE_TEXTURE_PATHS:
