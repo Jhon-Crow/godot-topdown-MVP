@@ -602,3 +602,52 @@ Log analysis found **1,638 diffusion effect nodes spawned in one session** — e
 5. **Add `absorb()` method**: increases the cloud's intensity slightly and resets the elapsed timer back to the expansion phase, keeping the cloud alive and growing after absorbing new hits.
 
 Expected result: a continuous burst of blood into water creates ≤1 new diffusion node per ~120px cluster, with the rest merging into existing nodes. FPS impact drops from ~150k GPU particles to ≤720 particles (8 nodes max) or zero when MAX_RADIUS <= MERGE_RADIUS means all hits merge.
+
+---
+
+## Latest Owner Feedback: halo artifacts, delayed tint, wrong cloud color (2026-04-25)
+
+Owner reported three remaining visual problems:
+
+1. Strange white-transparent circles appear on land around the blood cloud.
+2. The cloud grows quickly, then stops; only after that does it disappear and recolor the wave. The wave must recolor at the same time as the cloud grows and disappears.
+3. Blood clouds are not red enough and should use the same red as the recolored wave.
+
+### Root cause analysis
+
+The current `WaterBloodDiffusion._draw()` had a separate soft outer diffusion ring:
+
+```gdscript
+outer_col.a = alpha * 0.05
+draw_circle(Vector2.ZERO, radius * 1.15, outer_col)
+```
+
+Because the diffusion node is drawn below a semi-transparent animated water layer, that very low-alpha oversized circle can read as a pale/white transparent halo near shorelines and around the cloud, especially when the water layer fades at the edge.
+
+The timing was also split into separate phases:
+
+- Expansion: 0-3 seconds.
+- Hold: 3-5 seconds.
+- Tint/fade: 5-12 seconds.
+
+That matched the observed behavior: the cloud grows, pauses, then wave tint starts later. The owner’s latest requirement is a single synchronized lifecycle where tint grows from the first frame while the cloud expands and fades.
+
+The cloud color also used arbitrary hit/decal color channels from `set_blood_color()`, while the shader hard-coded the final water blood tint as `vec3(0.50, 0.02, 0.025)`. If the input decal color was darker, desaturated, or alpha-heavy, the visible cloud did not match the water tint.
+
+### Additional implementation research
+
+Godot’s own 2D drawing documentation supports the lightweight approach already used here: custom `CanvasItem._draw()` plus `queue_redraw()` is the intended way to draw procedural 2D shapes that update over time. Godot’s shader documentation also requires `source_color` for color uniforms in modern Godot 4 rendering paths, which this project already uses for `blood_tint` in `realistic_water.gdshader`. GPUParticles2D remains a valid component for many 2D VFX, but the April 18 log showed that this specific burst effect produced too many concurrent particle emitters, so the procedural draw-only effect is the safer component for this issue.
+
+References:
+
+- Godot 4.5 custom drawing in 2D: https://docs.godotengine.org/en/4.5/tutorials/2d/custom_drawing_in_2d.html
+- Godot 4 shading language and `source_color`: https://docs.godotengine.org/en/4.0/tutorials/shaders/shader_reference/shading_language.html
+- Godot latest GPUParticles2D reference: https://docs.godotengine.org/en/latest/classes/class_gpuparticles2d.html
+
+### Implemented solution
+
+1. Removed the outer low-alpha diffusion ring so the effect no longer paints pale halos outside the visible red cloud.
+2. Replaced the delayed `HOLD_DURATION` tint start with `TINT_START_TIME = 0.0`, so `on_tint_update` runs throughout the cloud lifetime.
+3. Changed the visible cloud color to `WATER_BLOOD_TINT_COLOR = Color(0.50, 0.02, 0.025, 0.72)`, matching the red target used by `realistic_water.gdshader`.
+4. Changed cloud alpha to fade continuously over the full 12-second lifetime while radius still expands over the first 3 seconds, keeping spread speed intact but synchronizing wave recolor with the visual cloud.
+5. Added unit coverage for immediate tint start, cloud/shader color match, and absence of the removed outer halo code.

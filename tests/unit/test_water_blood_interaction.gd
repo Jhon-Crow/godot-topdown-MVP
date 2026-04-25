@@ -293,6 +293,16 @@ func test_blood_diffusion_cloud_duration_and_water_tint_persists() -> void:
 	add_child_autofree(diffusion)
 	assert_true("on_tint_update" in diffusion,
 		"WaterBloodDiffusion must expose on_tint_update callback for gradual water tint")
+	assert_eq(script.TINT_START_TIME, 0.0,
+		"Water tint must begin growing immediately while the cloud expands, not after a hold phase")
+	assert_eq(script.WATER_BLOOD_TINT_COLOR, Color(0.50, 0.02, 0.025, 0.72),
+		"Diffusion cloud must use the same red as the water shader tint")
+
+
+func test_blood_diffusion_has_no_outer_white_halo() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/effects/water_blood_diffusion.gd")
+	assert_false(source.contains("outer_col"),
+		"Water blood diffusion must not draw a faint outer ring that appears as white-transparent circles on land")
 
 
 func test_blood_diffusion_renders_below_water_layer() -> void:

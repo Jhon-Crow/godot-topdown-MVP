@@ -21,11 +21,14 @@ const MAX_RADIUS: float = 80.0
 ## Total lifetime of the effect in seconds.
 const DURATION: float = 12.0
 
-## How long the effect expands before entering the hold phase.
+## How long the effect expands before reaching maximum radius.
 const EXPAND_DURATION: float = 3.0
 
-## Hold phase length — visible dissolving cloud before fading out.
-const HOLD_DURATION: float = 5.0
+## Tint grows over the whole visible cloud lifetime, not only after expansion.
+const TINT_START_TIME: float = 0.0
+
+## Same red target used by realistic_water.gdshader for blood-tinted waves.
+const WATER_BLOOD_TINT_COLOR: Color = Color(0.50, 0.02, 0.025, 0.72)
 
 ## Blood color (default dark red, overridden by set_blood_color).
 var _blood_color: Color = Color(0.42, 0.01, 0.01, 0.72)
@@ -64,11 +67,11 @@ func _process(delta: float) -> void:
 		_done = true
 		queue_free()
 	else:
-		# During fade phase, call tint update each frame so water tint grows gradually
-		# in sync with the cloud fading out (Issue #1578 feedback).
-		if _elapsed >= HOLD_DURATION and not _done and on_tint_update.is_valid():
-			var fade_t: float = clampf((_elapsed - HOLD_DURATION) / maxf(DURATION - HOLD_DURATION, 0.001), 0.0, 1.0)
-			on_tint_update.call(global_position, _absorbed_hits, fade_t)
+		# Tint grows from the first frame while the cloud expands and fades, so the
+		# wave recolor is synchronized with the whole visible diffusion lifecycle.
+		if _elapsed >= TINT_START_TIME and not _done and on_tint_update.is_valid():
+			var tint_t: float = clampf((_elapsed - TINT_START_TIME) / maxf(DURATION - TINT_START_TIME, 0.001), 0.0, 1.0)
+			on_tint_update.call(global_position, _absorbed_hits, tint_t)
 		queue_redraw()
 
 
@@ -79,13 +82,13 @@ func _draw() -> void:
 	var expand_t: float = clampf(_elapsed / EXPAND_DURATION, 0.0, 1.0)
 	var radius: float = MAX_RADIUS * (1.0 - pow(1.0 - expand_t, 3.0))
 
-	var fade_t: float = clampf((_elapsed - HOLD_DURATION) / maxf(DURATION - HOLD_DURATION, 0.001), 0.0, 1.0)
+	var fade_t: float = clampf(_elapsed / maxf(DURATION, 0.001), 0.0, 1.0)
 	var base_alpha: float = minf(_blood_color.a + _extra_alpha * 0.3, 0.92)
-	var alpha: float = base_alpha * (1.0 - fade_t * fade_t)
+	var alpha: float = base_alpha * (1.0 - fade_t)
 
 	# Dense core
 	var core_col := _blood_color
-	core_col.a = alpha * 0.45
+	core_col.a = alpha * 0.58
 	draw_circle(Vector2.ZERO, radius * 0.55, core_col)
 
 	# Asymmetric lobes — simulate pigment tendrils spreading in liquid
@@ -94,19 +97,13 @@ func _draw() -> void:
 		var offset_len := radius * lerpf(0.1, 0.3, float(i) / 7.0)
 		var offset := Vector2(cos(angle), sin(angle)) * offset_len
 		var lobe_col := _blood_color
-		lobe_col.a = alpha * lerpf(0.22, 0.10, float(i) / 7.0)
+		lobe_col.a = alpha * lerpf(0.34, 0.16, float(i) / 7.0)
 		draw_circle(offset, radius * lerpf(0.38, 0.25, float(i) / 7.0), lobe_col)
-
-	# Soft outer diffusion ring
-	var outer_col := _blood_color
-	outer_col.a = alpha * 0.05
-	if outer_col.a > 0.004:
-		draw_circle(Vector2.ZERO, radius * 1.15, outer_col)
 
 
 ## Set the blood color (called after instantiation).
 func set_blood_color(color: Color) -> void:
-	_blood_color = Color(color.r, color.g, color.b, 0.72)
+	_blood_color = Color(WATER_BLOOD_TINT_COLOR.r, WATER_BLOOD_TINT_COLOR.g, WATER_BLOOD_TINT_COLOR.b, 0.72)
 
 
 ## Absorb a nearby blood hit: increase intensity and restart the expansion phase.

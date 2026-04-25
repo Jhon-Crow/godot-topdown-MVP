@@ -811,11 +811,10 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
 
-	# Tint water gradually as the cloud fades — called each frame during the fade phase.
-	# fade_t goes 0→1 as the cloud disappears, so tint strength grows in sync.
+	# Tint water gradually for the whole cloud lifetime, so wave recolor stays
+	# synchronized with both expansion and disappearance.
 	var wb_ref := water_body
 	var color_ref := blood_color
-	var _last_fade_t: float = 0.0
 	diffusion.set("on_tint_update", func(world_pos: Vector2, absorbed_hits: int, fade_t: float) -> void:
 		if not is_instance_valid(wb_ref) or not wb_ref.has_method("update_blood_tint_fade"):
 			return
