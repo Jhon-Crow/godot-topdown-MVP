@@ -993,7 +993,7 @@ func _update_goap_state() -> void:
 		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
 		# Check if the next navigation waypoint is lit by the flashlight
 		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player, _raycast) if _player else false
-## Update model rotation (#347, #386, #397): priority player > combat/pursuit > corner > velocity > idle.
+## Update model rotation (#347, #386, #397): priority player > corner > movement > idle.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
@@ -1009,17 +1009,17 @@ func _update_enemy_model_rotation() -> void:
 			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P1:shield_delayed"
 		else:
 			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P1:visible"
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _current_target != null:  # P2: Combat states (#386, #397)
-		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking in combat states too
-			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P2:shield_delayed"
-		else:
-			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P2:combat_state"
-	elif _corner_check_timer > 0:  # P3: Corner check (#347)
+	elif _corner_check_timer > 0:  # P2: Corner check (#347)
 		target_angle = _corner_check_angle; has_target = true; rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
 		if _shield_component and _shield_component.is_active():  # Issue #1242: shield uses delayed tracking angle while moving
 			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P4:shield_delayed"
 		else: target_angle = velocity.normalized().angle(); has_target = true; rotation_reason = "P4:velocity"
+	elif _current_state in [AIState.COMBAT, AIState.ASSAULT] and _current_target != null:  # P4.5: stationary combat can hold last-known target.
+		if _shield_component and _shield_component.is_active():  # Issue #1242: delayed tracking in combat states too
+			target_angle = _shield_tracking_angle; has_target = true; rotation_reason = "P4.5:shield_delayed"
+		else:
+			target_angle = (_current_target.global_position - global_position).normalized().angle(); has_target = true; rotation_reason = "P4.5:combat_state"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true; rotation_reason = "P5:idle_scan"
 	if not has_target:

@@ -172,3 +172,22 @@ func test_combat_approach_stall_cap_is_short_enough_issue_1457() -> void:
 		"Issue #1457: COMBAT approach stall cap must be shorter than the navigation stuck cap")
 	assert_gt(CAP_SECONDS, 0.5,
 		"Issue #1457: COMBAT approach stall cap must not interrupt normal aim pauses")
+
+
+func test_hidden_navigation_states_face_movement_not_stale_target_issue_1457() -> void:
+	# PR #1856 comment 4320533398: after PURSUING quickly hands off to another
+	# movement state, enemies should not keep looking into the wall toward a stale
+	# target until the next state transition.
+	var source := _read_enemy_source()
+	var start := source.find("func _update_enemy_model_rotation")
+	assert_gt(start, -1, "enemy.gd must still define _update_enemy_model_rotation")
+	if start < 0:
+		return
+	var next := source.find("\nfunc ", start + 1)
+	if next < 0:
+		next = source.length()
+	var body := source.substr(start, next - start)
+	assert_false(body.contains("AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING"),
+		"Issue #1457: hidden nav states must not face stale target positions over movement")
+	assert_true(body.find("velocity.length_squared() > 1.0") < body.find("AIState.COMBAT, AIState.ASSAULT"),
+		"Issue #1457: movement/corner facing must win before stationary combat target facing")
