@@ -134,7 +134,16 @@ func _physics_process(delta: float) -> void:
 func _is_player_in_range() -> bool:
 	if _player == null or not is_instance_valid(_player):
 		return false
-	return _player.global_position.distance_to(global_position) <= cloud_radius
+	return _player.global_position.distance_to(global_position) <= _get_effective_cloud_radius()
+
+
+## Current gameplay radius. During grow-in, match the visible gas size so the
+## illusion effect does not trigger before the player reaches visible smoke.
+func _get_effective_cloud_radius() -> float:
+	if grow_in_duration <= 0.0:
+		return cloud_radius
+	var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
+	return cloud_radius * grow_progress
 
 
 ## Spawn illusion copies, prioritizing enemies closest to this cloud.
@@ -150,7 +159,11 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			FileLogger.info("[ChemicalCloud] Per-cloud cap reached (%d), stopping initial batch" % max_illusions_per_cloud)
 			break
 
-		spawned_count += _spawn_illusion_cluster_for_enemy(enemy, spawned_count)
+		var remaining_budget := max_illusions_per_cloud - spawned_count
+		var cluster_count := _spawn_illusion_cluster_for_enemy(enemy, remaining_budget)
+		if cluster_count == 0:
+			continue
+		spawned_count += cluster_count
 
 	_total_illusions_spawned += spawned_count
 	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies (total: %d/%d)" % [
@@ -179,9 +192,14 @@ func _get_alive_enemies_sorted_by_cloud_distance() -> Array[Node2D]:
 
 
 ## Spawn one enemy's illusion cluster and return the number of illusions created.
-func _spawn_illusion_cluster_for_enemy(enemy: Node2D, already_spawned: int) -> int:
+func _spawn_illusion_cluster_for_enemy(enemy: Node2D, remaining_budget: int) -> int:
 	var spawned_count: int = 0
 	var copies: int = randi_range(min_copies_per_enemy, max_copies_per_enemy)
+	if copies > remaining_budget:
+		FileLogger.info("[ChemicalCloud] Skipping enemy at %s — cluster needs %d copies, only %d slots remain" % [
+			str(enemy.global_position), copies, remaining_budget
+		])
+		return 0
 
 	# Issue #1361: Generate all positions (copies + 1 for original),
 	# then randomly assign the original to one of the non-center positions
@@ -227,7 +245,7 @@ func _spawn_illusion_cluster_for_enemy(enemy: Node2D, already_spawned: int) -> i
 			continue
 		if not IllusionEffect.can_spawn_more(get_tree()):
 			break
-		if already_spawned + spawned_count >= max_illusions_per_cloud:
+		if spawned_count >= remaining_budget:
 			break
 		var illusion_offset: Vector2 = offsets[i] - original_offset
 		_spawn_single_illusion(enemy, illusion_offset)

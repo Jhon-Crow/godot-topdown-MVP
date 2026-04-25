@@ -377,3 +377,58 @@ func test_alive_enemies_sorted_by_cloud_distance_prioritizes_local_illusions() -
 		"Nearest alive enemy must be processed first so the per-cloud cap is spent locally")
 	assert_eq(sorted[1], far_enemy,
 		"Farther alive enemy should be processed after local enemies")
+
+
+func test_effective_cloud_radius_matches_grow_in_visual_size() -> void:
+	var cloud := ChemicalCloud.new()
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+
+	cloud._spawn_elapsed = 0.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 0.0, 0.01,
+		"At spawn time the gameplay trigger radius should match the zero-scale gas visual")
+
+	cloud._spawn_elapsed = 3.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 300.0, 0.01,
+		"Halfway through grow-in the trigger radius should be half of the final radius")
+
+	cloud._spawn_elapsed = 9.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 600.0, 0.01,
+		"After grow-in completes the trigger radius should clamp to the full cloud radius")
+	cloud.free()
+
+
+func test_player_range_uses_effective_grow_in_radius() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2.ZERO
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+	cloud._spawn_elapsed = 1.0
+
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	player.global_position = Vector2(300, 0)
+	cloud._player = player
+
+	assert_false(cloud._is_player_in_range(),
+		"Player outside the currently visible grow-in radius should not trigger illusions")
+
+	cloud._spawn_elapsed = 6.0
+	assert_true(cloud._is_player_in_range(),
+		"Player inside the fully grown cloud radius should trigger illusions")
+
+
+func test_cluster_spawn_skips_when_remaining_budget_is_too_small() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.min_copies_per_enemy = 4
+	cloud.max_copies_per_enemy = 4
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var spawned := cloud._spawn_illusion_cluster_for_enemy(enemy, 3)
+	assert_eq(spawned, 0,
+		"Initial spawning should not spend the last few slots on a visibly too-small partial cluster")
