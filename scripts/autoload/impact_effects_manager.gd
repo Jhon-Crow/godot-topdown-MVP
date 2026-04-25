@@ -744,7 +744,7 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Issue #1578: If landing position is inside water, spawn blood diffusion instead of a decal.
 	var water_body: Node = _find_water_body_at(landing_pos)
 	if water_body != null:
-		_handle_blood_in_water(landing_pos, water_body)
+		_handle_blood_in_water(landing_pos, water_body, decal_scale)
 		return
 
 	# Create the decal
@@ -775,7 +775,7 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 ## Handle blood landing in water: merge into a nearby diffusion cloud or spawn a new one.
 ## Caps concurrent effects at MAX_CONCURRENT_DIFFUSIONS to prevent FPS drops (Issue #1578).
 ## Water tint grows gradually in sync with cloud fade (Issue #1578 feedback).
-func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
+func _handle_blood_in_water(landing_pos: Vector2, water_body: Node, drop_scale: float = 1.0) -> void:
 	var blood_color := Color(0.5, 0.02, 0.02, 0.55)
 
 	# Clean up any freed nodes from the pool first
@@ -791,7 +791,7 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 			nearest = d
 	if nearest != null:
 		if nearest.has_method("absorb"):
-			nearest.absorb()
+			nearest.absorb(drop_scale)
 		return
 
 	# Enforce cap: remove the oldest diffusion before spawning a new one
@@ -810,6 +810,8 @@ func _handle_blood_in_water(landing_pos: Vector2, water_body: Node) -> void:
 	diffusion.global_position = landing_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+	if diffusion.has_method("set_drop_scale"):
+		diffusion.set_drop_scale(drop_scale)
 
 	# Tint water gradually for the whole cloud lifetime, so wave recolor stays
 	# synchronized with both expansion and disappearance.
@@ -1776,4 +1778,3 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
-

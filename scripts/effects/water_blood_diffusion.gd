@@ -18,10 +18,17 @@ const MERGE_RADIUS: float = 120.0
 ## Maximum radius the blood cloud expands to.
 const MAX_RADIUS: float = 80.0
 
+## Smallest cloud radius multiplier for tiny droplets.
+const MIN_RADIUS_SCALE: float = 0.35
+
+## Largest cloud radius multiplier for large droplets/bursts.
+const MAX_RADIUS_SCALE: float = 1.15
+
 ## Total lifetime of the effect in seconds.
 const DURATION: float = 12.0
 
-## How long the effect expands before reaching maximum radius.
+## Historical early-growth marker used by absorb(); visible growth continues for
+## the whole lifetime so clouds disappear while still spreading.
 const EXPAND_DURATION: float = 3.0
 
 ## Tint grows over the whole visible cloud lifetime, not only after expansion.
@@ -44,6 +51,9 @@ var _seed: float = 0.0
 
 ## Extra intensity from absorbed hits (each absorbed hit adds 0.2, capped at 1.0).
 var _extra_alpha: float = 0.0
+
+## Per-drop size multiplier. Small floor-decal drops become small cloud blotches.
+var _radius_scale: float = 1.0
 
 ## How many hits were absorbed (used to scale water tint on dispersal).
 var _absorbed_hits: int = 1
@@ -79,8 +89,8 @@ func _draw() -> void:
 	if _done:
 		return
 
-	var expand_t: float = clampf(_elapsed / EXPAND_DURATION, 0.0, 1.0)
-	var radius: float = MAX_RADIUS * (1.0 - pow(1.0 - expand_t, 3.0))
+	var growth_t: float = clampf(_elapsed / maxf(DURATION, 0.001), 0.0, 1.0)
+	var radius: float = MAX_RADIUS * _radius_scale * (0.18 + 0.82 * pow(growth_t, 0.62))
 
 	var fade_t: float = clampf(_elapsed / maxf(DURATION, 0.001), 0.0, 1.0)
 	var base_alpha: float = minf(_blood_color.a + _extra_alpha * 0.3, 0.92)
@@ -106,9 +116,15 @@ func set_blood_color(color: Color) -> void:
 	_blood_color = Color(WATER_BLOOD_TINT_COLOR.r, WATER_BLOOD_TINT_COLOR.g, WATER_BLOOD_TINT_COLOR.b, 0.72)
 
 
+## Set cloud size from the matching floor-decal scale.
+func set_drop_scale(drop_scale: float) -> void:
+	_radius_scale = clampf(drop_scale, MIN_RADIUS_SCALE, MAX_RADIUS_SCALE)
+
+
 ## Absorb a nearby blood hit: increase intensity and restart the expansion phase.
-func absorb() -> void:
+func absorb(drop_scale: float = 1.0) -> void:
 	_extra_alpha = minf(_extra_alpha + 0.2, 1.0)
+	_radius_scale = clampf(maxf(_radius_scale, drop_scale), MIN_RADIUS_SCALE, MAX_RADIUS_SCALE)
 	_absorbed_hits += 1
 	_tint_started = false
 	if _elapsed > EXPAND_DURATION:

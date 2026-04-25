@@ -395,9 +395,11 @@ class MockDiffusion:
 	var global_position: Vector2 = Vector2.ZERO
 	var absorbed: bool = false
 	var freed: bool = false
+	var last_absorb_scale: float = 0.0
 
-	func absorb() -> void:
+	func absorb(drop_scale: float = 1.0) -> void:
 		absorbed = true
+		last_absorb_scale = drop_scale
 
 	func queue_free() -> void:
 		freed = true
@@ -410,8 +412,9 @@ class MockImpactManagerWithDiffusion:
 	var _active_diffusions: Array = []
 	var spawned_count: int = 0
 	var merged_count: int = 0
+	var last_spawned_scale: float = 0.0
 
-	func handle_blood_in_water(landing_pos: Vector2) -> void:
+	func handle_blood_in_water(landing_pos: Vector2, drop_scale: float = 1.0) -> void:
 		_active_diffusions = _active_diffusions.filter(func(n): return not n.freed)
 
 		# Try merge into nearest within radius
@@ -423,7 +426,7 @@ class MockImpactManagerWithDiffusion:
 				nearest_dist = dist
 				nearest = d
 		if nearest != null:
-			nearest.absorb()
+			nearest.absorb(drop_scale)
 			merged_count += 1
 			return
 
@@ -436,6 +439,7 @@ class MockImpactManagerWithDiffusion:
 		d.global_position = landing_pos
 		_active_diffusions.append(d)
 		spawned_count += 1
+		last_spawned_scale = drop_scale
 
 
 func test_nearby_blood_hits_merge_into_existing_diffusion() -> void:
@@ -499,3 +503,42 @@ func test_absorb_increases_intensity_flag() -> void:
 	diffusion.absorb()
 	assert_gt(diffusion._extra_alpha, before,
 		"absorb() must increase _extra_alpha to make the cloud darker after merging")
+
+
+func test_diffusion_radius_grows_for_whole_lifetime() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	assert_eq(script.EXPAND_DURATION, 3.0,
+		"EXPAND_DURATION is only an early-growth marker kept for absorb timing")
+	assert_lt(script.EXPAND_DURATION, script.DURATION,
+		"Cloud growth must not finish at EXPAND_DURATION; it should keep spreading while fading")
+
+
+func test_diffusion_drop_scale_controls_cloud_size() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	var diffusion = script.new()
+	add_child_autofree(diffusion)
+	diffusion.set_drop_scale(0.4)
+	assert_almost_eq(diffusion._radius_scale, 0.4, 0.001,
+		"Small blood drops must produce small water cloud blotches")
+	diffusion.set_drop_scale(9.0)
+	assert_almost_eq(diffusion._radius_scale, script.MAX_RADIUS_SCALE, 0.001,
+		"Cloud size from large drops must be capped")
+
+
+func test_absorb_keeps_largest_drop_scale() -> void:
+	var script := load("res://scripts/effects/water_blood_diffusion.gd")
+	var diffusion = script.new()
+	add_child_autofree(diffusion)
+	diffusion.set_drop_scale(0.45)
+	diffusion.absorb(0.9)
+	assert_almost_eq(diffusion._radius_scale, 0.9, 0.001,
+		"Absorbed larger drops should expand an existing cloud to the larger blotch size")
+
+
+func test_manager_passes_drop_scale_to_merged_diffusion() -> void:
+	var mgr := MockImpactManagerWithDiffusion.new()
+	var base_pos := Vector2(500.0, 300.0)
+	mgr.handle_blood_in_water(base_pos, 0.45)
+	mgr.handle_blood_in_water(base_pos + Vector2(10.0, 5.0), 0.85)
+	assert_almost_eq(mgr._active_diffusions[0].last_absorb_scale, 0.85, 0.001,
+		"Merged water hits must pass decal scale so small and large drops keep different cloud sizes")
