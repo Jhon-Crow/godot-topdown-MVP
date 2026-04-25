@@ -269,6 +269,49 @@ func test_animate_rank_reveal_uses_assembled_letter_cutouts_without_overlay() ->
 		"Final score rank label should not use whole-label shine children")
 
 
+func test_rank_reveal_pop_scale_is_clamped_to_screen_bounds() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	ui.size = Vector2(800, 600)
+	add_child_autofree(ui)
+
+	var rank_control := Control.new()
+	rank_control.custom_minimum_size = Vector2(600, 600)
+	add_child_autofree(rank_control)
+
+	var safe_scale: float = instance._get_viewport_safe_rank_scale(rank_control, ui, 1.5)
+	var max_width: float = ui.size.x - instance.RANK_REVEAL_SCREEN_MARGIN * 2.0
+	var max_height: float = ui.size.y - instance.RANK_REVEAL_SCREEN_MARGIN * 2.0
+
+	assert_lte(rank_control.custom_minimum_size.x * safe_scale, max_width + 0.01,
+		"Rank pop scale should keep the enlarged rank inside the screen width")
+	assert_lte(rank_control.custom_minimum_size.y * safe_scale, max_height + 0.01,
+		"Rank pop scale should keep the enlarged rank inside the screen height")
+	assert_lt(safe_scale, 1.5,
+		"Oversized rank letters should use a reduced pop scale instead of leaving the screen")
+
+
+func test_rank_reveal_pop_scale_keeps_requested_scale_when_it_fits() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	ui.size = Vector2(1280, 720)
+	add_child_autofree(ui)
+
+	var rank_control := Control.new()
+	rank_control.custom_minimum_size = Vector2(240, 240)
+	add_child_autofree(rank_control)
+
+	var safe_scale: float = instance._get_viewport_safe_rank_scale(rank_control, ui, 1.5)
+	assert_almost_eq(safe_scale, 1.5, 0.01,
+		"Rank pop should keep the requested scale when the enlarged rank fits")
+
+
 # ============================================================================
 # Rank Color Tests
 # ============================================================================

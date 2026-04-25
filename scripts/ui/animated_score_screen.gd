@@ -49,6 +49,9 @@ const RANK_REVEAL_DURATION: float = 1.5
 ## Duration for rank shrink animation (seconds).
 const RANK_SHRINK_DURATION: float = 0.5
 
+## Margin kept around the fullscreen rank during the final pop animation.
+const RANK_REVEAL_SCREEN_MARGIN: float = 24.0
+
 ## Flashing colors for rank reveal background.
 const RANK_FLASH_COLORS: Array[Color] = [
 	Color(1.0, 0.0, 0.0, 0.9),   # Red
@@ -247,6 +250,25 @@ func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int,
 		holder.add_child(_create_rank_letter_texture_rect(ch, i, font_size, outline_size, rank_color))
 
 	return holder
+
+
+## Returns the largest uniform scale that keeps a centered rank Control inside the UI bounds.
+func _get_viewport_safe_rank_scale(rank_control: Control, ui: Control, requested_scale: float) -> float:
+	var available_size := ui.size
+	if available_size.x <= 0.0 or available_size.y <= 0.0:
+		available_size = get_viewport().get_visible_rect().size
+
+	var base_size := rank_control.size
+	if base_size.x <= 0.0 or base_size.y <= 0.0:
+		base_size = rank_control.get_combined_minimum_size()
+
+	if base_size.x <= 0.0 or base_size.y <= 0.0:
+		return requested_scale
+
+	var usable_width: float = maxf(1.0, available_size.x - RANK_REVEAL_SCREEN_MARGIN * 2.0)
+	var usable_height: float = maxf(1.0, available_size.y - RANK_REVEAL_SCREEN_MARGIN * 2.0)
+	var max_scale: float = minf(usable_width / base_size.x, usable_height / base_size.y)
+	return minf(requested_scale, max_scale)
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -774,7 +796,8 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 
 					# Sharply enlarge the rank letter before fading out (issue #539 feedback)
 					var enlarge_tween := create_tween()
-					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(1.5, 1.5), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+					var pop_scale := _get_viewport_safe_rank_scale(big_rank_label, ui, 1.5)
+					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(pop_scale, pop_scale), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 					# After the sharp enlarge (0.15 s), fade out the fullscreen rank and show it in the container
 					get_tree().create_timer(0.15).timeout.connect(
