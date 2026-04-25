@@ -444,6 +444,41 @@ func test_player_range_uses_effective_grow_in_radius() -> void:
 		"Player inside the fully grown cloud radius should trigger illusions")
 
 
+func test_initial_illusion_batch_stays_armed_until_first_player_contact() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2.ZERO
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+	cloud._spawn_elapsed = 1.0
+
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	player.global_position = Vector2(300, 0)
+	cloud._player = player
+
+	assert_false(cloud._is_player_in_range(),
+		"Player starts outside the visible grow-in radius")
+	assert_false(cloud._illusions_spawned,
+		"Initial illusion batch should start armed")
+
+	# Reproduce the owner log path: early cloud ticks see the player outside the
+	# visible gas. This must not consume the first-contact burst.
+	cloud._physics_process(0.0)
+
+	assert_false(cloud._illusions_spawned,
+		"Missing the cloud at spawn time must not consume the initial burst")
+
+	cloud._spawn_elapsed = 6.0
+	assert_true(cloud._is_player_in_range(),
+		"Player later enters the visible gas as grow-in reaches them")
+
+	cloud._physics_process(0.0)
+
+	assert_true(cloud._illusions_spawned,
+		"Initial batch should fire on first actual contact with visible gas")
+
+
 func test_cluster_spawn_skips_when_remaining_budget_is_too_small() -> void:
 	var cloud := ChemicalCloud.new()
 	add_child_autofree(cloud)

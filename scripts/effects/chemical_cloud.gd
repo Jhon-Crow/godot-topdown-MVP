@@ -102,11 +102,11 @@ func _physics_process(delta: float) -> void:
 		var grow_progress := clampf(_spawn_elapsed / grow_in_duration, 0.0, 1.0)
 		scale = Vector2(grow_progress, grow_progress)
 
-	# Spawn initial batch of illusions when the cloud first appears
-	# Only if player is within blast radius
+	# Spawn the initial batch on first real contact with the visible gas. Keep this
+	# armed while the cloud grows or while the player is outside the cloud.
 	if not _illusions_spawned:
-		_illusions_spawned = true
 		if _is_player_in_range():
+			_illusions_spawned = true
 			_spawn_illusions_for_nearby_enemies()
 		else:
 			FileLogger.info("[ChemicalCloud] Player not in range (%.0fpx), no illusions spawned" % [
