@@ -352,14 +352,16 @@ Change `TIME * 0.15` to `TIME * surf_speed * 0.5` so all surf-foam motion respon
 **Pros:** Minimal change. Exactly targets the hardcoded constant. Factor `0.5` preserves natural variation magnitude.
 **Cons:** None.
 
-### Solution B: Alternative — Introduce Separate `time_stopped` Uniform
+### Solution B (Implemented after follow-up): Capture and Freeze Shader Time
 
-Add a `uniform bool time_stopped = false` to the shader. When `true`, replace all `TIME * speed` with `0.0` directly in the shader.
+Add `uniform bool time_stopped = false` and `uniform float water_time = 0.0` to the shader. `WaterBody._process()` updates `water_time` from real time while the water is running. When `set_time_stopped(true)` is called, `WaterBody` captures the current `water_time`, sets `time_stopped = true`, and the shader uses that captured value instead of Godot's global `TIME`.
 
-**Pros:** More explicit freeze in shader code. Could handle any future missed constants.
-**Cons:** Requires additional shader parameter and more complex GLSL branching.
+This is stronger than only setting all speed uniforms to zero: Godot's shader `TIME` is global and keeps advancing even when a node's `process_mode` is disabled, so a captured-time uniform guarantees the rendered water frame stays stable during last chance.
 
-**Decision:** Solution A was chosen — it's simpler and sufficient. The shader had exactly one hardcoded constant, and fixing it directly is the minimal correct fix.
+**Pros:** Explicit frame lock during time-stop; future shader terms can use `t` safely without accidentally bypassing pause behavior.
+**Cons:** Adds two shader uniforms and a small per-frame uniform update.
+
+**Decision update (2026-04-25):** Solution B was implemented after the reporter again said a new build still showed movement but did not attach a log. The code now uses both safeguards: speed uniforms are zeroed and shader time is captured/frozen.
 
 ---
 
@@ -377,9 +379,9 @@ Add a `uniform bool time_stopped = false` to the shader. When `true`, replace al
 
 ## Files Changed
 
-- `scripts/shaders/realistic_water.gdshader` — replace `TIME * 0.15` with `TIME * surf_speed * 0.5`
-- `scripts/objects/water_body.gd` — fix `_log()` to use `Engine.get_singleton()` as primary lookup; update `set_time_stopped()` to also use `PROCESS_MODE_DISABLED` on WaterVisual (matching rain/snow pattern)
-- `tests/unit/test_water_body.gd` — regression tests for Issue #1608
+- `scripts/shaders/realistic_water.gdshader` — replace `TIME * 0.15` with `TIME * surf_speed * 0.5`; add `water_time`/`time_stopped` uniforms so the shader can use captured time during freeze
+- `scripts/objects/water_body.gd` — fix `_log()` to use `Engine.get_singleton()` as primary lookup; update `set_time_stopped()` to also use `PROCESS_MODE_DISABLED` on WaterVisual (matching rain/snow pattern); capture and freeze shader time while paused
+- `tests/unit/test_water_body.gd` — regression tests for Issue #1608, including captured shader-time freeze
 - `docs/case-studies/issue-1608/analysis.md` — this document
 - `docs/case-studies/issue-1608/logs/game_log_20260327_080021.txt` — first game log from reporter
 - `docs/case-studies/issue-1608/logs/game_log_20260327_084542.txt` — second game log from reporter (same old binary, confirms binary pre-dates PR #1592)
@@ -396,3 +398,9 @@ The reporter claimed to have used the "new build" but provided no log. Without a
 2. Extract to a NEW folder (not the Downloads location)
 3. Verify `[fix#1608]` appears in the log at startup
 4. Attach the log to the PR comment
+
+## Comment 9 Follow-Up (2026-04-11)
+
+The reporter again wrote that the water still does not stop in a new build, but again did not attach a log. Because there is still no log with `[fix#1608]`, `Precipitation group nodes found: 1`, and `[WaterBody] Wave animation paused`, the exact tested binary remains unverifiable.
+
+To reduce remaining risk anyway, the implementation was strengthened on 2026-04-25: `realistic_water.gdshader` no longer reads global `TIME` directly for water motion. It reads a local `t`, which is `TIME` while running and a captured `water_time` while `time_stopped = true`. `WaterBody.set_time_stopped(true)` sets that captured time and flips the shader flag before zeroing wave/ripple/surf speeds.

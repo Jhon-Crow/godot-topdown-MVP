@@ -15,6 +15,8 @@ shader_type canvas_item;
 uniform float wave_speed : hint_range(0.0, 5.0) = 0.3;
 uniform float wave_frequency : hint_range(0.5, 20.0) = 4.0;
 uniform float wave_amplitude : hint_range(0.0, 0.05) = 0.010;
+uniform float water_time = 0.0;
+uniform bool time_stopped = false;
 
 // --- Secondary ripple (gentle surface undulation — wider, slower, subtler) ---
 uniform float ripple_speed : hint_range(0.0, 5.0) = 0.5;
@@ -75,17 +77,18 @@ float wave_occlusion(vec2 uv) {
 
 void fragment() {
 	vec2 uv = UV;
+	float t = time_stopped ? water_time : TIME;
 
 	// ---- Primary wave ----
-	float wave1 = sin(uv.x * wave_frequency + TIME * wave_speed)
-	            + sin(uv.x * wave_frequency * 0.73 - TIME * wave_speed * 0.6);
+	float wave1 = sin(uv.x * wave_frequency + t * wave_speed)
+	            + sin(uv.x * wave_frequency * 0.73 - t * wave_speed * 0.6);
 	wave1 *= 0.5; // normalise to [-1, 1]
 
 	// ---- Secondary ripple (horizontal surface undulation) ----
 	// Kept horizontal (uv.x only) so it looks like gentle water surface texture,
 	// not diagonal lines at the wrong angle.
-	float wave2 = sin(uv.x * ripple_frequency + TIME * ripple_speed)
-	            * sin(uv.x * ripple_frequency * 0.7 - TIME * ripple_speed * 0.5);
+	float wave2 = sin(uv.x * ripple_frequency + t * ripple_speed)
+	            * sin(uv.x * ripple_frequency * 0.7 - t * ripple_speed * 0.5);
 
 	// ---- Obstacle occlusion (wave interruption — Issue #1550) ----
 	// Reduce both primary and secondary wave amplitude near obstacles,
@@ -113,11 +116,11 @@ void fragment() {
 	// ---- Surf-foam streaks marching toward shore (Issue #1550) ----
 	// Create bands that travel from deep (y=1) toward the shore (y=0).
 	// Phase = uv.y * surf_frequency - TIME * surf_speed  →  bands move upward.
-	float surf_phase = uv.y * surf_frequency - TIME * surf_speed;
+	float surf_phase = uv.y * surf_frequency - t * surf_speed;
 	// Small x-variation for natural variation without creating diagonal artefacts.
 	// Uses surf_speed so the variation freezes when surf_speed is set to 0 during
 	// time-stop effects (Issue #1608 — Beach water animation kept moving despite freeze).
-	surf_phase += sin(uv.x * 2.0 + TIME * surf_speed * 0.5) * 0.15;
+	surf_phase += sin(uv.x * 2.0 + t * surf_speed * 0.5) * 0.15;
 	// Modulate into [0,1] and apply threshold to form discrete foam bands
 	float surf_band = fract(surf_phase);
 	float surf_foam = smoothstep(1.0 - surf_width, 1.0, surf_band)

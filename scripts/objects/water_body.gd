@@ -70,6 +70,7 @@ var _time_stopped: bool = false
 var _saved_wave_speed: float = 0.0
 var _saved_ripple_speed: float = 0.0
 var _saved_surf_speed: float = 0.0
+var _captured_water_time: float = 0.0
 
 
 func _ready() -> void:
@@ -120,6 +121,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	_update_shader_time()
+
 	# Skip all per-body work when no bodies are in water — avoids unnecessary
 	# CPU iteration and GPU uploads that caused a stutter on first entry (Issue #1573).
 	if not _bodies_in_water.is_empty():
@@ -190,6 +193,16 @@ func _update_obstacle_shader_params() -> void:
 
 	mat.set_shader_parameter("obstacle_count", mini(uvs.size(), MAX_OBSTACLE_SHADER_SLOTS))
 	mat.set_shader_parameter("obstacle_uvs", uvs)
+
+
+func _update_shader_time() -> void:
+	if _time_stopped:
+		return
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	_captured_water_time = Time.get_ticks_msec() / 1000.0
+	mat.set_shader_parameter("water_time", _captured_water_time)
 
 
 ## Apply the animated water shader to the WaterVisual ColorRect.
@@ -383,14 +396,17 @@ func set_time_stopped(paused: bool) -> void:
 		# Zero all shader speed uniforms so TIME-based animation freezes.
 		if _visual != null and _visual.material is ShaderMaterial:
 			var mat: ShaderMaterial = _visual.material as ShaderMaterial
+			_update_shader_time()
 			_saved_wave_speed = mat.get_shader_parameter("wave_speed")
 			_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
 			_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+			mat.set_shader_parameter("time_stopped", true)
+			mat.set_shader_parameter("water_time", _captured_water_time)
 			mat.set_shader_parameter("wave_speed", 0.0)
 			mat.set_shader_parameter("ripple_speed", 0.0)
 			mat.set_shader_parameter("surf_speed", 0.0)
-			_log("[WaterBody] Wave animation paused: wave_speed=%s→0, ripple_speed=%s→0, surf_speed=%s→0" % [
-				str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
+			_log("[WaterBody] Wave animation paused: water_time=%s, wave_speed=%s→0, ripple_speed=%s→0, surf_speed=%s→0" % [
+				str(_captured_water_time), str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
 		else:
 			_log("[WaterBody] Wave animation paused (no shader material — visual=%s mat_type=%s)" % [
 				str(_visual != null),
@@ -406,6 +422,7 @@ func set_time_stopped(paused: bool) -> void:
 			mat.set_shader_parameter("wave_speed", _saved_wave_speed)
 			mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
 			mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+			mat.set_shader_parameter("time_stopped", false)
 			_log("[WaterBody] Wave animation resumed: wave_speed=%s, ripple_speed=%s, surf_speed=%s" % [
 				str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
 		else:
