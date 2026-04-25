@@ -69,28 +69,25 @@ func test_copies_range_is_2_to_6() -> void:
 # ============================================================================
 
 
-func test_original_enemy_not_always_at_center() -> void:
+func test_original_enemy_prefers_non_center_offsets_before_fallback() -> void:
 	# Simulate the position selection logic from _spawn_illusions_for_nearby_enemies.
-	# The original enemy should not always get index 0 (center).
+	# The original enemy should use a non-center candidate whenever one is available.
 	var center_count: int = 0
 	var total_runs: int = 200
 
 	for _i in range(total_runs):
 		var copies: int = randi_range(2, 6)
 		var total_positions: int = copies + 1
-		var original_index: int = randi_range(0, total_positions - 1)
+		var candidate_indices: Array[int] = []
+		for i in range(1, total_positions):
+			candidate_indices.append(i)
+		candidate_indices.shuffle()
+		var original_index: int = candidate_indices[0]
 		if original_index == 0:
 			center_count += 1
 
-	# If always center, center_count would be 200.
-	# With random placement, center_count should be roughly total_runs / avg_total_positions.
-	# avg copies ~4, avg total_positions ~5, so expected ~200/5 = 40.
-	# Allow generous margin: should be less than 60% of runs at center.
-	assert_true(center_count < total_runs * 0.6,
-		"Original enemy should not always be at center. Center count: %d/%d" % [center_count, total_runs])
-	# Should sometimes be at center (not never)
-	assert_true(center_count > 0,
-		"Original enemy should sometimes be at center. Center count: %d/%d" % [center_count, total_runs])
+	assert_eq(center_count, 0,
+		"Original enemy should reserve center for fallback only. Center count: %d/%d" % [center_count, total_runs])
 
 
 func test_position_offsets_cover_full_circle() -> void:
@@ -351,3 +348,32 @@ func test_candidate_indices_exclude_center_before_fallback() -> void:
 		"Should iterate over %d non-center candidates" % (total_positions - 1))
 	assert_false(candidate_indices.has(0),
 		"Index 0 (center) must be excluded from the shuffled candidate list")
+
+
+func test_alive_enemies_sorted_by_cloud_distance_prioritizes_local_illusions() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2(1000, 1000)
+
+	var far_enemy := MockEnemy.new()
+	far_enemy.global_position = Vector2(300, 2670)
+	far_enemy.add_to_group("enemies")
+	add_child_autofree(far_enemy)
+
+	var near_enemy := MockEnemy.new()
+	near_enemy.global_position = Vector2(1100, 1020)
+	near_enemy.add_to_group("enemies")
+	add_child_autofree(near_enemy)
+
+	var dead_enemy := MockEnemy.new()
+	dead_enemy.global_position = Vector2(1005, 1005)
+	dead_enemy._is_alive_value = false
+	dead_enemy.add_to_group("enemies")
+	add_child_autofree(dead_enemy)
+
+	var sorted := cloud._get_alive_enemies_sorted_by_cloud_distance()
+	assert_eq(sorted.size(), 2, "Dead enemies must be excluded from the spawn list")
+	assert_eq(sorted[0], near_enemy,
+		"Nearest alive enemy must be processed first so the per-cloud cap is spent locally")
+	assert_eq(sorted[1], far_enemy,
+		"Farther alive enemy should be processed after local enemies")

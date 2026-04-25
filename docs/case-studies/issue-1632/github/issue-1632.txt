@@ -1,0 +1,7 @@
+author:	Jhon-Crow
+association:	owner
+edited:	false
+status:	none
+--
+попробуй снова с учётом неудачного опыта
+--

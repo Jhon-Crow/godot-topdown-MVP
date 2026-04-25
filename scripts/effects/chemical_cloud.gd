@@ -137,21 +137,12 @@ func _is_player_in_range() -> bool:
 	return _player.global_position.distance_to(global_position) <= cloud_radius
 
 
-## Spawn illusion copies for all enemies on the map.
+## Spawn illusion copies, prioritizing enemies closest to this cloud.
 func _spawn_illusions_for_nearby_enemies() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	var enemies := _get_alive_enemies_sorted_by_cloud_distance()
 	var spawned_count: int = 0
 
 	for enemy in enemies:
-		if not is_instance_valid(enemy):
-			continue
-		if not enemy is Node2D:
-			continue
-		# Skip dead enemies
-		if enemy.has_method("is_alive") and not enemy.is_alive():
-			continue
-
-		# Check if we can spawn more illusions (global cap or per-cloud cap)
 		if not IllusionEffect.can_spawn_more(get_tree()):
 			FileLogger.info("[ChemicalCloud] Global illusion cap reached (%d), stopping" % IllusionEffect.MAX_TOTAL_ILLUSIONS)
 			break
@@ -159,68 +150,90 @@ func _spawn_illusions_for_nearby_enemies() -> void:
 			FileLogger.info("[ChemicalCloud] Per-cloud cap reached (%d), stopping initial batch" % max_illusions_per_cloud)
 			break
 
-		# Spawn 2-6 copies per enemy
-		var copies: int = randi_range(min_copies_per_enemy, max_copies_per_enemy)
-
-		# Issue #1361: Generate all positions (copies + 1 for original),
-		# then randomly assign the original to one of the non-center positions
-		# so the real enemy is not always in the center of the cluster.
-		var total_positions: int = copies + 1  # copies for illusions + 1 center
-		var offsets: Array[Vector2] = []
-		# Position 0 is the center (offset 0,0)
-		offsets.append(Vector2.ZERO)
-		# Remaining positions are spread in a circle
-		for i in range(copies):
-			var angle: float = (TAU / copies) * i + randf_range(-0.3, 0.3)
-			var distance: float = randf_range(60.0, 120.0)
-			offsets.append(Vector2(cos(angle), sin(angle)) * distance)
-
-		# Issue #1361: Randomly pick a non-center offset for the original enemy so it's
-		# not always at the cluster center. Issue #1632: Validate the candidate against
-		# walls before teleporting to avoid placing the enemy inside/behind obstacles in
-		# narrow corridors. Fall back to index 0 (no-move) if no random offset is safe.
-		var candidate_indices: Array[int] = []
-		for i in range(1, total_positions):
-			candidate_indices.append(i)
-		candidate_indices.shuffle()
-
-		var original_index: int = 0
-		var original_offset: Vector2 = Vector2.ZERO
-		for idx in candidate_indices:
-			var off: Vector2 = offsets[idx]
-			var candidate_pos: Vector2 = enemy.global_position + off.rotated(enemy.rotation)
-			if _is_position_safe_from_walls(enemy.global_position, candidate_pos, enemy):
-				original_index = idx
-				original_offset = off
-				break
-
-		# Move the original enemy to its new position
-		if original_offset != Vector2.ZERO:
-			var new_pos: Vector2 = enemy.global_position + original_offset.rotated(enemy.rotation)
-			FileLogger.info("[ChemicalCloud] Moving original enemy from %s to %s (offset=%s)" % [
-				str(enemy.global_position), str(new_pos), str(original_offset)
-			])
-			enemy.global_position = new_pos
-		else:
-			FileLogger.info("[ChemicalCloud] No safe random offset for enemy at %s, keeping original position" % str(enemy.global_position))
-
-		# Spawn illusions at all positions except the one assigned to the original
-		for i in range(total_positions):
-			if i == original_index:
-				continue  # This position is occupied by the real enemy
-			if not IllusionEffect.can_spawn_more(get_tree()):
-				break
-			if spawned_count >= max_illusions_per_cloud:
-				break
-			# Offset relative to the enemy's new position
-			var illusion_offset: Vector2 = offsets[i] - original_offset
-			_spawn_single_illusion(enemy, illusion_offset)
-			spawned_count += 1
+		spawned_count += _spawn_illusion_cluster_for_enemy(enemy, spawned_count)
 
 	_total_illusions_spawned += spawned_count
 	FileLogger.info("[ChemicalCloud] Spawned %d illusion copies for %d enemies (total: %d/%d)" % [
 		spawned_count, enemies.size(), _total_illusions_spawned, max_illusions_per_cloud
 	])
+
+
+## Get alive enemies sorted nearest to the cloud first.
+func _get_alive_enemies_sorted_by_cloud_distance() -> Array[Node2D]:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var alive_enemies: Array[Node2D] = []
+
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		if not enemy is Node2D:
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+		alive_enemies.append(enemy as Node2D)
+
+	alive_enemies.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.global_position.distance_squared_to(global_position) < b.global_position.distance_squared_to(global_position)
+	)
+	return alive_enemies
+
+
+## Spawn one enemy's illusion cluster and return the number of illusions created.
+func _spawn_illusion_cluster_for_enemy(enemy: Node2D, already_spawned: int) -> int:
+	var spawned_count: int = 0
+	var copies: int = randi_range(min_copies_per_enemy, max_copies_per_enemy)
+
+	# Issue #1361: Generate all positions (copies + 1 for original),
+	# then randomly assign the original to one of the non-center positions
+	# so the real enemy is not always in the center of the cluster.
+	var total_positions: int = copies + 1  # copies for illusions + 1 center
+	var offsets: Array[Vector2] = []
+	offsets.append(Vector2.ZERO)
+	for i in range(copies):
+		var angle: float = (TAU / copies) * i + randf_range(-0.3, 0.3)
+		var distance: float = randf_range(60.0, 120.0)
+		offsets.append(Vector2(cos(angle), sin(angle)) * distance)
+
+	# Issue #1361: Randomly pick a non-center offset for the original enemy so it's
+	# not always at the cluster center. Issue #1632: Validate the candidate against
+	# walls before teleporting to avoid placing the enemy inside/behind obstacles in
+	# narrow corridors. Fall back to index 0 (no-move) if no random offset is safe.
+	var candidate_indices: Array[int] = []
+	for i in range(1, total_positions):
+		candidate_indices.append(i)
+	candidate_indices.shuffle()
+
+	var original_index: int = 0
+	var original_offset: Vector2 = Vector2.ZERO
+	for idx in candidate_indices:
+		var off: Vector2 = offsets[idx]
+		var candidate_pos: Vector2 = enemy.global_position + off.rotated(enemy.rotation)
+		if _is_position_safe_from_walls(enemy.global_position, candidate_pos, enemy):
+			original_index = idx
+			original_offset = off
+			break
+
+	if original_offset != Vector2.ZERO:
+		var new_pos: Vector2 = enemy.global_position + original_offset.rotated(enemy.rotation)
+		FileLogger.info("[ChemicalCloud] Moving original enemy from %s to %s (offset=%s)" % [
+			str(enemy.global_position), str(new_pos), str(original_offset)
+		])
+		enemy.global_position = new_pos
+	else:
+		FileLogger.info("[ChemicalCloud] No safe random offset for enemy at %s, keeping original position" % str(enemy.global_position))
+
+	for i in range(total_positions):
+		if i == original_index:
+			continue
+		if not IllusionEffect.can_spawn_more(get_tree()):
+			break
+		if already_spawned + spawned_count >= max_illusions_per_cloud:
+			break
+		var illusion_offset: Vector2 = offsets[i] - original_offset
+		_spawn_single_illusion(enemy, illusion_offset)
+		spawned_count += 1
+
+	return spawned_count
 
 
 ## Issue #1632: Check that a teleport destination does not place the enemy inside a
@@ -279,15 +292,7 @@ func _spawn_progressive_illusion() -> void:
 		FileLogger.info("[ChemicalCloud] Progressive spawn skipped — global illusion cap reached")
 		return
 
-	# Find alive enemies to copy
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	var alive_enemies: Array[Node2D] = []
-	for enemy in enemies:
-		if not is_instance_valid(enemy) or not enemy is Node2D:
-			continue
-		if enemy.has_method("is_alive") and not enemy.is_alive():
-			continue
-		alive_enemies.append(enemy as Node2D)
+	var alive_enemies := _get_alive_enemies_sorted_by_cloud_distance()
 
 	if alive_enemies.is_empty():
 		FileLogger.info("[ChemicalCloud] Progressive spawn skipped — no alive enemies")
