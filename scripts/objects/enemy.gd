@@ -856,7 +856,7 @@ func _physics_process(delta: float) -> void:
 
 	# Issue #367/#1457: Stuck detection for navigation movement — force SEARCHING if no progress.
 	# Skip when in direct contact (can hit player) or intentionally yielding (#1249).
-	if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER]:
+	if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER, AIState.SEARCHING]:
 		var moved_distance := global_position.distance_to(_global_stuck_last_position)
 		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
 			if not (_can_see_player and _can_hit_player_from_current_position()) \
@@ -866,7 +866,7 @@ func _physics_process(delta: float) -> void:
 				var _effective_stuck_max_time: float = GLOBAL_STUCK_MAX_TIME
 				if _experimental_settings != null and _experimental_settings.has_method("get_global_stuck_max_time"):
 					_effective_stuck_max_time = _experimental_settings.get_global_stuck_max_time()
-				if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER]: _effective_stuck_max_time = minf(_effective_stuck_max_time, NAV_MOVEMENT_STUCK_MAX_TIME)
+				if _current_state in [AIState.PURSUING, AIState.FLANKING, AIState.SEEKING_COVER, AIState.SEARCHING]: _effective_stuck_max_time = minf(_effective_stuck_max_time, NAV_MOVEMENT_STUCK_MAX_TIME)
 				if _global_stuck_timer >= _effective_stuck_max_time:
 					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
 					_global_stuck_timer = 0.0
@@ -889,7 +889,7 @@ func _physics_process(delta: float) -> void:
 			_global_stuck_timer = 0.0
 			_global_stuck_last_position = global_position
 	else:
-		# Not in PURSUING/FLANKING - reset stuck detection
+		# Not in nav movement states - reset stuck detection
 		_global_stuck_timer = 0.0
 		_global_stuck_last_position = global_position
 
@@ -2417,13 +2417,11 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
-			_nav_agent.target_position = target_waypoint
-			if _nav_agent.is_navigation_finished():
+			var dir := _get_nav_direction_to(target_waypoint)
+			if dir == Vector2.ZERO:
 				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
-				var next_pos := _nav_agent.get_next_path_position()
-				var dir := (next_pos - global_position).normalized()
 				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
 					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching

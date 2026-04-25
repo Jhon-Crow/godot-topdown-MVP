@@ -74,6 +74,27 @@ func test_nav_movement_stuck_recovery_has_hard_cap_issue_1457() -> void:
 		"Issue #1457: debug global stuck time must not make wall catches last 20 seconds")
 	assert_true(source.contains("AIState.SEEKING_COVER"),
 		"Issue #1457: cover navigation can catch on BuildingLevel walls and must recover too")
+	assert_true(source.contains("AIState.SEARCHING"),
+		"Issue #1457 follow-up: SEARCHING can inherit wall catches after PURSUING recovery and must use the same hard cap")
+
+
+func test_searching_uses_shared_nav_target_cache_issue_1457() -> void:
+	# PR #1856 comment 4320476087: after PURSUING recovers into SEARCHING, the search
+	# movement must not bypass the shared NavigationAgent target cache by assigning
+	# target_position every physics frame.
+	var source := _read_enemy_source()
+	var start := source.find("func _process_searching_state")
+	assert_gt(start, -1, "enemy.gd must still define _process_searching_state")
+	if start < 0:
+		return
+	var next := source.find("\nfunc ", start + 1)
+	if next < 0:
+		next = source.length()
+	var body := source.substr(start, next - start)
+	assert_true(body.contains("_get_nav_direction_to(target_waypoint)"),
+		"Issue #1457 follow-up: SEARCHING waypoint movement must use the cached NavigationAgent path helper")
+	assert_false(body.contains("_nav_agent.target_position = target_waypoint"),
+		"Issue #1457 follow-up: SEARCHING must not churn NavigationAgent2D.target_position every frame")
 
 
 func test_navigation_target_cache_repaths_only_on_meaningful_change_issue_1457() -> void:
