@@ -7,7 +7,7 @@ extends CanvasLayer
 ## - Sound
 ## - Gameplay
 ## - Performance (includes wall hit particles, AI toggles - Issue #1186)
-## - Experimental
+## - Dev
 ## - Language (Issue #1718)
 
 ## Signal emitted when the back button is pressed.
@@ -49,7 +49,7 @@ func _ready() -> void:
 	difficulty_button.tooltip_text = tr("DIFFICULTY")
 	sound_button.tooltip_text = tr("SOUND")
 	gameplay_button.tooltip_text = tr("GAMEPLAY")
-	experimental_button.tooltip_text = tr("EXPERIMENTAL")
+	experimental_button.tooltip_text = tr("DEV")
 	performance_button.tooltip_text = tr("PERFORMANCE")
 	language_button.tooltip_text = tr("LANGUAGE")
 

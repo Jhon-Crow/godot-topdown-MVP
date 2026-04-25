@@ -9,7 +9,7 @@ extends GutTest
 # without actual file system operations
 class MockFileLogger:
 	## Whether logging is enabled
-	var _logging_enabled: bool = true
+	var _logging_enabled: bool = false
 
 	## Path to the log file (simulated)
 	var _log_path: String = ""
@@ -39,6 +39,7 @@ class MockFileLogger:
 	func setup_log(path: String) -> void:
 		_log_path = path
 		_file_open = true
+		_logging_enabled = true
 		# Flush buffer
 		for msg in _log_buffer:
 			logged_messages.append(msg)
@@ -229,6 +230,12 @@ func test_empty_log_path_initially() -> void:
 # ============================================================================
 # Logging Enabled State Tests
 # ============================================================================
+
+
+func test_logging_disabled_by_default() -> void:
+	var new_logger := MockFileLogger.new()
+	assert_false(new_logger._logging_enabled,
+		"Log file writing should be disabled by default")
 
 
 func test_is_logging_enabled_when_file_open() -> void:

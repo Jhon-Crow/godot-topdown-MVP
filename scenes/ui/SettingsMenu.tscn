@@ -80,7 +80,7 @@ text = "PERFORMANCE"
 [node name="ExperimentalButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
-text = "EXPERIMENTAL"
+text = "DEV"
 
 [node name="LanguageButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)

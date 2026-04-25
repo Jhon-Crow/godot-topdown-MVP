@@ -1,10 +1,10 @@
 extends Node
-## ExperimentalSettings - Global experimental features manager.
+## ExperimentalSettings - Global dev features manager.
 ##
-## Provides a centralized way to manage experimental game features.
-## All experimental features are disabled by default.
+## Provides a centralized way to manage dev/test game features.
+## All dev features are disabled by default unless documented otherwise.
 
-## Signal emitted when experimental settings change.
+## Signal emitted when dev settings change.
 signal settings_changed
 
 ## Whether FOV (Field of View) limitation for enemies is enabled.
@@ -47,9 +47,9 @@ var realistic_visibility_enabled: bool = false
 var replay_enabled: bool = false
 
 ## Whether log recording is enabled (Issue #848).
-## When enabled (default), game events are written to a log file for debugging.
+## When enabled, game events are written to a log file for debugging.
 ## When disabled, no log file is created, which can improve performance (FPS).
-var logging_enabled: bool = true
+var logging_enabled: bool = false
 
 ## Whether enemy flashlight blinding is enabled (Issue #903).
 ## When enabled, enemy flashlights can blind the player in night mode.
@@ -581,7 +581,7 @@ func _load_settings() -> void:
 		invincibility_enabled = config.get_value("experimental", "invincibility_enabled", false)
 		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 		replay_enabled = config.get_value("experimental", "replay_enabled", false)
-		logging_enabled = config.get_value("experimental", "logging_enabled", true)
+		logging_enabled = config.get_value("experimental", "logging_enabled", false)
 		enemy_flashlight_blinding_enabled = config.get_value("experimental", "enemy_flashlight_blinding_enabled", false)
 		fps_counter_enabled = config.get_value("experimental", "fps_counter_enabled", false)
 		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
@@ -609,7 +609,7 @@ func _load_settings() -> void:
 		invincibility_enabled = false
 		realistic_visibility_enabled = false
 		replay_enabled = false
-		logging_enabled = true
+		logging_enabled = false
 		enemy_flashlight_blinding_enabled = false
 		fps_counter_enabled = false
 		fps_drop_logging_enabled = false

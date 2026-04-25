@@ -14,9 +14,9 @@ var _log_file: FileAccess = null
 ## Path to the log file.
 var _log_path: String = ""
 
-## Whether logging is enabled (controlled by ExperimentalSettings, Issue #848).
+## Whether logging is enabled (controlled by Dev settings, Issue #848).
 ## When false, no log file is written and console output is suppressed for performance.
-var _logging_enabled: bool = true
+var _logging_enabled: bool = false
 
 ## Buffer for log messages before file is ready.
 var _log_buffer = []
@@ -36,8 +36,9 @@ var _flush_timer: Timer = null
 
 func _ready() -> void:
 	_setup_flush_timer()
-	_setup_log_file()
-	_log_startup_info()
+	if _logging_enabled:
+		_setup_log_file()
+		_log_startup_info()
 
 
 ## Create and start the periodic flush timer (Issue #885).
@@ -223,7 +224,16 @@ func is_logging_enabled() -> bool:
 ## Enable or disable logging (Issue #848).
 ## Called by ExperimentalSettings when the logging toggle changes.
 func set_logging_enabled(enabled: bool) -> void:
+	if _logging_enabled == enabled:
+		return
 	_logging_enabled = enabled
+	if _logging_enabled:
+		if _log_file == null:
+			_setup_log_file()
+			if _log_file != null:
+				_log_startup_info()
+	else:
+		_close_log_file()
 
 
 ## Alias methods for compatibility with different calling conventions.
