@@ -75,10 +75,10 @@ class WindowsExportNamesTest(unittest.TestCase):
             "Tactic Line",
         )
 
-    def test_windows_export_keeps_external_dotnet_data_folder(self):
+    def test_windows_export_embeds_pck_without_changing_dotnet_data_folder_name(self):
         self.assertEqual(
             _read_export_setting("binary_format/embed_pck"),
-            "false",
+            "true",
         )
 
 
