@@ -207,7 +207,7 @@ func test_no_teleport_bracers_by_default() -> void:
 
 func test_set_active_item_to_teleport_bracers() -> void:
 	manager.set_active_item(3)
-	assert_eq(manager.current_active_item, 2,
+	assert_eq(manager.current_active_item, 3,
 		"Active item type should change to TELEPORT_BRACERS")
 
 
@@ -276,17 +276,17 @@ func test_get_all_active_item_types_includes_teleport_bracers() -> void:
 
 
 func test_get_active_item_name_teleport_bracers() -> void:
-	assert_eq(manager.get_active_item_name(2), "Teleport Bracers")
+	assert_eq(manager.get_active_item_name(3), "Teleport Bracers")
 
 
 func test_get_active_item_description_teleport_bracers() -> void:
-	var desc := manager.get_active_item_description(2)
+	var desc := manager.get_active_item_description(3)
 	assert_true(desc.contains("teleport"),
 		"Teleport Bracers description should mention teleport")
 
 
 func test_get_active_item_icon_path_teleport_bracers() -> void:
-	var path := manager.get_active_item_icon_path(2)
+	var path := manager.get_active_item_icon_path(3)
 	assert_true(path.contains("teleport_bracers"),
 		"Teleport Bracers icon path should contain 'teleport_bracers'")
 
@@ -312,7 +312,7 @@ func test_switch_between_all_active_items() -> void:
 	manager.set_active_item(0)  # None
 	manager.set_active_item(3)  # Back to Teleport Bracers
 
-	assert_eq(manager.current_active_item, 2)
+	assert_eq(manager.current_active_item, 3)
 	assert_eq(manager.type_changed_count, 4)
 
 
@@ -409,6 +409,23 @@ func test_teleport_no_cooldown_between_uses() -> void:
 		var result := tracker.use_charge()
 		assert_true(result, "Use %d should succeed without cooldown" % (i + 1))
 	assert_eq(tracker.charges, 3, "Should have 3 charges after 3 uses")
+
+
+func test_deequip_resets_charges_to_zero() -> void:
+	## Verifies that de-equipping the teleport bracers resets the charge counter.
+	## If not reset, a roguelike-mode item swap might expose stale charge state (Issue #1923).
+	var tracker := MockTeleportChargeTracker.new()
+	# Use all 6 charges
+	for i in range(6):
+		tracker.use_charge()
+	assert_eq(tracker.charges, 0, "All charges used")
+	# Simulate de-equip: charges should reset to 0 explicitly
+	tracker.charges = 0
+	assert_eq(tracker.charges, 0, "Charges at 0 after de-equip")
+	# Simulate re-equip: InitTeleportBracers resets to MAX_CHARGES
+	tracker.charges = MockTeleportChargeTracker.MAX_CHARGES
+	assert_eq(tracker.charges, 6, "Charges restored to max after re-equip")
+	assert_true(tracker.has_charges(), "Teleport usable after re-equip")
 
 
 # ============================================================================

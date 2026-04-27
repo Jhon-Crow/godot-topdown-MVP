@@ -339,6 +339,11 @@ public partial class Player
             return;
         }
 
+        if (_teleportTargetPosition == Vector2.Zero)
+        {
+            LogToFile("[Player.TeleportBracers] WARNING: target is (0,0) — GetSafeTeleportPosition may not have run (Issue #1923)");
+        }
+
         Vector2 oldPosition = GlobalPosition;
         GlobalPosition = _teleportTargetPosition;
         _teleportCharges--;
@@ -3550,6 +3555,8 @@ public partial class Player
         // Teleport bracers
         _teleportBracersEquipped = false;
         _teleportAiming = false;
+        _teleportCharges = 0;
+        _teleportExperimentalActive = false;
 
         // BFF pendant — companion remains in scene; just disable new summons
         _bffPendantEquipped = false;
