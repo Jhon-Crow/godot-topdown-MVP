@@ -396,7 +396,17 @@ func test_size_variation_max_is_reasonable() -> void:
 
 
 # ============================================================================
-# PuddleManager – white rectangle regression
+# PuddleManager – white rectangle regression and merge shader approach
+#
+# Architecture: PuddleManager is a plain Node2D. It creates an internal
+# CanvasGroup child (_puddle_group) and places all puddle Sprite2Ds inside it.
+# A puddle_merge.gdshader is loaded from a .tres resource and attached to that
+# CanvasGroup child — this clamps composited alpha so overlapping puddles look
+# merged rather than stacked (the "unrealistic darkening at junctions" fix).
+#
+# The shader reads only TEXTURE (the CanvasGroup's own composited buffer),
+# not hint_screen_texture, so it is safe on the gl_compatibility renderer
+# and cannot draw a white bounding rectangle.
 # ============================================================================
 
 
@@ -408,12 +418,12 @@ func test_puddle_manager_scene_uses_node2d_not_canvas_group() -> void:
 	var src := f.get_as_text()
 	f.close()
 	assert_true(src.contains("[node name=\"PuddleManager\" type=\"Node2D\""),
-		"PuddleManager must render as Node2D; CanvasGroup produced white rectangles on gl_compatibility")
+		"PuddleManager root node must be Node2D in DocksLevel.tscn")
 	assert_false(src.contains("[node name=\"PuddleManager\" type=\"CanvasGroup\""),
-		"PuddleManager must not use CanvasGroup rendering")
+		"PuddleManager root node must not be CanvasGroup in DocksLevel.tscn")
 
 
-func test_puddle_manager_script_does_not_extend_canvas_group() -> void:
+func test_puddle_manager_script_extends_node2d() -> void:
 	var f := FileAccess.open("res://scripts/levels/puddle_manager.gd", FileAccess.READ)
 	assert_not_null(f, "puddle_manager.gd must be readable")
 	if f == null:
@@ -421,8 +431,70 @@ func test_puddle_manager_script_does_not_extend_canvas_group() -> void:
 	var src := f.get_as_text()
 	f.close()
 	assert_true(src.begins_with("extends Node2D"),
-		"PuddleManager should use standard Node2D sprite rendering")
+		"PuddleManager must extend Node2D (not CanvasGroup) to avoid white bounding quad")
 	assert_false(src.contains("extends CanvasGroup"),
-		"PuddleManager must not extend CanvasGroup because it can draw a white bounding quad")
-	assert_false(src.contains("ShaderMaterial"),
-		"PuddleManager must not attach a merge shader")
+		"PuddleManager must not extend CanvasGroup")
+
+
+func test_puddle_manager_uses_canvas_group_child_for_merge() -> void:
+	var f := FileAccess.open("res://scripts/levels/puddle_manager.gd", FileAccess.READ)
+	assert_not_null(f, "puddle_manager.gd must be readable")
+	if f == null:
+		return
+	var src := f.get_as_text()
+	f.close()
+	assert_true(src.contains("CanvasGroup.new()"),
+		"PuddleManager must create an internal CanvasGroup child for alpha-clamp compositing")
+	assert_true(src.contains("PUDDLE_MERGE_MATERIAL_PATH"),
+		"PuddleManager must load the merge material resource for the CanvasGroup child")
+
+
+func test_merge_shader_file_exists() -> void:
+	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
+	assert_not_null(f, "puddle_merge.gdshader must exist for alpha-clamp compositing")
+	if f != null:
+		f.close()
+
+
+func test_merge_shader_reads_canvas_group_texture_not_screen() -> void:
+	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
+	assert_not_null(f, "puddle_merge.gdshader must be readable")
+	if f == null:
+		return
+	var src := f.get_as_text()
+	f.close()
+	assert_true(src.contains("texture(TEXTURE, UV)"),
+		"Merge shader must read TEXTURE (CanvasGroup composite), not SCREEN_TEXTURE")
+	assert_false(src.contains("hint_screen_texture"),
+		"Merge shader must not use hint_screen_texture — it caused white-square bug on gl_compatibility")
+
+
+func test_merge_shader_clamps_alpha_to_max() -> void:
+	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
+	assert_not_null(f, "puddle_merge.gdshader must be readable")
+	if f == null:
+		return
+	var src := f.get_as_text()
+	f.close()
+	assert_true(src.contains("max_alpha"),
+		"Merge shader must declare a max_alpha uniform to clamp overlapping puddle opacity")
+	assert_true(src.contains("min(c.a, max_alpha)"),
+		"Merge shader must clamp the composited alpha using min(c.a, max_alpha)")
+
+
+func test_merge_shader_early_outs_for_fully_transparent_pixels() -> void:
+	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
+	assert_not_null(f, "puddle_merge.gdshader must be readable")
+	if f == null:
+		return
+	var src := f.get_as_text()
+	f.close()
+	assert_true(src.contains("c.a < 0.001"),
+		"Merge shader must early-out for transparent pixels so the CanvasGroup bounding quad is invisible")
+
+
+func test_merge_material_resource_exists() -> void:
+	var f := FileAccess.open("res://resources/materials/puddle_merge_material.tres", FileAccess.READ)
+	assert_not_null(f, "puddle_merge_material.tres must exist for runtime material loading")
+	if f != null:
+		f.close()

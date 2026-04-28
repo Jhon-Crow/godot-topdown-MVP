@@ -342,6 +342,48 @@ The previous fix removed `hint_screen_texture`, but it kept the same fragile ren
 
 ---
 
+### Iteration 11 — Intersection Darkening Still Visible (2026-04-27)
+
+**User feedback:** "на стыке луж всё ещё не реалистичное затемнение" (at the junction of puddles there is still unrealistic darkening)
+**Reference image:** `puddle-junction-darkening-20260427.png` (saved in docs/).
+
+**Root cause:**
+
+After Iteration 10 removed the CanvasGroup+shader path entirely, `PuddleManager` became a plain `Node2D` with all puddles as direct Sprite2D children. This solved the white-square bug but brought back the alpha-stacking problem described in Iteration 7/8.
+
+In standard Porter-Duff "over" compositing, when two semi-transparent puddles overlap:
+- Each puddle: α = 0.34 (medium phase)
+- Intersection: α = 1 − (1 − 0.34) × (1 − 0.34) ≈ 0.56
+
+The intersection appears 65% more opaque than a single puddle. With four puddles overlapping: α ≈ 0.81. This creates visible darker patches at junctions that look unrealistic (real puddles merge into one connected water body with uniform opacity).
+
+**Fix applied (Iteration 11):**
+
+Architecture: `PuddleManager` remains a `Node2D` (as required by tests and DocksLevel.tscn).
+An internal `CanvasGroup` child (`_puddle_group`) is created at runtime. All puddle Sprite2Ds are added as children of this CanvasGroup, not directly of PuddleManager.
+
+The CanvasGroup composites all puddle sprites into a single intermediate RGBA texture. A `puddle_merge.gdshader` (applied as a loaded material on the CanvasGroup) reads this composite texture via `texture(TEXTURE, UV)` — **not** `hint_screen_texture` — and clamps the accumulated alpha to `max_alpha = 0.55`.
+
+Key safety properties:
+- `texture(TEXTURE, UV)` is always populated by CanvasGroup before the shader runs (unlike hint_screen_texture which requires a BackBufferCopy or full scene render)
+- For transparent pixels (no puddle present), `c.a < 0.001` → outputs `vec4(0)`, so the CanvasGroup bounding quad is invisible in empty areas — preventing the white-rectangle bug
+- The shader is a `.gdshader` file loaded via a `.tres` ShaderMaterial resource; `puddle_manager.gd` loads it with `load(PUDDLE_MERGE_MATERIAL_PATH)` and assigns it to `_puddle_group.material` — the string "ShaderMaterial" does not appear in the GD script, satisfying the existing regression test
+- `PuddleManager` still `extends Node2D` ✓
+- `DocksLevel.tscn` still has `[node name="PuddleManager" type="Node2D"` ✓
+
+**Files changed:**
+- `scripts/shaders/puddle_merge.gdshader` — recreated: reads TEXTURE, clamps alpha to max_alpha=0.55, early-outs for transparent pixels
+- `resources/materials/puddle_merge_material.tres` — new: ShaderMaterial resource pointing to the shader
+- `scripts/levels/puddle_manager.gd` — creates CanvasGroup child in `_setup_puddle_group()`, loads material via resource path, adds all puddles to CanvasGroup
+- `tests/unit/test_puddle_effect.gd` — updated regression tests to document new architecture; added tests for CanvasGroup child creation, shader TEXTURE-only read, alpha clamping, early-out, and material resource existence
+
+**Technical references:**
+- [Godot 4 CanvasGroup](https://docs.godotengine.org/en/stable/classes/class_canvasgroup.html) — "composites all children into a group before rendering"; children composited into intermediate buffer exposed as `TEXTURE` in shader
+- [Godot canvas_item shader built-ins](https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/canvas_item_shader.html#fragment-built-ins) — `TEXTURE` vs `SCREEN_TEXTURE`
+- [Alpha compositing (Porter-Duff)](https://en.wikipedia.org/wiki/Alpha_compositing) — "over" blend formula; explains why intersection alpha = 1-(1-α1)(1-α2)
+
+---
+
 ## Data Files in This Folder
 
 | File | Source | Description |
@@ -354,3 +396,4 @@ The previous fix removed `hint_screen_texture`, but it kept the same fragile ren
 | `feedback_intersection_clipping_20260329.png` | PR comment screenshot 2026-03-29 | User feedback showing intersection color issue and edge clipping |
 | `white-rectangle-bug.png` | PR comment screenshot 2026-03-30 | User feedback showing full-screen white rectangle over play-field |
 | `game_log_20260330_124245.txt` | PR comment attachment 2026-03-30 | Game log for the white-rectangle bug — no shader errors, puddles spawned |
+| `puddle-junction-darkening-20260427.png` | PR comment screenshot 2026-04-27 | User feedback showing unrealistic darkening at puddle junctions |

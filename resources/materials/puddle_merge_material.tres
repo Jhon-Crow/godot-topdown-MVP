@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://puddle_merge_mat_1626"]
+
+[ext_resource type="Shader" path="res://scripts/shaders/puddle_merge.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/max_alpha = 0.55

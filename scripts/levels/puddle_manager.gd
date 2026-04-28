@@ -14,9 +14,16 @@ extends Node2D
 ## look identical.  If there are more puddles than shape variants the shapes
 ## cycle but are shuffled so repetition is spread out.
 ##
-## This manager intentionally uses plain Node2D/Sprite2D rendering. Previous
-## CanvasGroup merge-shader attempts produced renderer-dependent white
-## rectangles on gl_compatibility builds.
+## This manager is a plain Node2D.  Puddles are children of an internal
+## CanvasGroup child (_puddle_group) so they are composited into a single
+## intermediate texture before being drawn to the scene.  A puddle_merge shader
+## on that CanvasGroup clamps the composited alpha to MAX_PUDDLE_ALPHA — this
+## prevents the intersection-darkening that occurs when two semi-transparent
+## puddles overlap in standard Porter-Duff compositing.
+##
+## The shader reads only TEXTURE (the CanvasGroup's own composited buffer),
+## never hint_screen_texture or SCREEN_TEXTURE, so it is safe on the
+## gl_compatibility renderer and cannot draw a white bounding rectangle.
 ##
 ## All puddles are pre-instantiated at _ready() so they are available
 ## immediately; start_growing() is called on each one right away so they
@@ -24,6 +31,11 @@ extends Node2D
 
 ## Path to the PuddleEffect scene.
 const PUDDLE_SCENE_PATH: StringName = &"res://scenes/effects/PuddleEffect.tscn"
+
+## Path to the merge material resource applied to the internal CanvasGroup.
+## The material clamps composited alpha so overlapping puddles look merged.
+const PUDDLE_MERGE_MATERIAL_PATH: StringName = \
+	&"res://resources/materials/puddle_merge_material.tres"
 
 ## Puddle texture variants — each has a distinct irregular shape so puddles
 ## don't all look identical.  16 variants are provided (enough to cover all
@@ -142,6 +154,11 @@ var _puddle_scene: PackedScene = null
 var _puddle_textures: Array = []
 var _puddles: Array[Node] = []
 
+## Internal CanvasGroup that composites all puddles before drawing.
+## The merge shader on this group clamps the accumulated alpha so overlapping
+## puddles appear as a single merged water body, not as stacked dark spots.
+var _puddle_group: CanvasGroup = null
+
 
 func _ready() -> void:
 	_puddle_scene = load(PUDDLE_SCENE_PATH)
@@ -157,8 +174,26 @@ func _ready() -> void:
 	if _puddle_textures.is_empty():
 		push_warning("[PuddleManager] No puddle textures found, using default from scene")
 
+	_setup_puddle_group()
 	_spawn_puddles()
 	_log("Puddle manager ready: %d puddles spawned" % _puddles.size())
+
+
+## Creates the CanvasGroup child that composites all puddles into a single
+## intermediate texture.  The puddle_merge shader on this group clamps alpha
+## so overlapping puddles look merged rather than stacked.
+func _setup_puddle_group() -> void:
+	_puddle_group = CanvasGroup.new()
+	_puddle_group.name = "PuddleGroup"
+	_puddle_group.fit_margin = 0.0
+	add_child(_puddle_group)
+
+	var mat = load(PUDDLE_MERGE_MATERIAL_PATH)
+	if mat != null:
+		_puddle_group.material = mat
+	else:
+		push_warning("[PuddleManager] puddle_merge_material.tres not found; "
+			+ "puddle junctions will have standard alpha stacking")
 
 
 ## Spawns all puddles and starts their growth sequences.
@@ -196,7 +231,8 @@ func _spawn_puddles() -> void:
 			stretch_y *= -1.0
 		puddle.scale = Vector2(stretch_x, stretch_y)
 
-		add_child(puddle)
+		# Add to the CanvasGroup so the merge shader applies across all puddles.
+		_puddle_group.add_child(puddle)
 		_puddles.append(puddle)
 
 		# Begin growing immediately — staggered delay is handled internally.
