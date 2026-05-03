@@ -152,3 +152,33 @@ func test_build_workflow_records_pr_head_sha() -> void:
 		source.contains("github.event.pull_request.head.sha || github.sha"),
 		"build-windows.yml should prefer pull_request.head.sha over github.sha so build_info.cfg matches the actual built code (Issue #1927)"
 	)
+
+
+## Session 7: the latest reporter logs stop immediately after ImpactEffects
+## starts scene-change cleanup. ASVK and revolver both fire high-caliber rounds
+## that commonly leave active pooled dust/light effects in the outgoing scene.
+## Those pooled nodes belong to the autoload pool and must be reparented back
+## before reload_current_scene() frees the old scene.
+func test_impact_effects_restores_active_pooled_nodes_during_scene_reload() -> void:
+	var source := _read_text_file("res://scripts/autoload/impact_effects_manager.gd")
+
+	assert_true(
+		source.contains("var _active_dust_effects: Array[GPUParticles2D] = []"),
+		"ImpactEffects should track dust nodes checked out from the autoload pool (Issue #1927)"
+	)
+	assert_true(
+		source.contains("_restore_active_pooled_effects_for_scene_reload()"),
+		"ImpactEffects scene-change handler should restore pooled nodes before clearing stale references (Issue #1927)"
+	)
+	assert_true(
+		source.contains("effect.reparent(self, false)"),
+		"Active pooled dust effects must be moved back to the autoload during scene reload (Issue #1927)"
+	)
+	assert_true(
+		source.contains("light.reparent(self, false)"),
+		"Active pooled explosion lights must be moved back to the autoload during scene reload (Issue #1927)"
+	)
+	assert_true(
+		source.contains("[trace] ImpactEffects scene change begin"),
+		"ImpactEffects scene-change cleanup should emit trace lines for owner crash logs (Issue #1927)"
+	)

@@ -92,6 +92,12 @@ var _dust_effect_pool: Array[GPUParticles2D] = []
 ## Count of dust effect nodes currently checked out (active / emitting).
 var _dust_effects_active: int = 0
 
+## Dust nodes reparented into the active scene while emitting.
+## They must be moved back to this autoload before reload_current_scene()
+## frees the outgoing scene, otherwise delayed pool-return callbacks can
+## touch stale nodes during teardown (Issue #1927).
+var _active_dust_effects: Array[GPUParticles2D] = []
+
 ## Maximum number of concurrent dust effects allowed.
 ## Mini UZI fires ~15 rounds/sec; DustEffect lifetime = 2.5s → up to 37 active at once
 ## without limiting. Cap at 16 to bound GPU particle work while keeping visuals dense.
@@ -342,6 +348,8 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	var scene := get_tree().current_scene
 	if scene:
 		effect.reparent(scene, false)
+		if not _active_dust_effects.has(effect):
+			_active_dust_effects.append(effect)
 	# If there is no current scene (unlikely), leave parented to self — effect may not
 	# be visible but at least it won't crash.
 
@@ -1188,6 +1196,15 @@ func _on_tree_changed() -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene != _last_scene:
 		_log_info("Scene changed - clearing all stale effect references")
+		_log_info("[trace] ImpactEffects scene change begin: blood=%d bullet=%d penetration=%d scorch=%d active_dust=%d active_lights=%d" % [
+			_blood_decals.size(),
+			_bullet_holes.size(),
+			_penetration_holes.size(),
+			_scorch_marks.size(),
+			_active_dust_effects.size(),
+			_active_explosion_lights.size()
+		])
+		_restore_active_pooled_effects_for_scene_reload()
 		# Clear arrays of stale references (nodes are already freed by scene change)
 		_blood_decals.clear()
 		_bullet_holes.clear()
@@ -1195,6 +1212,34 @@ func _on_tree_changed() -> void:
 		_scorch_marks.clear()
 		_active_diffusions.clear()
 		_last_scene = current_scene
+		_log_info("[trace] ImpactEffects scene change end")
+
+
+## Moves pooled effects out of the scene that is being destroyed.
+## Some weapons with high-caliber penetration (ASVK and revolver) commonly
+## leave active dust and light effects in the current scene just before the
+## armory reload. The pool itself belongs to this autoload, so active pooled
+## nodes must survive the old scene teardown instead of being freed with it.
+func _restore_active_pooled_effects_for_scene_reload() -> void:
+	for i in range(_active_dust_effects.size() - 1, -1, -1):
+		var effect: GPUParticles2D = _active_dust_effects[i]
+		if not is_instance_valid(effect):
+			_active_dust_effects.remove_at(i)
+			continue
+		effect.emitting = false
+		effect.visible = false
+		if effect.get_parent() != self:
+			effect.reparent(self, false)
+
+	for i in range(_active_explosion_lights.size() - 1, -1, -1):
+		var light: PointLight2D = _active_explosion_lights[i]
+		if not is_instance_valid(light):
+			_active_explosion_lights.remove_at(i)
+			continue
+		light.visible = false
+		light.energy = 0.0
+		if light.get_parent() != self:
+			light.reparent(self, false)
 
 
 ## Performs warmup to pre-compile all particle effect shaders.
@@ -1596,6 +1641,10 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	if not is_instance_valid(effect):
 		return
 
+	var active_idx := _active_dust_effects.find(effect)
+	if active_idx >= 0:
+		_active_dust_effects.remove_at(active_idx)
+
 	effect.emitting = false
 	effect.visible = false
 
@@ -1604,7 +1653,8 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	if effect.get_parent() != self:
 		effect.reparent(self, false)
 
-	_dust_effect_pool.append(effect)
+	if not _dust_effect_pool.has(effect):
+		_dust_effect_pool.append(effect)
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Dust effect returned to pool (pool: %d, active: %d)" % [

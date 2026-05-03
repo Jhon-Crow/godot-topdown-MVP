@@ -301,6 +301,75 @@ Item 3's `IsInsideTree()` guard is also a real fix candidate: the orphan-deferre
 was unfalsifiable before because we could not see the deferred call running at all. Now we both
 see it and short-circuit it.
 
+## Session 7 Finding: ASVK and Revolver Share Active Pooled Effects at Reload
+
+On the seventh rejection (`11:31 UTC` PR comment), the owner uploaded:
+
+- `game_log_20260503_143038.txt` (revolver to ASVK)
+- `game_log_20260503_143059.txt` (ASVK to revolver)
+
+Downloaded to `docs/case-studies/issue-1927/artifacts/pr-comment-4366061205/`.
+
+Important metadata caveat: both logs still report:
+
+```
+Build commit: 10ffb3f19765645f1a5e52db6accdc73ccdbf152
+Build date: 2026-05-03T10:47:52Z
+```
+
+That is not the current PR head (`e2ba3ac0` at the time of this session). The user was still testing
+a stale artifact whose embedded commit does not include the Session 6 diagnostic/fix commits.
+
+The new logs are still useful because they include the Session 6 trace lines and make the crash
+boundary clearer:
+
+- `Player.ApplySelectedWeaponFromGameManager` completes successfully for both weapons.
+- `Revolver.SetupCylinderHUD` completes successfully in the revolver log.
+- On pressing Apply, weapon `_ExitTree()` runs to completion:
+  - revolver log: `Revolver._ExitTree begin` -> `disconnecting cylinder UI` -> `end`
+  - ASVK log: `SniperRifle._ExitTree begin` -> `end`
+- Both logs then unregister all enemies and stop immediately after:
+
+```
+[ImpactEffects] Scene changed - clearing all stale effect references
+```
+
+That moves the observed crash boundary away from weapon instantiation/exit and into autoload
+scene-change cleanup.
+
+### What ASVK and Revolver Have in Common
+
+Compared with ordinary weapons, ASVK and revolver are the two high-caliber, wall-penetrating weapons
+used in the reported reproductions:
+
+- ASVK: `caliber_127x108`, `Range = 30000`, `CaliberCanPenetrate = true`,
+  `CaliberMaxPenetrationDistance = 200`, high recoil/screen shake, very loud.
+- Revolver: `caliber_12p7x55`, `CaliberCanPenetrate = true`,
+  `CaliberMaxPenetrationDistance = 200`, `PenetratesEnemies = true`, high recoil/screen shake.
+
+Those shots are much more likely to leave active `ImpactEffectsManager` nodes in the outgoing scene:
+dust effects from wall/penetration hits, bullet/penetration holes, and dynamic light effects. The
+manager pools dust and explosion-light nodes under the autoload, but active dust effects are
+temporarily reparented into `get_tree().current_scene` while emitting. If `restart_scene()` frees
+that scene while a pooled node is still active, delayed pool-return callbacks can later touch or
+reparent a node that was freed by the old scene. This matches the latest logs: weapon teardown is
+complete, then the crash happens as `ImpactEffectsManager` reacts to scene teardown.
+
+### Session 7 Fix
+
+`ImpactEffectsManager` now:
+
+- Tracks active checked-out dust pool nodes in `_active_dust_effects`.
+- Emits `[trace] ImpactEffects scene change begin/end` with counts for stale-reference arrays and
+  active pooled effects.
+- Calls `_restore_active_pooled_effects_for_scene_reload()` at the start of `_on_tree_changed()`.
+- Reparents active pooled dust and explosion-light nodes back under the autoload before stale
+  references are cleared and before delayed return callbacks can interact with old-scene nodes.
+- Avoids appending duplicate dust nodes back into the idle pool.
+
+The regression test now locks down the active pooled-node restoration contract in
+`tests/unit/test_issue_1927_scene_reload_overlay_cleanup.gd`.
+
 ## Verification
 
 - `dotnet build`
