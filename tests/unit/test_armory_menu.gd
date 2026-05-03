@@ -1091,3 +1091,87 @@ func test_locale_refresh_locked_slot_tooltip_without_progress_no_progress_key() 
 	var tooltip: String = mock.build_locked_weapon_tooltip("complete Labyrinth", 0, 0)
 	assert_false(tooltip.contains("UNLOCK_COND_PROGRESS"),
 		"Locked slot tooltip without progress should not contain UNLOCK_COND_PROGRESS")
+
+
+# ============================================================================
+# Unlock reveal spark tests (Issue #1933)
+# ============================================================================
+
+
+func _read_armory_menu_source() -> String:
+	var file := FileAccess.open("res://scripts/ui/armory_menu.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open armory_menu.gd — skipping source assertion")
+		return ""
+	return file.get_as_text()
+
+
+func test_unlock_reveal_animation_emits_sparks() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("func _emit_unlock_sparks(slot: PanelContainer)"),
+		"Armory menu should define a dedicated unlock spark emitter (Issue #1933)")
+	assert_true(source.contains("_emit_unlock_sparks(slot)"),
+		"Unlock reveal animation must emit sparks at the card-opening moment (Issue #1933)")
+
+
+func test_unlock_sparks_are_tiny_orange_pixels_and_fly_outward() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 52"),
+		"Unlock reveal should emit a denser burst of sparks after owner feedback")
+	assert_true(source.contains("const UNLOCK_SPARK_RADIAL_COUNT: int = 18"),
+		"Unlock reveal should add radial embers that fly in all directions")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0"),
+		"Unlock spark cores should be 1 px wide after owner feedback")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MAX: float = 1.0"),
+		"Unlock spark cores should stay 1 px wide instead of becoming UI rectangles")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_HEIGHT_MAX: float = 3.0"),
+		"Unlock spark cores should be at most 1x3 px after owner feedback")
+	assert_true(source.contains("UNLOCK_SPARK_GLOW_SCALE_MAX"),
+		"Unlock sparks should use a soft glow around the tiny orange core")
+	assert_true(source.contains("const UNLOCK_SPARK_DISTANCE_MAX: float = 140.0"),
+		"Unlock sparks should fly outward from the card instead of staying inside it")
+	assert_true(source.contains("spark_layer.clip_contents = false"),
+		"Spark layer must allow particles to leave the card bounds")
+	assert_true(source.contains("add_child(spark_layer)"),
+		"Spark layer should be attached to the armory CanvasLayer so top-row sparks are not clipped by slot/grid ancestors")
+	assert_true(source.contains("slot.get_global_rect().get_center()"),
+		"Spark origin should use global slot coordinates after moving the layer outside the slot")
+	assert_true(source.contains("UNLOCK_SPARK_ANGLE_CENTER"),
+		"Unlock sparks should use a fan angle spread (not full 360) for YouTube-like effect")
+	assert_true(source.contains("TAU * float(i) / float(UNLOCK_SPARK_RADIAL_COUNT)"),
+		"Unlock sparks should include a smaller all-directions radial burst")
+
+
+func test_unlock_sparks_arc_downward_and_glow() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 40.0"),
+		"Unlock sparks should launch upward before falling into a gravity-like arc")
+	assert_true(source.contains("const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 110.0"),
+		"Unlock sparks should visibly fall downward after the initial burst")
+	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MIN: float = 0.70"),
+		"Unlock sparks should move slower than the original quick straight burst")
+	assert_true(source.contains("UnlockSparkGlowOuter"),
+		"Unlock sparks should include a soft outer glow for a realistic ember effect")
+	assert_true(source.contains("UnlockSparkGlowInner"),
+		"Unlock sparks should include a warmer inner glow around the orange core")
+	assert_true(source.contains("UnlockSparkCore"),
+		"Unlock sparks should include a bright core inside the glow")
+	assert_true(source.contains("movement_tween.tween_property(spark, \"position\", target_position"),
+		"Unlock sparks should animate in two position phases to create an arc")
+	assert_true(source.contains("var core_size := Vector2(core_width, core_height)"),
+		"Unlock sparks should build their visible particle from a tiny 1x1 to 1x3 core")
+	assert_true(source.contains("var halo_diameter: float = max_core_axis * glow_scale"),
+		"Unlock spark glow sizing should use explicit float typing for Godot 4.3 script loading")
+	assert_false(source.contains("var halo_diameter := max(core_size.x, core_size.y)"),
+		"Unlock spark glow sizing should avoid Variant max() inference that can break exported Godot 4.3 builds")
+	assert_false(source.contains("var streak_ratio :="),
+		"Unlock sparks should no longer use large rectangular streak sizing after owner feedback")
