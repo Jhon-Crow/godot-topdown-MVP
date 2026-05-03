@@ -97,3 +97,58 @@ func test_city_level_guards_against_duplicate_weapon_instantiation() -> void:
 	_assert_level_has_duplicate_weapon_guard(
 		"res://scripts/levels/city_level.gd", "city_level"
 	)
+
+
+## Session 6: ensure file_logger flushes on every write during the startup
+## window so a hard crash mid-reload still produces a usable log file.
+func test_file_logger_flushes_immediately_during_startup_window() -> void:
+	var source := _read_text_file("res://scripts/autoload/file_logger.gd")
+
+	assert_true(source.contains("var _immediate_flush: bool = true"),
+		"FileLogger should arm immediate-flush mode at startup (Issue #1927)")
+	assert_true(source.contains("const IMMEDIATE_FLUSH_WINDOW_MSEC"),
+		"FileLogger should declare a bounded immediate-flush window (Issue #1927)")
+	assert_true(source.contains("func force_immediate_flush_window() -> void:"),
+		"FileLogger should expose force_immediate_flush_window() so risky paths can re-arm it (Issue #1927)")
+	assert_true(source.contains("func flush_now() -> void:"),
+		"FileLogger should expose flush_now() for one-shot checkpoints (Issue #1927)")
+
+
+func test_game_manager_arms_log_flush_before_scene_reload() -> void:
+	var source := _read_text_file("res://scripts/autoload/game_manager.gd")
+
+	assert_true(source.contains("force_immediate_flush_window"),
+		"GameManager.restart_scene() should arm the file-logger immediate-flush window before reload (Issue #1927)")
+
+
+## Session 6: deferred Revolver.SetupCylinderHUD must bail out if this revolver
+## was already removed from the tree before the deferred call ran, otherwise
+## touching the parent chain crashes natively.
+func test_revolver_setup_cylinder_hud_guards_against_orphan_state() -> void:
+	var source := _read_text_file("res://Scripts/Weapons/Revolver.cs")
+
+	assert_true(source.contains("if (!IsInsideTree())"),
+		"Revolver.SetupCylinderHUD should bail out when it is no longer inside the tree (Issue #1927)")
+
+
+## Session 6: deferred Player.ApplySelectedWeaponFromGameManager must bail out
+## if the player itself was removed before the deferred call ran.
+func test_player_apply_selected_weapon_guards_against_orphan_state() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.cs")
+
+	assert_true(
+		source.contains("ApplySelectedWeaponFromGameManager entered (deferred)"),
+		"Player.ApplySelectedWeaponFromGameManager should record a trace entry so deferred-call execution is observable (Issue #1927)"
+	)
+
+
+## Session 6: build_info.cfg must record the PR head SHA, not the synthetic
+## merge commit produced by pull_request_target. Otherwise every uploaded log
+## reports a Build commit value that does not exist on the PR branch.
+func test_build_workflow_records_pr_head_sha() -> void:
+	var source := _read_text_file("res://.github/workflows/build-windows.yml")
+
+	assert_true(
+		source.contains("github.event.pull_request.head.sha || github.sha"),
+		"build-windows.yml should prefer pull_request.head.sha over github.sha so build_info.cfg matches the actual built code (Issue #1927)"
+	)

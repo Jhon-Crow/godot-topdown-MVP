@@ -225,6 +225,82 @@ and adding the selected weapon.
 The regression test now also locks down that `Player._Ready()` must not synchronously call
 `ApplySelectedWeaponFromGameManager()` before base sprite initialization.
 
+## Session 6 Finding: Buffered Logs Mask the Real Crash Site
+
+On the sixth rejection (`13:30 UTC`), the owner uploaded:
+
+- `game_log_20260503_132640.txt` (revolver, 562 lines, 45 552 bytes — valid)
+- `game_log_20260503_132701.txt` (ASVK, 249 bytes — Azure `InvalidRange` error, unreadable)
+
+Downloaded to `docs/case-studies/issue-1927/artifacts/pr-comment-4365950554/`.
+
+The valid revolver log shows:
+
+- Labyrinth duplicate-instantiation guard fires (`"already equipped by C# Player"`).
+- `Player._Ready()` deferred swap completes: MakarovPM → Revolver.
+- ReplayManager begins recording frame 0.
+- Revolver pose detected on frame 3.
+- The last recorded line is an `ImpactEffects` particle warmup confirmation. **No crash signature, no `_ExitTree`, no error**.
+
+That tail is the smoking gun for log loss, not for a successful run. `scripts/autoload/file_logger.gd`
+batches writes and only flushes the buffer once per second (`FLUSH_INTERVAL = 1.0`, see Issue #885).
+A hard crash inside the buffer window silently truncates the log right before the actual crash site.
+The "log ends in the middle of a frame" pattern across every reproducer is consistent with this.
+
+### Backup-branch comparison
+
+Per the owner's hint ("проверь старый pr в ветку backup, там вероятно всё работало"), inspected
+`origin/backup`:
+
+- `Player.cs` calls `ApplySelectedWeaponFromGameManager()` **synchronously** from `_Ready()` (no
+  `CallDeferred`).
+- `Revolver.cs` is ~1044 lines and contains **no cylinder HUD architecture at all** — no
+  `SetupCylinderHUD`, no `RevolverCylinderHUDLayer` CanvasLayer, no `_cylinderUI` field.
+
+The cylinder HUD level-root CanvasLayer was introduced in commit `37c94b82` for Issue #1765. The
+backup branch predates it. This narrows the residual crash region to one of:
+
+1. The deferred `SetupCylinderHUD` running on a Revolver that was already removed/replaced by a
+   second `ApplySelectedWeaponFromGameManager` pass.
+2. Native teardown of the cylinder HUD layer when the level scene is freed.
+3. The ASVK scope overlay reaching a deferred frame in a comparable orphan state (different log,
+   different last visible event, but same buffered-loss pattern).
+
+### Session 6 changes (this session)
+
+1. **Immediate-flush window in `file_logger.gd`** (Issue #1927): for the first 10 seconds after
+   startup, every `_write_log` call flushes to disk. Public helpers
+   `force_immediate_flush_window()` and `flush_now()` let other autoloads re-arm the window before
+   risky operations.
+2. **`game_manager.gd` `restart_scene()`** calls `force_immediate_flush_window()` before the reload
+   so a hard crash mid-reload still leaves a complete log file pointing at the crash site.
+3. **`Player.cs` `ApplySelectedWeaponFromGameManager`** logs `[trace]` markers around
+   `RemoveChild`, `QueueFree`, `Load`, `Instantiate`, and `AddChild`, plus an
+   `IsInsideTree()` guard at entry so the deferred call does not touch tree state on a freed
+   Player.
+4. **`Revolver.cs` `SetupCylinderHUD`** logs `[trace]` markers and bails out if
+   `!IsInsideTree()`. Touching the parent chain on an orphaned Revolver was the most likely
+   remaining native crash. `_ExitTree` and the deferred-call entry are also traced.
+5. **`SniperRifle.cs` `_ExitTree`** logs `[trace]` markers around `DeactivateScope`, recording
+   the `IsSceneReloadInProgress()` value so the next ASVK log shows whether the reload guard fires
+   at the expected moment.
+6. **`.github/workflows/build-windows.yml`**: under `pull_request_target`, `${{ github.sha }}`
+   resolves to the synthetic merge commit on main, not the PR head. That made every log embed a
+   `Build commit:` value that no longer exists on the PR branch (Session 4 mismatch). Switched to
+   `${{ github.event.pull_request.head.sha || github.sha }}` so the build_info.cfg always
+   identifies the actual code that was built.
+
+### Why these changes are diagnostic, not just a guess
+
+Items 1–2 close the log-loss hypothesis: the next reproducer either reaches a `[trace]` line
+already added by items 3–5 or it does not. If it does, we have the exact crash-site frame. If it
+does not, the missing trace identifies the C# constructor path that was running when the crash
+fired.
+
+Item 3's `IsInsideTree()` guard is also a real fix candidate: the orphan-deferred-call hypothesis
+was unfalsifiable before because we could not see the deferred call running at all. Now we both
+see it and short-circuit it.
+
 ## Verification
 
 - `dotnet build`
