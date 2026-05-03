@@ -38,6 +38,7 @@ class MockSewerLevel:
 	## Sewer dimensions (1200x3200 pixels — vertical corridor with right branch fork).
 	var map_width: int = 1200
 	var map_height: int = 3200
+	var _ammo_label_text: String = ""
 
 	## Far-left impassable wall bounds.
 	var left_wall_position: Vector2 = Vector2(88, 1600)
@@ -63,6 +64,31 @@ class MockSewerLevel:
 		if not _level_cleared or _level_completed:
 			return
 		_level_completed = true
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func simulate_deferred_weapon_refresh(stale_first_child: Dictionary, final_current_weapon: Dictionary) -> void:
+		refresh_weapon_hud(choose_current_weapon({}, {}, stale_first_child))
+		refresh_weapon_hud(choose_current_weapon(final_current_weapon, {}, stale_first_child))
 
 
 var level: MockSewerLevel
@@ -178,3 +204,27 @@ func test_double_exit_prevented() -> void:
 	level.on_player_reached_exit()
 	assert_true(level._level_completed,
 		"Level should remain completed after double exit")
+
+
+# ============================================================================
+# Ammo HUD Tests
+# ============================================================================
+
+
+func test_deferred_weapon_refresh_replaces_stale_makarov_hud_with_mini_uzi() -> void:
+	var stale_makarov := {"name": "MakarovPM", "CurrentAmmo": 9, "ReserveAmmo": 351}
+	var equipped_mini_uzi := {"name": "MiniUzi", "CurrentAmmo": 32, "ReserveAmmo": 64}
+
+	level.simulate_deferred_weapon_refresh(stale_makarov, equipped_mini_uzi)
+
+	assert_eq(level._ammo_label_text, "AMMO: 32/64",
+		"Sewer HUD should refresh from startup Makarov ammo to the deferred selected weapon")
+
+
+func test_source_refreshes_hud_from_player_current_weapon_after_deferred_equip() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/sewer_level.gd")
+
+	assert_string_contains(source, "var current_weapon = _player.get(\"CurrentWeapon\")",
+		"Sewer should prefer Player.CurrentWeapon over stale child weapons")
+	assert_string_contains(source, "call_deferred(\"_refresh_current_weapon_tracking\", \"deferred selected weapon\")",
+		"Sewer should refresh ammo tracking after C# deferred weapon selection")

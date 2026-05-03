@@ -38,6 +38,7 @@ class MockRevolverLevel:
 	## Map dimensions (~2000x1600 pixels).
 	var map_width: int = 2000
 	var map_height: int = 1600
+	var _ammo_label_text: String = ""
 
 	## Default enemy count for revolver level (14 total).
 	var default_enemy_count: int = 14
@@ -62,6 +63,31 @@ class MockRevolverLevel:
 		if not _level_cleared or _level_completed:
 			return
 		_level_completed = true
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func simulate_deferred_weapon_refresh(stale_first_child: Dictionary, final_current_weapon: Dictionary) -> void:
+		refresh_weapon_hud(choose_current_weapon({}, {}, stale_first_child))
+		refresh_weapon_hud(choose_current_weapon(final_current_weapon, {}, stale_first_child))
 
 
 var level: MockRevolverLevel
@@ -162,3 +188,27 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2000, "Revolver map width should be 2000")
 	assert_eq(level.map_height, 1600, "Revolver map height should be 1600")
+
+
+# ============================================================================
+# Ammo HUD Tests
+# ============================================================================
+
+
+func test_deferred_weapon_refresh_replaces_stale_makarov_hud_with_mini_uzi() -> void:
+	var stale_makarov := {"name": "MakarovPM", "CurrentAmmo": 9, "ReserveAmmo": 351}
+	var equipped_mini_uzi := {"name": "MiniUzi", "CurrentAmmo": 32, "ReserveAmmo": 64}
+
+	level.simulate_deferred_weapon_refresh(stale_makarov, equipped_mini_uzi)
+
+	assert_eq(level._ammo_label_text, "AMMO: 32/64",
+		"Double Corridor HUD should refresh from startup Makarov ammo to the deferred selected weapon")
+
+
+func test_source_refreshes_hud_from_player_current_weapon_after_deferred_equip() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/revolver_level.gd")
+
+	assert_string_contains(source, "var current_weapon = _player.get(\"CurrentWeapon\")",
+		"Double Corridor should prefer Player.CurrentWeapon over stale child weapons")
+	assert_string_contains(source, "call_deferred(\"_refresh_current_weapon_tracking\", \"deferred selected weapon\")",
+		"Double Corridor should refresh ammo tracking after C# deferred weapon selection")
