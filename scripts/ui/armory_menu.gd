@@ -196,6 +196,17 @@ var _lmb_hold_tracking: Dictionary = {}
 ## Duration (in seconds) to hold LMB to unlock an item.
 const UNLOCK_HOLD_DURATION: float = 1.5
 
+## Number of large UI sparks emitted when a card opens.
+const UNLOCK_SPARK_COUNT: int = 18
+
+## Pixel size range for the large unlock sparks.
+const UNLOCK_SPARK_SIZE_MIN: float = 5.0
+const UNLOCK_SPARK_SIZE_MAX: float = 11.0
+
+## Distance range for sparks flying out of the opened unlock card.
+const UNLOCK_SPARK_DISTANCE_MIN: float = 58.0
+const UNLOCK_SPARK_DISTANCE_MAX: float = 126.0
+
 ## Timer for processing LMB hold progress.
 var _unlock_timer: Timer = null
 
@@ -2160,6 +2171,57 @@ func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
 	return glow
 
 
+## Emits large short-lived UI sparks from an unlock card at the reveal moment.
+func _emit_unlock_sparks(slot: PanelContainer) -> void:
+	if not is_instance_valid(slot):
+		return
+
+	var spark_layer := Control.new()
+	spark_layer.name = "UnlockSparkLayer"
+	spark_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	spark_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spark_layer.clip_contents = false
+	slot.add_child(spark_layer)
+
+	var slot_center := slot.size * 0.5
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+
+	for i in range(UNLOCK_SPARK_COUNT):
+		var spark := ColorRect.new()
+		spark.name = "UnlockSpark"
+		var spark_size := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
+		spark.custom_minimum_size = Vector2(spark_size, spark_size * rng.randf_range(0.55, 1.15))
+		spark.size = spark.custom_minimum_size
+		spark.pivot_offset = spark.size * 0.5
+		spark.position = slot_center - spark.pivot_offset
+		spark.rotation = rng.randf_range(-PI, PI)
+		spark.color = Color(1.0, rng.randf_range(0.62, 0.9), rng.randf_range(0.12, 0.28), 1.0)
+		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark_layer.add_child(spark)
+
+		var angle := (TAU * float(i) / float(UNLOCK_SPARK_COUNT)) + rng.randf_range(-0.28, 0.28)
+		var distance := rng.randf_range(UNLOCK_SPARK_DISTANCE_MIN, UNLOCK_SPARK_DISTANCE_MAX)
+		var target_position := slot_center + Vector2.RIGHT.rotated(angle) * distance - spark.pivot_offset
+		var target_scale := Vector2(rng.randf_range(0.15, 0.35), rng.randf_range(0.15, 0.35))
+		var spark_tween := create_tween()
+		spark_tween.set_parallel(true)
+		spark_tween.tween_property(spark, "position", target_position, rng.randf_range(0.28, 0.42)) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		spark_tween.tween_property(spark, "rotation", spark.rotation + rng.randf_range(-4.0, 4.0), 0.36) \
+			.set_ease(Tween.EASE_OUT)
+		spark_tween.tween_property(spark, "scale", target_scale, 0.36) \
+			.set_ease(Tween.EASE_IN)
+		spark_tween.tween_property(spark, "color:a", 0.0, 0.36) \
+			.set_ease(Tween.EASE_IN).set_delay(0.08)
+
+	var cleanup_timer := get_tree().create_timer(0.55)
+	cleanup_timer.timeout.connect(func():
+		if is_instance_valid(spark_layer):
+			spark_layer.queue_free()
+	)
+
+
 ## Updates the progress overlay visual to show current unlock progress.
 func _update_progress_overlay(slot: PanelContainer, progress: float) -> void:
 	var overlay: ColorRect = _slot_progress_overlays.get(slot)
@@ -2210,6 +2272,7 @@ func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> 
 
 	# Create glow overlay for flash effect
 	var glow := _create_glow_overlay(slot)
+	_emit_unlock_sparks(slot)
 
 	# Get the icon container for scale animation
 	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer

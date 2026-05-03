@@ -1091,3 +1091,42 @@ func test_locale_refresh_locked_slot_tooltip_without_progress_no_progress_key() 
 	var tooltip: String = mock.build_locked_weapon_tooltip("complete Labyrinth", 0, 0)
 	assert_false(tooltip.contains("UNLOCK_COND_PROGRESS"),
 		"Locked slot tooltip without progress should not contain UNLOCK_COND_PROGRESS")
+
+
+# ============================================================================
+# Unlock reveal spark tests (Issue #1933)
+# ============================================================================
+
+
+func _read_armory_menu_source() -> String:
+	var file := FileAccess.open("res://scripts/ui/armory_menu.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open armory_menu.gd — skipping source assertion")
+		return ""
+	return file.get_as_text()
+
+
+func test_unlock_reveal_animation_emits_sparks() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("func _emit_unlock_sparks(slot: PanelContainer)"),
+		"Armory menu should define a dedicated unlock spark emitter (Issue #1933)")
+	assert_true(source.contains("_emit_unlock_sparks(slot)"),
+		"Unlock reveal animation must emit sparks at the card-opening moment (Issue #1933)")
+
+
+func test_unlock_sparks_are_large_and_fly_outward() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 18"),
+		"Unlock reveal should emit a burst of large sparks, not a tiny single flash")
+	assert_true(source.contains("const UNLOCK_SPARK_SIZE_MAX: float = 11.0"),
+		"Unlock sparks should be visually large enough for the card reveal")
+	assert_true(source.contains("const UNLOCK_SPARK_DISTANCE_MAX: float = 126.0"),
+		"Unlock sparks should fly outward from the card instead of staying inside it")
+	assert_true(source.contains("spark_layer.clip_contents = false"),
+		"Spark layer must allow particles to leave the card bounds")
