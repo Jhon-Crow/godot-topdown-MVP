@@ -215,16 +215,17 @@ const UNLOCK_SPARK_DISTANCE_MIN: float = 70.0
 const UNLOCK_SPARK_DISTANCE_MAX: float = 140.0
 
 ## Vertical arc range for unlock sparks before gravity pulls them downward.
-const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 40.0
-const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 90.0
+const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 24.0
+const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 58.0
 
 ## Gravity-like downward fall range for unlock sparks.
-const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 50.0
-const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 110.0
+const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 86.0
+const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 165.0
 
-## Longer lifetime keeps the heavier spark burst readable.
-const UNLOCK_SPARK_DURATION_MIN: float = 0.70
-const UNLOCK_SPARK_DURATION_MAX: float = 1.05
+## Longer lifetime lets sparks linger, fall slowly, and shrink out.
+const UNLOCK_SPARK_DURATION_MIN: float = 1.45
+const UNLOCK_SPARK_DURATION_MAX: float = 2.10
+const UNLOCK_SPARK_CLEANUP_PADDING: float = 0.18
 
 ## Fan spread for sparks: upward hemisphere from upper-left to upper-right.
 ## In Godot screen coords up=-Y so center is -PI/2; fan half-width ~80°.
@@ -2280,23 +2281,23 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		var target_scale := Vector2(rng.randf_range(0.08, 0.22), rng.randf_range(0.08, 0.22))
 		var duration := rng.randf_range(UNLOCK_SPARK_DURATION_MIN, UNLOCK_SPARK_DURATION_MAX)
 		var movement_tween := create_tween()
-		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.40) \
+		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.30) \
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		movement_tween.tween_property(spark, "position", target_position, duration * 0.60) \
-			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		movement_tween.tween_property(spark, "position", target_position, duration * 0.70) \
+			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 
 		var spark_tween := create_tween()
 		spark_tween.set_parallel(true)
 		spark_tween.tween_property(spark, "scale", target_scale, duration) \
-			.set_ease(Tween.EASE_IN)
-		spark_tween.tween_property(outer_glow, "color:a", 0.0, duration) \
+			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		spark_tween.tween_property(outer_glow, "color:a", 0.0, duration * 0.92) \
 			.set_ease(Tween.EASE_IN).set_delay(duration * 0.05)
-		spark_tween.tween_property(inner_glow, "color:a", 0.0, duration) \
+		spark_tween.tween_property(inner_glow, "color:a", 0.0, duration * 0.88) \
 			.set_ease(Tween.EASE_IN).set_delay(duration * 0.10)
-		spark_tween.tween_property(core, "color:a", 0.0, duration) \
+		spark_tween.tween_property(core, "color:a", 0.0, duration * 0.82) \
 			.set_ease(Tween.EASE_IN).set_delay(duration * 0.15)
 
-	var cleanup_timer := get_tree().create_timer(1.15)
+	var cleanup_timer := get_tree().create_timer(UNLOCK_SPARK_DURATION_MAX + UNLOCK_SPARK_CLEANUP_PADDING)
 	cleanup_timer.timeout.connect(func():
 		if is_instance_valid(spark_layer):
 			spark_layer.queue_free()
