@@ -29,8 +29,11 @@ class MockSoundSettings:
 	## Maximum volume in dB (full volume).
 	const MAX_VOLUME_DB: float = 0.0
 
+	const MAX_EFFECTS_VOLUME: float = 1.0
+	const MAX_MUSIC_VOLUME: float = 2.0
+
 	func set_effects_volume(volume: float) -> void:
-		volume = clamp(volume, 0.0, 1.0)
+		volume = clamp(volume, 0.0, MAX_EFFECTS_VOLUME)
 		if not is_equal_approx(effects_volume, volume):
 			effects_volume = volume
 			settings_changed_count += 1
@@ -39,7 +42,7 @@ class MockSoundSettings:
 		return effects_volume
 
 	func set_music_volume(volume: float) -> void:
-		volume = clamp(volume, 0.0, 1.0)
+		volume = clamp(volume, 0.0, MAX_MUSIC_VOLUME)
 		if not is_equal_approx(music_volume, volume):
 			music_volume = volume
 			settings_changed_count += 1
@@ -145,9 +148,15 @@ func test_set_music_volume_stores_value() -> void:
 
 
 func test_set_music_volume_clamps_above_max() -> void:
+	settings.set_music_volume(2.5)
+	assert_eq(settings.get_music_volume(), settings.MAX_MUSIC_VOLUME,
+		"Music volume above 2.0 should be clamped to 2.0")
+
+
+func test_set_music_volume_accepts_200_percent() -> void:
 	settings.set_music_volume(2.0)
-	assert_eq(settings.get_music_volume(), 1.0,
-		"Music volume above 1.0 should be clamped to 1.0")
+	assert_eq(settings.get_music_volume(), 2.0,
+		"Music volume should support 2.0 (200%%)")
 
 
 func test_set_music_volume_clamps_below_min() -> void:
@@ -221,6 +230,12 @@ func test_linear_to_db_full_volume_is_zero_db() -> void:
 		"Full volume (1.0) should convert to 0.0 dB")
 
 
+func test_linear_to_db_double_volume_is_plus_6db() -> void:
+	var db := settings.linear_to_db(2.0)
+	assert_almost_eq(db, 6.02, 0.1,
+		"200%% volume should convert to approximately +6 dB")
+
+
 func test_linear_to_db_zero_volume_is_silence() -> void:
 	var db := settings.linear_to_db(0.0)
 	assert_eq(db, settings.MIN_VOLUME_DB,
@@ -260,7 +275,7 @@ func test_effects_volume_accepts_all_valid_percentages() -> void:
 
 
 func test_music_volume_accepts_all_valid_percentages() -> void:
-	for i in range(0, 101, 10):
+	for i in range(0, 201, 10):
 		settings.set_music_volume(i / 100.0)
 		assert_almost_eq(settings.get_music_volume(), i / 100.0, 0.001,
 			"Music volume %d%% should be accepted" % i)

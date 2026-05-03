@@ -24,7 +24,7 @@ class MockSoundSettings:
 		return effects_volume
 
 	func set_music_volume(volume: float) -> void:
-		music_volume = clamp(volume, 0.0, 1.0)
+		music_volume = clamp(volume, 0.0, 2.0)
 		settings_changed_count += 1
 
 	func get_music_volume() -> float:
@@ -46,6 +46,7 @@ class MockSoundSettings:
 class MockSoundMenu:
 	## Simulated slider values (0..100)
 	var effects_slider_value: float = 100.0
+	## Music slider supports up to 200% volume.
 	var music_slider_value: float = 100.0
 	var music_muffle_button_pressed: bool = true
 
@@ -163,6 +164,14 @@ func test_on_music_volume_changed_updates_settings() -> void:
 		"SoundSettings music volume should be 0.40 when slider is at 40")
 
 
+func test_on_music_volume_changed_accepts_200_percent() -> void:
+	menu.on_music_volume_changed(200.0, sound_settings)
+	assert_almost_eq(sound_settings.get_music_volume(), 2.0, 0.001,
+		"SoundSettings music volume should be 2.0 when slider is at 200")
+	assert_eq(menu.music_value_text, "200%",
+		"Music label should show '200%%' after slider change to 200")
+
+
 func test_on_effects_volume_changed_updates_label() -> void:
 	menu.on_effects_volume_changed(60.0, sound_settings)
 	assert_eq(menu.effects_value_text, "60%",
@@ -236,3 +245,12 @@ func test_different_effects_and_music_volumes_displayed_correctly() -> void:
 		"Effects label should show 60%%")
 	assert_eq(menu.music_value_text, "40%",
 		"Music label should show 40%%")
+
+
+func test_update_ui_displays_music_200_percent() -> void:
+	sound_settings.music_volume = 2.0
+	menu.update_ui(sound_settings)
+	assert_eq(menu.music_slider_value, 200.0,
+		"Music slider should be 200 when music volume is 2.0")
+	assert_eq(menu.music_value_text, "200%",
+		"Music label should show 200%%")
