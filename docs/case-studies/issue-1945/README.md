@@ -85,3 +85,7 @@ Added unit coverage for the three reported maps:
 - `tests/unit/test_sewer_level.gd`
 
 Each test models the reported failure mode: an initial stale Makarov PM HUD update followed by a deferred refresh from the final selected weapon. Source-level assertions also verify that each affected script now reads `Player.CurrentWeapon` and schedules the deferred HUD refresh.
+
+## CI Follow-Up
+
+The first CI pass after the City follow-up reached head `b5dd750943aa517c8bff8b1be8829e34072c283a`. GUT, C# validation, GDScript compilation, lint, architecture, interoperability, and gameplay validation passed. Windows Export failed before project export because the workflow's download step returned `ERROR 502: Bad Gateway or Proxy Error`; the downloaded log is preserved as `raw/windows-export-25290161684.log`.
