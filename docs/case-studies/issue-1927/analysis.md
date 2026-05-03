@@ -153,6 +153,42 @@ Path B (duplicate weapon race):
 - One level (`labyrinth_level.gd`) had already been hardened against the race in an earlier round (see comment at `labyrinth_level.gd:1745`), masking how broadly other levels were unprotected
 - Owner-uploaded follow-up logs (`game_log_20260503_101617.txt`, `_101640.txt`, `_105042.txt`, `_105107.txt`) returned HTTP 416 from GitHub user-attachments storage, so direct log evidence of the new crash was unavailable; root-cause had to come from code inspection
 
+## Session 4 Finding: Owner Tested Wrong Build
+
+On the fourth rejection ("не исправлено", `08:56 UTC`), the owner uploaded logs:
+- `game_log_20260503_115518.txt` (revolver)
+- `game_log_20260503_115534.txt` (ASVK)
+
+Both logs contain:
+```
+Build branch: issue-1927-8435a8027870
+Build commit: 10ffb3f19765645f1a5e52db6accdc73ccdbf152
+Build date: 2026-05-03T08:10:00Z
+```
+
+Commit `10ffb3f1` is **merge of PR #1930 into `main`** (merged at `07:40 UTC`). It does not contain any fix from our PR #1928.
+
+Our fix commits are:
+| Commit | Pushed | Content |
+|--------|--------|---------|
+| `890fbd82` | 06:40 UTC | Remove `_cylinderUI.QueueFree()` from `Revolver._ExitTree()` |
+| `0b4e97d2` | 07:28 UTC | ASVK scope cleanup + `GameManager.is_reloading_scene()` |
+| `40595c36` | 08:09 UTC | Weapon duplication guard in 3 level scripts |
+
+The Windows EXE artifact for commit `40595c36` was produced by CI run
+[#25273923619](https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/25273923619) at `08:13 UTC` —
+**29 minutes after** the main-branch build the owner downloaded.
+
+The `Build branch: issue-1927-8435a8027870` in the log appears because the workflow embeds
+`github.head_ref || github.ref_name`, and the owner appears to have downloaded the `windows-build`
+artifact from the main-branch CI run whose `github.ref_name` is `main`, not our branch.
+The game logs showing "issue-1927" in the branch field may have been generated from an older
+session; the commit hash `10ffb3f1` is the authoritative identifier and unambiguously points to main.
+
+**Conclusion**: all three of our fixes are present in build `40595c36`. The owner's rejection used
+a build from `main` that was created before our fixes were committed. A comment was posted on PR #1928
+pointing to the correct CI artifact download link.
+
 ## Verification
 
 - `dotnet build`
