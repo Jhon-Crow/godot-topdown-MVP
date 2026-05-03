@@ -11,6 +11,8 @@ extends GutTest
 
 
 class MockExperimentalSettings:
+	const SETTINGS_SCHEMA_VERSION := 2
+
 	## Whether FOV (Field of View) limitation for enemies is enabled.
 	var fov_enabled: bool = false
 
@@ -202,6 +204,7 @@ class MockExperimentalSettings:
 
 	## Save settings (simulated).
 	func _save_settings() -> void:
+		_saved_settings["settings_schema_version"] = SETTINGS_SCHEMA_VERSION
 		_saved_settings["fov_enabled"] = fov_enabled
 		_saved_settings["complex_grenade_throwing"] = complex_grenade_throwing
 		_saved_settings["ai_prediction_enabled"] = ai_prediction_enabled
@@ -218,6 +221,7 @@ class MockExperimentalSettings:
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
+		var saved_schema_version: int = int(_saved_settings.get("settings_schema_version", 1))
 		if _saved_settings.has("fov_enabled"):
 			fov_enabled = _saved_settings["fov_enabled"]
 		else:
@@ -250,6 +254,8 @@ class MockExperimentalSettings:
 			logging_enabled = _saved_settings["logging_enabled"]
 		else:
 			logging_enabled = false
+		if saved_schema_version < SETTINGS_SCHEMA_VERSION:
+			logging_enabled = false
 		if _saved_settings.has("enemy_flashlight_blinding_enabled"):
 			enemy_flashlight_blinding_enabled = _saved_settings["enemy_flashlight_blinding_enabled"]
 		else:
@@ -270,6 +276,8 @@ class MockExperimentalSettings:
 			search_path_visible_enabled = _saved_settings["search_path_visible_enabled"]
 		else:
 			search_path_visible_enabled = false
+		if saved_schema_version < SETTINGS_SCHEMA_VERSION:
+			_save_settings()
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
@@ -992,11 +1000,24 @@ func test_load_settings_restores_logging_disabled() -> void:
 
 
 func test_load_settings_restores_logging_enabled() -> void:
+	settings._saved_settings["settings_schema_version"] = MockExperimentalSettings.SETTINGS_SCHEMA_VERSION
 	settings._saved_settings["logging_enabled"] = true
 	settings._load_settings()
 
 	assert_true(settings.logging_enabled,
 		"Load should restore saved logging enabled setting")
+
+
+func test_load_settings_migrates_legacy_logging_enabled_to_disabled() -> void:
+	settings._saved_settings["logging_enabled"] = true
+	settings._load_settings()
+
+	assert_false(settings.logging_enabled,
+		"Legacy saved logging=true should be migrated to disabled for new default")
+	assert_eq(settings._saved_settings["settings_schema_version"], MockExperimentalSettings.SETTINGS_SCHEMA_VERSION,
+		"Migration should persist the current settings schema version")
+	assert_false(settings._saved_settings["logging_enabled"],
+		"Migration should persist logging as disabled")
 
 
 func test_load_settings_logging_defaults_to_false_when_empty() -> void:

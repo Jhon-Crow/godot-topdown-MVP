@@ -18,6 +18,7 @@ point_count = 4
 
 [node name="ArmoredSkinShard" type="Area2D"]
 collision_layer = 16
+z_index = 2
 collision_mask = 39
 script = ExtResource("1_armored_skin_shard")
 

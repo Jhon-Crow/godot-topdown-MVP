@@ -27,6 +27,12 @@ class MockDifficultyMenu:
 	## Semi-transparent background colour drawn over a settings row on hover.
 	const ROW_HOVER_BG: Color = Color(1.0, 1.0, 1.0, 0.08)
 
+	## Gunslinger button background colors (Issue #1937).
+	const GUNSLINGER_NORMAL_BG: Color = Color(0.9, 0.05, 0.05, 0.28)
+	const GUNSLINGER_HOVER_BG: Color = Color(0.95, 0.08, 0.08, 0.42)
+	const GUNSLINGER_PRESSED_BG: Color = Color(0.75, 0.02, 0.02, 0.35)
+	const GUNSLINGER_DISABLED_BG: Color = Color(0.85, 0.04, 0.04, 0.25)
+
 	## Difficulty modes enumeration.
 	enum Difficulty { POWER_FANTASY, EASY, NORMAL, HARD, BLACK_METAL }
 
@@ -537,3 +543,48 @@ func test_restart_without_player_leaves_tree_pause_state_unchanged() -> void:
 		"Difficulty change should not alter pause state when no player exists")
 	assert_false(menu.restart_requested,
 		"Difficulty change should not request restart when no player exists")
+
+
+# ============================================================================
+# Gunslinger Button Glass Transparency Tests (Issue #1937)
+# ============================================================================
+
+
+func test_gunslinger_normal_bg_alpha_is_low() -> void:
+	assert_lt(menu.GUNSLINGER_NORMAL_BG.a, 0.4,
+		"Gunslinger normal background alpha should be below 0.4 for glass effect")
+
+
+func test_gunslinger_hover_bg_alpha_is_low() -> void:
+	assert_lt(menu.GUNSLINGER_HOVER_BG.a, 0.5,
+		"Gunslinger hover background alpha should be below 0.5 for glass effect")
+
+
+func test_gunslinger_pressed_bg_alpha_is_low() -> void:
+	assert_lt(menu.GUNSLINGER_PRESSED_BG.a, 0.5,
+		"Gunslinger pressed background alpha should be below 0.5 for glass effect")
+
+
+func test_gunslinger_disabled_bg_alpha_is_low() -> void:
+	assert_lt(menu.GUNSLINGER_DISABLED_BG.a, 0.4,
+		"Gunslinger disabled background alpha should be below 0.4 for glass effect")
+
+
+func test_gunslinger_normal_bg_is_red_dominant() -> void:
+	assert_gt(menu.GUNSLINGER_NORMAL_BG.r, 0.8,
+		"Gunslinger normal background should be bright red for visible glass tint")
+
+
+func test_gunslinger_hover_bg_is_red_dominant() -> void:
+	assert_gt(menu.GUNSLINGER_HOVER_BG.r, 0.8,
+		"Gunslinger hover background should be bright red for visible glass tint")
+
+
+func test_gunslinger_hover_bg_more_visible_than_normal() -> void:
+	assert_gt(menu.GUNSLINGER_HOVER_BG.a, menu.GUNSLINGER_NORMAL_BG.a,
+		"Gunslinger hover should be slightly more visible than normal state")
+
+
+func test_gunslinger_normal_bg_more_visible_than_disabled() -> void:
+	assert_gt(menu.GUNSLINGER_NORMAL_BG.a, menu.GUNSLINGER_DISABLED_BG.a,
+		"Gunslinger normal should be more visible than disabled state")

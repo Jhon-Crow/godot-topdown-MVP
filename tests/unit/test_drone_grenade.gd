@@ -503,3 +503,96 @@ func test_csharp_drone_aim_helper_calls_snake_case_gdscript_method() -> void:
 		"C# interop must look for DroneGrenade's snake_case GDScript method")
 	assert_true(method.contains("_activeGrenade.Call(\"set_aim_point\", aimPoint)"),
 		"C# interop must call DroneGrenade.set_aim_point with the world-space aim point")
+
+
+# ============================================================================
+# Camera reparent regression tests (Issue #1911)
+# ============================================================================
+#
+# Reparenting a Camera2D resets its internal position_smoothing state in Godot
+# 4, producing a hard cut the user perceives as "the level restarting". The
+# source of DroneGrenade must therefore NOT call add_child/remove_child on the
+# player's Camera2D when switching control — it must drive the camera via its
+# local `position` while the drone owns the view.
+
+
+func _read_drone_grenade_source() -> String:
+	var file := FileAccess.open("res://scripts/projectiles/drone_grenade.gd", FileAccess.READ)
+	assert_not_null(file, "drone_grenade.gd must be readable for camera regression tests")
+	if file == null:
+		return ""
+	return file.get_as_text()
+
+
+func _extract_gd_function(source: String, signature: String) -> String:
+	## Extract a GDScript function body by scanning for a matching header and
+	## capturing all indented lines that follow.
+	var start := source.find(signature)
+	assert_gt(start, -1, "Expected function signature to exist: %s" % signature)
+	if start == -1:
+		return ""
+	var header_end := source.find("\n", start)
+	if header_end == -1:
+		return source.substr(start)
+	var body := ""
+	var i := header_end + 1
+	while i < source.length():
+		var line_end := source.find("\n", i)
+		if line_end == -1:
+			line_end = source.length()
+		var line := source.substr(i, line_end - i)
+		if line.strip_edges() == "":
+			body += line + "\n"
+			i = line_end + 1
+			continue
+		if line.begins_with("\t") or line.begins_with(" "):
+			body += line + "\n"
+			i = line_end + 1
+		else:
+			break
+	return body
+
+
+func test_attach_camera_does_not_reparent_issue_1911() -> void:
+	var source := _read_drone_grenade_source()
+	var body := _extract_gd_function(source, "func _attach_camera_to_drone()")
+	assert_false(body.contains("add_child(_player_camera)"),
+		"Issue #1911: _attach_camera_to_drone must NOT add_child the camera — " +
+		"reparenting resets Camera2D position_smoothing (visible as a hard cut)")
+	assert_false(body.contains("remove_child(_player_camera)"),
+		"Issue #1911: _attach_camera_to_drone must NOT remove_child the camera")
+
+
+func test_detach_camera_does_not_reparent_issue_1911() -> void:
+	var source := _read_drone_grenade_source()
+	var body := _extract_gd_function(source, "func _detach_camera_from_drone()")
+	assert_false(body.contains("remove_child(_player_camera)"),
+		"Issue #1911: _detach_camera_from_drone must NOT remove_child the camera")
+	assert_false(body.contains("add_child(_player_camera)"),
+		"Issue #1911: _detach_camera_from_drone must NOT add the camera back to any parent — " +
+		"the camera is never reparented in the first place")
+
+
+func test_detach_camera_zeroes_local_position_issue_1911() -> void:
+	var source := _read_drone_grenade_source()
+	var body := _extract_gd_function(source, "func _detach_camera_from_drone()")
+	assert_true(body.contains("_player_camera.position = Vector2.ZERO"),
+		"Issue #1911: _detach_camera_from_drone must reset the camera's LOCAL position to zero " +
+		"so it re-centers on the player; position_smoothing then pans the viewport back")
+
+
+func test_sync_camera_uses_local_position_not_reparent_issue_1911() -> void:
+	var source := _read_drone_grenade_source()
+	var body := _extract_gd_function(source, "func _sync_camera_to_drone()")
+	assert_true(body.contains("_player_camera.position = global_position - _player.global_position"),
+		"Issue #1911: _sync_camera_to_drone must set the camera's LOCAL position so that its " +
+		"global_position equals the drone's — this drives position_smoothing's target without " +
+		"ever reparenting the camera")
+
+
+func test_physics_process_calls_sync_camera_each_frame_issue_1911() -> void:
+	var source := _read_drone_grenade_source()
+	var body := _extract_gd_function(source, "func _physics_process(delta: float)")
+	assert_true(body.contains("_sync_camera_to_drone()"),
+		"Issue #1911: _physics_process must call _sync_camera_to_drone() each frame so the " +
+		"smoothing target tracks the drone's movement")

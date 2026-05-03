@@ -41,6 +41,7 @@ class MockCityLevel:
 
 	## Default enemy count for city level.
 	var default_enemy_count: int = 9
+	var _ammo_label_text: String = ""
 
 	## Initialize with default enemies.
 	func initialize() -> void:
@@ -62,6 +63,31 @@ class MockCityLevel:
 		if not _level_cleared or _level_completed:
 			return
 		_level_completed = true
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func simulate_deferred_weapon_refresh(stale_first_child: Dictionary, final_current_weapon: Dictionary) -> void:
+		refresh_weapon_hud(choose_current_weapon({}, {}, stale_first_child))
+		refresh_weapon_hud(choose_current_weapon(final_current_weapon, {}, stale_first_child))
 
 
 var level: MockCityLevel
@@ -154,3 +180,33 @@ func test_player_cannot_exit_twice() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 6000, "City map width should be 6000")
 	assert_eq(level.map_height, 5000, "City map height should be 5000")
+
+
+# ============================================================================
+# Ammo HUD Weapon Tracking Tests
+# ============================================================================
+
+
+func test_city_deferred_weapon_refresh_replaces_stale_makarov_hud() -> void:
+	var stale_makarov := {"name": "MakarovPM", "CurrentAmmo": 9, "ReserveAmmo": 81}
+	var selected_revolver := {"name": "Revolver", "CurrentAmmo": 6, "ReserveAmmo": 18}
+	level.simulate_deferred_weapon_refresh(stale_makarov, selected_revolver)
+	assert_eq(level._ammo_label_text, "AMMO: 6/18",
+		"City HUD should refresh from Player.CurrentWeapon after selected weapon equip")
+
+
+func test_city_shotgun_hud_uses_shells_in_tube() -> void:
+	var selected_shotgun := {"name": "Shotgun", "CurrentAmmo": 0, "ShellsInTube": 4, "ReserveAmmo": 16}
+	level.refresh_weapon_hud(selected_shotgun)
+	assert_eq(level._ammo_label_text, "AMMO: 4/16",
+		"City shotgun HUD should show shells in tube instead of CurrentAmmo")
+
+
+func test_city_level_source_prefers_current_weapon_and_defers_refresh() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/city_level.gd")
+	assert_string_contains(source, "_player.get(\"CurrentWeapon\")",
+		"CityLevel should read Player.CurrentWeapon as authoritative equipped weapon")
+	assert_string_contains(source, "call_deferred(\"_refresh_current_weapon_tracking\"",
+		"CityLevel should refresh HUD after deferred C# selected-weapon equip runs")
+	assert_string_contains(source, "not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed)",
+		"CityLevel should avoid duplicate AmmoChanged connections during refresh")

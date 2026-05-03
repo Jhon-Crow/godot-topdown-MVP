@@ -92,6 +92,12 @@ var _dust_effect_pool: Array[GPUParticles2D] = []
 ## Count of dust effect nodes currently checked out (active / emitting).
 var _dust_effects_active: int = 0
 
+## Dust nodes reparented into the active scene while emitting.
+## They must be moved back to this autoload before reload_current_scene()
+## frees the outgoing scene, otherwise delayed pool-return callbacks can
+## touch stale nodes during teardown (Issue #1927).
+var _active_dust_effects: Array[GPUParticles2D] = []
+
 ## Maximum number of concurrent dust effects allowed.
 ## Mini UZI fires ~15 rounds/sec; DustEffect lifetime = 2.5s → up to 37 active at once
 ## without limiting. Cap at 16 to bound GPU particle work while keeping visuals dense.
@@ -131,6 +137,21 @@ var _last_scene: Node = null
 ## Whether the shader warmup has been completed.
 ## Warmup pre-compiles GPU shaders to prevent first-shot lag (Issue #343).
 var _warmup_completed: bool = false
+
+## Tracks the scene for which we already logged the "water_body group empty" warning (Issue #1578).
+## Prevents the same warning from spamming once per blood-decal-in-water check.
+var _debug_water_group_logged: Node = null
+
+## Preloaded blood diffusion script for spawning directly when WaterBody._ready() hasn't run
+## (Issue #1578 — _blood_diffusion_script in WaterBody is null when _ready() doesn't fire).
+var _blood_diffusion_script: GDScript = null
+
+## Active water blood diffusion nodes tracked for merge/cap logic (Issue #1578 FPS fix).
+## New blood in water merges into a nearby existing node instead of spawning a fresh one,
+## capping GPU work at MAX_CONCURRENT_DIFFUSIONS concurrent draw-only effects.
+var _active_diffusions: Array[Node2D] = []
+const MAX_CONCURRENT_DIFFUSIONS: int = 8
+const DIFFUSION_MERGE_RADIUS: float = 120.0
 
 
 func _ready() -> void:
@@ -225,6 +246,15 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] BloodDecal scene not found (optional)")
 
+	# Preload blood diffusion script for direct spawning (Issue #1578 fallback when WaterBody._ready()
+	# hasn't run and _blood_diffusion_script inside water_body.gd is null).
+	var blood_diffusion_path := "res://scripts/effects/water_blood_diffusion.gd"
+	if ResourceLoader.exists(blood_diffusion_path):
+		_blood_diffusion_script = load(blood_diffusion_path)
+		loaded_scenes.append("WaterBloodDiffusion")
+	else:
+		_log_info("[ImpactEffects] WaterBloodDiffusion script not found — blood-in-water diffusion unavailable (Issue #1578)")
+
 	# Log summary of loaded scenes
 	_log_info("Scenes loaded: %s" % [", ".join(loaded_scenes)])
 	if missing_scenes.size() > 0:
@@ -318,6 +348,8 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 	var scene := get_tree().current_scene
 	if scene:
 		effect.reparent(scene, false)
+		if not _active_dust_effects.has(effect):
+			_active_dust_effects.append(effect)
 	# If there is no current scene (unlikely), leave parented to self — effect may not
 	# be visible but at least it won't crash.
 
@@ -717,6 +749,12 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 		# Wall detected between origin and landing - skip this decal
 		return
 
+	# Issue #1578: If landing position is inside water, spawn blood diffusion instead of a decal.
+	var water_body: Node = _find_water_body_at(landing_pos)
+	if water_body != null:
+		_handle_blood_in_water(landing_pos, water_body, decal_scale)
+		return
+
 	# Create the decal
 	var decal := _blood_decal_scene.instantiate() as Node2D
 	if decal == null:
@@ -740,6 +778,110 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
+
+
+## Handle blood landing in water: merge into a nearby diffusion cloud or spawn a new one.
+## Caps concurrent effects at MAX_CONCURRENT_DIFFUSIONS to prevent FPS drops (Issue #1578).
+## Water tint grows gradually in sync with cloud fade (Issue #1578 feedback).
+func _handle_blood_in_water(landing_pos: Vector2, water_body: Node, drop_scale: float = 1.0) -> void:
+	var blood_color := Color(0.5, 0.02, 0.02, 0.55)
+
+	# Clean up any freed nodes from the pool first
+	_active_diffusions = _active_diffusions.filter(func(n): return is_instance_valid(n))
+
+	# Try to merge into the nearest existing diffusion within merge radius
+	var nearest: Node2D = null
+	var nearest_dist: float = DIFFUSION_MERGE_RADIUS
+	for d in _active_diffusions:
+		var dist: float = d.global_position.distance_to(landing_pos)
+		if dist < nearest_dist:
+			nearest_dist = dist
+			nearest = d
+	if nearest != null:
+		if nearest.has_method("absorb"):
+			nearest.absorb(drop_scale)
+		return
+
+	# Enforce cap: remove the oldest diffusion before spawning a new one
+	while _active_diffusions.size() >= MAX_CONCURRENT_DIFFUSIONS:
+		var oldest: Node2D = _active_diffusions.pop_front()
+		if is_instance_valid(oldest):
+			oldest.queue_free()
+
+	if _blood_diffusion_script == null:
+		_log_info("[ImpactEffects] Blood landed in water at %s — diffusion script not loaded, skipping decal (Issue #1578)" % landing_pos)
+		return
+
+	var diffusion: Node2D = Node2D.new()
+	diffusion.set_script(_blood_diffusion_script)
+	_add_underwater_effect_to_scene(diffusion, water_body)
+	diffusion.global_position = landing_pos
+	if diffusion.has_method("set_blood_color"):
+		diffusion.set_blood_color(blood_color)
+	if diffusion.has_method("set_drop_scale"):
+		diffusion.set_drop_scale(drop_scale)
+
+	# Tint water gradually for the whole cloud lifetime, so wave recolor stays
+	# synchronized with both expansion and disappearance.
+	var wb_ref := water_body
+	var color_ref := blood_color
+	diffusion.set("on_tint_update", func(world_pos: Vector2, absorbed_hits: int, fade_t: float) -> void:
+		if not is_instance_valid(wb_ref) or not wb_ref.has_method("update_blood_tint_fade"):
+			return
+		wb_ref.update_blood_tint_fade(world_pos, color_ref, absorbed_hits, fade_t)
+	)
+
+	_active_diffusions.append(diffusion)
+
+	_log_info("[ImpactEffects] Blood landed in water at %s — spawning diffusion effect (Issue #1578)" % landing_pos)
+
+
+## Returns the first WaterBody node whose bounds strictly contain the given world position,
+## or null if the position is not inside any water area.
+## Used by _schedule_delayed_decal() to intercept blood landing in water (Issue #1578).
+## Strict containment prevents blood clouds from appearing on land near water edges.
+func _find_water_body_at(world_pos: Vector2) -> Node:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return null
+	# WaterBody nodes self-register in the "water_body" group inside _ready() (Issue #1578).
+	var water_bodies := get_tree().get_nodes_in_group("water_body")
+	if water_bodies.is_empty():
+		# Group is empty — log once per scene to aid diagnosis (Issue #1578).
+		if _debug_water_group_logged != current_scene:
+			_debug_water_group_logged = current_scene
+			_log_info("[ImpactEffects] water_body group empty on scene '%s' — blood-in-water check unavailable (Issue #1578)" % current_scene.name)
+		return null
+	for wb in water_bodies:
+		if not is_instance_valid(wb):
+			continue
+		if wb.has_method("is_point_in_water"):
+			if wb.is_point_in_water(world_pos):
+				return wb
+		else:
+			# Geometry fallback: has_method() can return false in some exported builds
+			# even when the method exists (Issue #1578). Check bounding rect strictly.
+			var half_w: float = (wb.get("water_width") if wb.get("water_width") != null else 1200.0) * 0.5
+			var half_h: float = (wb.get("water_height") if wb.get("water_height") != null else 210.0) * 0.5
+			var local: Vector2 = world_pos - wb.global_position
+			if abs(local.x) <= half_w and abs(local.y) <= half_h:
+				_log_info("[ImpactEffects] water_body geometry fallback hit at %s (has_method returned false — Issue #1578)" % world_pos)
+				return wb
+	return null
+
+
+func _add_underwater_effect_to_scene(effect: Node2D, water_body: Node) -> void:
+	var parent: Node = null
+	if water_body != null and water_body.has_method("get_underwater_effect_parent"):
+		parent = water_body.get_underwater_effect_parent()
+	if parent == null and water_body != null:
+		parent = water_body.get_parent()
+	if parent == null:
+		_add_effect_to_scene(effect)
+		return
+	parent.add_child(effect)
+	if effect is CanvasItem:
+		(effect as CanvasItem).z_index = 0
 
 
 ## Removes one blood decal that is outside the player's viewport.
@@ -1054,12 +1196,50 @@ func _on_tree_changed() -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene != _last_scene:
 		_log_info("Scene changed - clearing all stale effect references")
+		_log_info("[trace] ImpactEffects scene change begin: blood=%d bullet=%d penetration=%d scorch=%d active_dust=%d active_lights=%d" % [
+			_blood_decals.size(),
+			_bullet_holes.size(),
+			_penetration_holes.size(),
+			_scorch_marks.size(),
+			_active_dust_effects.size(),
+			_active_explosion_lights.size()
+		])
+		_restore_active_pooled_effects_for_scene_reload()
 		# Clear arrays of stale references (nodes are already freed by scene change)
 		_blood_decals.clear()
 		_bullet_holes.clear()
 		_penetration_holes.clear()
 		_scorch_marks.clear()
+		_active_diffusions.clear()
 		_last_scene = current_scene
+		_log_info("[trace] ImpactEffects scene change end")
+
+
+## Moves pooled effects out of the scene that is being destroyed.
+## Some weapons with high-caliber penetration (ASVK and revolver) commonly
+## leave active dust and light effects in the current scene just before the
+## armory reload. The pool itself belongs to this autoload, so active pooled
+## nodes must survive the old scene teardown instead of being freed with it.
+func _restore_active_pooled_effects_for_scene_reload() -> void:
+	for i in range(_active_dust_effects.size() - 1, -1, -1):
+		var effect: GPUParticles2D = _active_dust_effects[i]
+		if not is_instance_valid(effect):
+			_active_dust_effects.remove_at(i)
+			continue
+		effect.emitting = false
+		effect.visible = false
+		if effect.get_parent() != self:
+			effect.reparent(self, false)
+
+	for i in range(_active_explosion_lights.size() - 1, -1, -1):
+		var light: PointLight2D = _active_explosion_lights[i]
+		if not is_instance_valid(light):
+			_active_explosion_lights.remove_at(i)
+			continue
+		light.visible = false
+		light.energy = 0.0
+		if light.get_parent() != self:
+			light.reparent(self, false)
 
 
 ## Performs warmup to pre-compile all particle effect shaders.
@@ -1461,6 +1641,10 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	if not is_instance_valid(effect):
 		return
 
+	var active_idx := _active_dust_effects.find(effect)
+	if active_idx >= 0:
+		_active_dust_effects.remove_at(active_idx)
+
 	effect.emitting = false
 	effect.visible = false
 
@@ -1469,7 +1653,8 @@ func _return_dust_effect_to_pool(effect: GPUParticles2D) -> void:
 	if effect.get_parent() != self:
 		effect.reparent(self, false)
 
-	_dust_effect_pool.append(effect)
+	if not _dust_effect_pool.has(effect):
+		_dust_effect_pool.append(effect)
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Dust effect returned to pool (pool: %d, active: %d)" % [
@@ -1645,4 +1830,3 @@ func clear_scorch_marks() -> void:
 	_scorch_marks.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All scorch marks cleared")
-

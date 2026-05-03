@@ -164,6 +164,12 @@ public partial class Revolver : BaseWeapon
     private bool _aimAngleInitialized = false;
 
     /// <summary>
+    /// Base turn speed used when weapon data does not provide sensitivity.
+    /// Keeps laser aim slightly inertial instead of snapping instantly to the cursor.
+    /// </summary>
+    private const float DefaultLaserAimTurnSpeed = 7.5f;
+
+    /// <summary>
     /// Current recoil offset angle in radians.
     /// RSh-12 has heavy recoil close to the sniper rifle.
     /// </summary>
@@ -357,6 +363,7 @@ public partial class Revolver : BaseWeapon
         }
 
         // Issue #691: Setup cylinder HUD using CallDeferred so the scene tree is fully ready
+        LogToFile("[trace] Revolver._Ready scheduling SetupCylinderHUD (deferred)");
         CallDeferred(MethodName.SetupCylinderHUD);
     }
 
@@ -447,6 +454,18 @@ public partial class Revolver : BaseWeapon
     /// </summary>
     private void SetupCylinderHUD()
     {
+        LogToFile("[trace] SetupCylinderHUD begin");
+
+        // Issue #1927: bail out if this revolver has already been removed from the
+        // tree before the deferred call ran (e.g. immediate replacement by another
+        // ApplySelectedWeaponFromGameManager pass).  Touching the parent chain in
+        // that state can crash with InvalidOperationException.
+        if (!IsInsideTree())
+        {
+            LogToFile("[trace] SetupCylinderHUD aborted — revolver not inside tree");
+            return;
+        }
+
         // Find the level root by traversing up until we find a node with CanvasLayer/UI
         // The hierarchy can be: LevelRoot → Entities → Player → Revolver
         // or: LevelRoot → Player → Revolver (depending on level structure)
@@ -457,7 +476,7 @@ public partial class Revolver : BaseWeapon
         {
             if (current.GetNodeOrNull<Control>("CanvasLayer/UI") != null)
             {
-                GD.Print($"[Revolver] Found level root with CanvasLayer/UI in: {current.Name}");
+                LogToFile($"[trace] SetupCylinderHUD found level root with CanvasLayer/UI in: {current.Name}");
                 levelRoot = current;
                 break;
             }
@@ -466,7 +485,7 @@ public partial class Revolver : BaseWeapon
 
         if (levelRoot == null)
         {
-            GD.Print("[Revolver] Warning: Could not find level root for cylinder HUD (Issue #691)");
+            LogToFile("[trace] SetupCylinderHUD warning: could not find level root for cylinder HUD");
             return;
         }
 
@@ -474,9 +493,10 @@ public partial class Revolver : BaseWeapon
         var existingLayer = levelRoot.GetNodeOrNull<CanvasLayer>(CylinderHUDLayerName);
         if (existingLayer != null)
         {
-            GD.Print("[Revolver] Cylinder HUD layer already exists, connecting to existing");
+            LogToFile("[trace] SetupCylinderHUD reusing existing HUD layer");
             _cylinderUI = existingLayer.GetNodeOrNull<RevolverCylinderUI>("HUDContainer/RevolverCylinderUI");
             _cylinderUI?.ConnectToRevolver(this);
+            LogToFile("[trace] SetupCylinderHUD end (reused)");
             return;
         }
 
@@ -506,7 +526,7 @@ public partial class Revolver : BaseWeapon
 
         _cylinderUI.ConnectToRevolver(this);
 
-        GD.Print("[Revolver] Cylinder HUD created in dedicated layer 110 above visual filters (Issue #1765)");
+        LogToFile("[trace] SetupCylinderHUD end (created new HUD)");
     }
 
     public override void _Process(double delta)
@@ -701,8 +721,9 @@ public partial class Revolver : BaseWeapon
             // Automatic mode: direct aim at cursor (instant response)
             if (toMouse.LengthSquared() > 0.001f)
             {
-                direction = toMouse.Normalized();
-                _currentAimAngle = targetAngle;
+                float delta = (float)GetProcessDeltaTime();
+                _currentAimAngle = Mathf.LerpAngle(_currentAimAngle, targetAngle, Mathf.Clamp(DefaultLaserAimTurnSpeed * delta, 0.0f, 1.0f));
+                direction = new Vector2(Mathf.Cos(_currentAimAngle), Mathf.Sin(_currentAimAngle));
             }
             else
             {
@@ -1852,11 +1873,19 @@ public partial class Revolver : BaseWeapon
 
     public override void _ExitTree()
     {
-        // Clean up cylinder HUD when revolver is removed (Issue #691)
+        LogToFile("[trace] Revolver._ExitTree begin");
+
+        // Clean up cylinder HUD when revolver is removed (Issue #691, #1927).
+        // Only disconnect the signal here — do NOT call QueueFree() on the HUD.
+        // The RevolverCylinderUI is a child of RevolverCylinderHUDLayer, which is
+        // a child of the level root. When the scene is reloaded the entire level tree
+        // (including the HUD layer) is freed automatically. Calling QueueFree() on an
+        // already-being-freed node causes a hard crash (Issue #1927).
+        // RevolverCylinderUI._ExitTree() disconnects its own signals, so this is safe.
         if (_cylinderUI != null && IsInstanceValid(_cylinderUI))
         {
+            LogToFile("[trace] Revolver._ExitTree disconnecting cylinder UI");
             _cylinderUI.DisconnectFromRevolver();
-            _cylinderUI.QueueFree();
             _cylinderUI = null;
         }
 
@@ -1864,6 +1893,22 @@ public partial class Revolver : BaseWeapon
         _laserGlow?.Cleanup();
         _laserGlow = null;
 
+        LogToFile("[trace] Revolver._ExitTree end");
         base._ExitTree();
+    }
+
+    /// <summary>
+    /// Log a message via the FileLogger autoload (Issue #1927).
+    /// Used to trace teardown order during scene reload.
+    /// </summary>
+    private void LogToFile(string message)
+    {
+        var fullMessage = $"[Revolver] {message}";
+        GD.Print(fullMessage);
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        {
+            fileLogger.Call("log_info", fullMessage);
+        }
     }
 }

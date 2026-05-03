@@ -71,8 +71,23 @@ var _saved_wave_speed: float = 0.0
 var _saved_ripple_speed: float = 0.0
 var _saved_surf_speed: float = 0.0
 
+## Water pigment tint from blood diffusion events. Stored as world-space source
+## positions so waves near the cloud can become redder without tinting the whole sea.
+const MAX_BLOOD_TINT_SHADER_SLOTS: int = 8
+const BLOOD_TINT_DURATION: float = 75.0
+const BLOOD_TINT_HOLD_DURATION: float = 62.0
+var _blood_tint_sources: Array[Dictionary] = []
+
+## Live tint sources updated each frame during cloud fade (key = position hash).
+## Each entry: { "position", "color", "intensity", "current_strength", "settled" }
+var _live_tint_sources: Array[Dictionary] = []
+
 
 func _ready() -> void:
+	# Unconditional early log — confirms this script's _ready() is running in the build (Issue #1578).
+	_log("[WaterBody] _ready() start — registering groups")
+	# Register in group so ImpactEffectsManager can locate this node by group query (Issue #1578).
+	add_to_group("water_body")
 	# Register in group so LastChanceEffectsManager can find this node reliably
 	# (script resource_path may be empty in exported builds).
 	add_to_group("precipitation_effects")
@@ -147,6 +162,9 @@ func _process(_delta: float) -> void:
 	# Clean up stale grenade references — skip when no grenades tracked.
 	if not _connected_grenades.is_empty():
 		_cleanup_grenades()
+
+	if not _blood_tint_sources.is_empty():
+		_update_blood_tint_shader_params()
 
 
 ## Push current body positions inside water to the shader as UV-space coordinates.
@@ -246,11 +264,27 @@ func _on_body_exited(body: Node2D) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
-	# Detect blood puddles entering the water zone and create diffusion effect
+	# Detect blood puddles entering the water zone and create diffusion effect (Issue #1578).
+	# This handles any blood decals that were placed in water before this WaterBody could
+	# intercept them (e.g. decals placed by an external system without water awareness).
 	if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
-		var blood_node: Node2D = area if area is Sprite2D else area.get_parent() as Node2D
-		if blood_node and blood_node is Sprite2D:
-			_spawn_blood_diffusion(blood_node.global_position, blood_node.modulate)
+		# Prefer the Sprite2D decal root; fall back to the area itself for position.
+		var blood_node: Node2D
+		if area.get_parent() is Sprite2D:
+			blood_node = area.get_parent() as Node2D
+		else:
+			blood_node = area
+
+		var diffusion_pos: Vector2 = blood_node.global_position
+		var diffusion_color: Color = blood_node.modulate if blood_node is Sprite2D else Color(0.5, 0.02, 0.02, 0.55)
+		_spawn_blood_diffusion(diffusion_pos, diffusion_color)
+
+		# Remove the decal from the scene — blood does not form puddles in water.
+		var decal_root: Node2D = blood_node if blood_node is Sprite2D else area.get_parent() as Node2D
+		if decal_root != null and is_instance_valid(decal_root) and decal_root.has_method("fade_out_quick"):
+			decal_root.fade_out_quick()
+		elif decal_root != null and is_instance_valid(decal_root):
+			decal_root.queue_free()
 
 
 ## Handle grenade entering water — splash on entry, connect for explosion.
@@ -279,6 +313,19 @@ func _on_casing_entered(casing: Node2D) -> void:
 		return
 	_processed_casings[casing_id] = true
 	_spawn_splash_small(casing.global_position)
+
+
+## Public: check if a world position is within the water area bounds (Issue #1578).
+## Called by ImpactEffectsManager._find_water_body_at() to avoid spawning blood decals in water.
+func is_point_in_water(world_pos: Vector2) -> bool:
+	return _is_point_in_water(world_pos)
+
+
+## Public: check if a world position is within an expanded water boundary (Issue #1578).
+## Margin absorbs puddles that land near the water edge so they don't get clipped.
+func is_point_near_water(world_pos: Vector2, margin: float) -> bool:
+	var local_pos: Vector2 = world_pos - global_position
+	return abs(local_pos.x) <= water_width * 0.5 + margin and abs(local_pos.y) <= water_height * 0.5 + margin
 
 
 ## Check if a world position is within the water area bounds.
@@ -348,6 +395,59 @@ func _spawn_splash_large(world_pos: Vector2) -> void:
 		splash.configure_large()
 
 
+## Public entry point for external systems (e.g. ImpactEffectsManager) to trigger
+## a blood diffusion effect at a world position inside this water body (Issue #1578).
+func spawn_blood_diffusion_at(world_pos: Vector2, blood_color: Color) -> void:
+	_spawn_blood_diffusion(world_pos, blood_color)
+
+
+## Public entry point: register permanent blood pigment tint after a cloud disperses.
+## absorbed_hits scales the tint strength (more hits = darker water). Default = 1.
+func register_blood_tint_at(world_pos: Vector2, blood_color: Color, absorbed_hits: int = 1) -> void:
+	_add_blood_tint_source(world_pos, blood_color, absorbed_hits)
+
+
+## Called each frame during cloud fade — grows tint gradually in sync with cloud dispersal.
+## fade_t goes 0→1 as the cloud fades out; we track live sources and promote to
+## settled (permanent) tint sources once the cloud is fully gone.
+func update_blood_tint_fade(world_pos: Vector2, blood_color: Color, absorbed_hits: int, fade_t: float) -> void:
+	var max_intensity: float = clampf(float(absorbed_hits) * 0.18, 0.18, 0.72)
+	var current_strength: float = max_intensity * fade_t
+
+	# Find or create a live tint entry for this position (within 5px tolerance).
+	var found: bool = false
+	for entry in _live_tint_sources:
+		if entry["position"].distance_to(world_pos) < 5.0:
+			entry["current_strength"] = current_strength
+			entry["color"] = blood_color
+			found = true
+			break
+	if not found:
+		_live_tint_sources.append({
+			"position": world_pos,
+			"color": blood_color,
+			"current_strength": current_strength,
+			"max_intensity": max_intensity,
+		})
+		while _live_tint_sources.size() > MAX_BLOOD_TINT_SHADER_SLOTS:
+			_live_tint_sources.pop_front()
+
+	# When cloud is fully dispersed (fade_t >= 1), promote to a permanent tint source.
+	if fade_t >= 1.0:
+		_add_blood_tint_source(world_pos, blood_color, absorbed_hits)
+		# Remove from live sources
+		_live_tint_sources = _live_tint_sources.filter(func(e): return e["position"].distance_to(world_pos) >= 5.0)
+
+	_update_live_tint_shader_params()
+
+
+## Returns the parent that should receive under-water diffusion nodes.
+func get_underwater_effect_parent() -> Node:
+	if _visual != null:
+		return _visual.get_parent()
+	return get_parent()
+
+
 ## Spawn blood diffusion effect in water at a position.
 func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	if _blood_diffusion_script == null:
@@ -358,6 +458,104 @@ func _spawn_blood_diffusion(world_pos: Vector2, blood_color: Color) -> void:
 	diffusion.global_position = world_pos
 	if diffusion.has_method("set_blood_color"):
 		diffusion.set_blood_color(blood_color)
+	# Tint water gradually as the cloud fades (Issue #1578 feedback).
+	var color_ref := blood_color
+	diffusion.set("on_tint_update", func(p: Vector2, hits: int, fade_t: float) -> void:
+		if is_instance_valid(self):
+			update_blood_tint_fade(p, color_ref, hits, fade_t)
+	)
+
+
+func _add_blood_tint_source(world_pos: Vector2, blood_color: Color, absorbed_hits: int = 1) -> void:
+	_blood_tint_sources.append({
+		"position": world_pos,
+		"color": Color(blood_color.r, blood_color.g, blood_color.b, 1.0),
+		"start_msec": Time.get_ticks_msec(),
+		"intensity": clampf(float(absorbed_hits) * 0.18, 0.18, 0.72),
+	})
+	while _blood_tint_sources.size() > MAX_BLOOD_TINT_SHADER_SLOTS:
+		_blood_tint_sources.pop_front()
+	_update_blood_tint_shader_params()
+
+
+func _update_blood_tint_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	var now_sec := Time.get_ticks_msec() / 1000.0
+	var uvs: Array[Vector2] = []
+	var strengths: Array[float] = []
+	var kept: Array[Dictionary] = []
+	for source in _blood_tint_sources:
+		var elapsed: float = now_sec - float(source.get("start_msec", 0)) / 1000.0
+		if elapsed >= BLOOD_TINT_DURATION:
+			continue
+		kept.append(source)
+		var world_pos: Vector2 = source.get("position", global_position)
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		var fade_t: float = clampf((elapsed - BLOOD_TINT_HOLD_DURATION) / maxf(BLOOD_TINT_DURATION - BLOOD_TINT_HOLD_DURATION, 0.001), 0.0, 1.0)
+		var base_strength: float = source.get("intensity", 0.36)
+		strengths.append(base_strength * (1.0 - fade_t * fade_t))
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+	_blood_tint_sources = kept
+	while uvs.size() < MAX_BLOOD_TINT_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
+		strengths.append(0.0)
+	mat.set_shader_parameter("blood_tint_count", mini(kept.size(), MAX_BLOOD_TINT_SHADER_SLOTS))
+	mat.set_shader_parameter("blood_tint_uvs", uvs)
+	mat.set_shader_parameter("blood_tint_strengths", strengths)
+
+
+## Update shader with live (still-fading) tint sources that are growing gradually.
+func _update_live_tint_shader_params() -> void:
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	if _live_tint_sources.is_empty():
+		return
+	# Merge live sources with settled sources for shader upload.
+	# Live sources fill any remaining shader slots after settled sources.
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	var now_sec := Time.get_ticks_msec() / 1000.0
+	var uvs: Array[Vector2] = []
+	var strengths: Array[float] = []
+	# Settled (permanent) sources first
+	for source in _blood_tint_sources:
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+		var elapsed: float = now_sec - float(source.get("start_msec", 0)) / 1000.0
+		if elapsed >= BLOOD_TINT_DURATION:
+			continue
+		var world_pos: Vector2 = source.get("position", global_position)
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		var fade_t: float = clampf((elapsed - BLOOD_TINT_HOLD_DURATION) / maxf(BLOOD_TINT_DURATION - BLOOD_TINT_HOLD_DURATION, 0.001), 0.0, 1.0)
+		strengths.append(source.get("intensity", 0.36) * (1.0 - fade_t * fade_t))
+	# Live sources fill remaining slots
+	for entry in _live_tint_sources:
+		if uvs.size() >= MAX_BLOOD_TINT_SHADER_SLOTS:
+			break
+		var world_pos: Vector2 = entry["position"]
+		var local: Vector2 = world_pos - global_position
+		uvs.append(Vector2(
+			(local.x + water_width * 0.5) / water_width,
+			(local.y + water_height * 0.5) / water_height
+		).clamp(Vector2.ZERO, Vector2.ONE))
+		strengths.append(entry.get("current_strength", 0.0))
+	var count: int = uvs.size()
+	while uvs.size() < MAX_BLOOD_TINT_SHADER_SLOTS:
+		uvs.append(Vector2(-1.0, -1.0))
+		strengths.append(0.0)
+	mat.set_shader_parameter("blood_tint_count", count)
+	mat.set_shader_parameter("blood_tint_uvs", uvs)
+	mat.set_shader_parameter("blood_tint_strengths", strengths)
 
 
 ## Pauses or resumes wave animation for time-stop effects (e.g. last chance).

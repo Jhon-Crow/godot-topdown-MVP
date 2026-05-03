@@ -14,6 +14,9 @@ class_name ExitZone
 ## Signal emitted when the player reaches the exit zone.
 signal player_reached_exit
 
+## Signal emitted when the exit zone becomes active (level is cleared).
+signal activated
+
 ## Whether the exit zone is currently active (all enemies eliminated).
 var _is_active: bool = false
 
@@ -200,6 +203,7 @@ func _set_visible(visible_state: bool) -> void:
 
 ## Activate the exit zone when all enemies are eliminated.
 func activate() -> void:
+	var was_active := _is_active
 	_is_active = true
 	monitoring = true
 	_set_visible(true)
@@ -218,6 +222,12 @@ func activate() -> void:
 			tween.tween_property(child, "modulate:a", 1.0, 0.5)
 
 	print("[ExitZone] Exit zone activated - waiting for player")
+
+	# Emit only on transition from inactive to active so MusicManager and
+	# similar listeners don't get duplicate notifications when activate() is
+	# called repeatedly (e.g., several call_deferred paths from level scripts).
+	if not was_active:
+		activated.emit()
 
 
 ## Deactivate the exit zone.

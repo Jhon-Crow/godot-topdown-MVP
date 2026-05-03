@@ -19,6 +19,7 @@ point_count = 2
 [node name="Bullet9mm" type="Area2D"]
 collision_layer = 16
 collision_mask = 39
+z_index = 2
 script = ExtResource("1_bullet")
 caliber_data = ExtResource("2_caliber")
 

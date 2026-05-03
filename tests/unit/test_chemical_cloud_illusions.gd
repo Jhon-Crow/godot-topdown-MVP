@@ -48,6 +48,15 @@ func test_min_copies_per_enemy_default_is_2() -> void:
 	cloud.free()
 
 
+func test_initial_copies_per_enemy_defaults_to_3_to_4() -> void:
+	var cloud := ChemicalCloud.new()
+	assert_eq(cloud.min_initial_copies_per_enemy, 3,
+		"First gas contact should immediately spawn at least 3 copies per enemy")
+	assert_eq(cloud.max_initial_copies_per_enemy, 4,
+		"First gas contact should immediately spawn at most 4 copies per enemy")
+	cloud.free()
+
+
 func test_copies_range_is_2_to_6() -> void:
 	# Verify that randi_range with min=2, max=6 produces values in [2, 6]
 	var cloud := ChemicalCloud.new()
@@ -64,33 +73,46 @@ func test_copies_range_is_2_to_6() -> void:
 	cloud.free()
 
 
+func test_initial_copies_range_is_3_to_4() -> void:
+	var cloud := ChemicalCloud.new()
+	var seen_values: Dictionary = {}
+	for i in range(200):
+		var copies: int = randi_range(
+			cloud.min_initial_copies_per_enemy,
+			cloud.max_initial_copies_per_enemy
+		)
+		assert_true(copies >= 3, "Initial copies should be >= 3, got %d" % copies)
+		assert_true(copies <= 4, "Initial copies should be <= 4, got %d" % copies)
+		seen_values[copies] = true
+	for v in range(3, 5):
+		assert_true(seen_values.has(v), "Should see value %d in initial copy range" % v)
+	cloud.free()
+
+
 # ============================================================================
 # Tests for random original position (Issue #1361)
 # ============================================================================
 
 
-func test_original_enemy_not_always_at_center() -> void:
+func test_original_enemy_prefers_non_center_offsets_before_fallback() -> void:
 	# Simulate the position selection logic from _spawn_illusions_for_nearby_enemies.
-	# The original enemy should not always get index 0 (center).
+	# The original enemy should use a non-center candidate whenever one is available.
 	var center_count: int = 0
 	var total_runs: int = 200
 
 	for _i in range(total_runs):
 		var copies: int = randi_range(2, 6)
 		var total_positions: int = copies + 1
-		var original_index: int = randi_range(0, total_positions - 1)
+		var candidate_indices: Array[int] = []
+		for i in range(1, total_positions):
+			candidate_indices.append(i)
+		candidate_indices.shuffle()
+		var original_index: int = candidate_indices[0]
 		if original_index == 0:
 			center_count += 1
 
-	# If always center, center_count would be 200.
-	# With random placement, center_count should be roughly total_runs / avg_total_positions.
-	# avg copies ~4, avg total_positions ~5, so expected ~200/5 = 40.
-	# Allow generous margin: should be less than 60% of runs at center.
-	assert_true(center_count < total_runs * 0.6,
-		"Original enemy should not always be at center. Center count: %d/%d" % [center_count, total_runs])
-	# Should sometimes be at center (not never)
-	assert_true(center_count > 0,
-		"Original enemy should sometimes be at center. Center count: %d/%d" % [center_count, total_runs])
+	assert_eq(center_count, 0,
+		"Original enemy should reserve center for fallback only. Center count: %d/%d" % [center_count, total_runs])
 
 
 func test_position_offsets_cover_full_circle() -> void:
@@ -246,3 +268,227 @@ func test_initial_batch_plus_progressive_can_reach_10() -> void:
 		])
 
 	cloud.free()
+
+
+# ============================================================================
+# Issue #1632: Wall-safe random position for the original enemy
+# ============================================================================
+
+
+## Build a StaticBody2D with a rectangle collider on the obstacle layer (layer 3).
+func _make_wall(pos: Vector2, extents: Vector2) -> StaticBody2D:
+	var wall := StaticBody2D.new()
+	wall.collision_layer = 4  # layer 3 (bit 2) — obstacles
+	wall.collision_mask = 0
+	wall.global_position = pos
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = extents
+	shape.shape = rect
+	wall.add_child(shape)
+	return wall
+
+
+## Add node to the scene tree and wait one physics frame so collision shapes register.
+func _register_in_physics(node: Node) -> void:
+	add_child_autofree(node)
+	await wait_frames(2)
+
+
+func test_wall_validation_rejects_position_inside_wall() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	var wall := _make_wall(Vector2(200, 0), Vector2(100, 100))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	# Target inside the wall — must be rejected.
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(200, 0), enemy
+	)
+	assert_false(safe, "Position inside wall collider must be rejected")
+
+
+func test_wall_validation_rejects_path_crossing_wall() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	# Wall sits between (0,0) and (400,0).
+	var wall := _make_wall(Vector2(200, 0), Vector2(50, 200))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	# Target is in open space but the path crosses the wall — must be rejected.
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(400, 0), enemy
+	)
+	assert_false(safe, "Path crossing wall must be rejected")
+
+
+func test_wall_validation_accepts_open_space_position() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	# Wall placed far off to the side so it does not interfere.
+	var wall := _make_wall(Vector2(1000, 1000), Vector2(50, 50))
+	await _register_in_physics(wall)
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2(0, 0)
+
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(100, 0), enemy
+	)
+	assert_true(safe, "Open-space position with clear path must be accepted")
+
+
+func test_wall_validation_returns_true_when_world_unavailable() -> void:
+	# ChemicalCloud not added to the tree has no World2D — validation must not block.
+	var cloud := ChemicalCloud.new()
+	var enemy := MockEnemy.new()
+	enemy.global_position = Vector2(0, 0)
+	var safe := cloud._is_position_safe_from_walls(
+		enemy.global_position, Vector2(100, 0), enemy
+	)
+	assert_true(safe, "Validation must be permissive when no physics space is available")
+	cloud.free()
+	enemy.free()
+
+
+func test_candidate_indices_exclude_center_before_fallback() -> void:
+	# The validation loop must iterate over non-center offsets (indices 1..N-1)
+	# before falling back to index 0. Center stays reserved as the no-move fallback
+	# so the random-position behavior from Issue #1361 is preserved whenever any
+	# random offset passes the wall check.
+	var total_positions: int = 5
+	var candidate_indices: Array[int] = []
+	for i in range(1, total_positions):
+		candidate_indices.append(i)
+	assert_eq(candidate_indices.size(), total_positions - 1,
+		"Should iterate over %d non-center candidates" % (total_positions - 1))
+	assert_false(candidate_indices.has(0),
+		"Index 0 (center) must be excluded from the shuffled candidate list")
+
+
+func test_alive_enemies_sorted_by_cloud_distance_prioritizes_local_illusions() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2(1000, 1000)
+
+	var far_enemy := MockEnemy.new()
+	far_enemy.global_position = Vector2(300, 2670)
+	far_enemy.add_to_group("enemies")
+	add_child_autofree(far_enemy)
+
+	var near_enemy := MockEnemy.new()
+	near_enemy.global_position = Vector2(1100, 1020)
+	near_enemy.add_to_group("enemies")
+	add_child_autofree(near_enemy)
+
+	var dead_enemy := MockEnemy.new()
+	dead_enemy.global_position = Vector2(1005, 1005)
+	dead_enemy._is_alive_value = false
+	dead_enemy.add_to_group("enemies")
+	add_child_autofree(dead_enemy)
+
+	var sorted := cloud._get_alive_enemies_sorted_by_cloud_distance()
+	assert_eq(sorted.size(), 2, "Dead enemies must be excluded from the spawn list")
+	assert_eq(sorted[0], near_enemy,
+		"Nearest alive enemy must be processed first so the per-cloud cap is spent locally")
+	assert_eq(sorted[1], far_enemy,
+		"Farther alive enemy should be processed after local enemies")
+
+
+func test_effective_cloud_radius_matches_grow_in_visual_size() -> void:
+	var cloud := ChemicalCloud.new()
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+
+	cloud._spawn_elapsed = 0.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 0.0, 0.01,
+		"At spawn time the gameplay trigger radius should match the zero-scale gas visual")
+
+	cloud._spawn_elapsed = 3.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 300.0, 0.01,
+		"Halfway through grow-in the trigger radius should be half of the final radius")
+
+	cloud._spawn_elapsed = 9.0
+	assert_almost_eq(cloud._get_effective_cloud_radius(), 600.0, 0.01,
+		"After grow-in completes the trigger radius should clamp to the full cloud radius")
+	cloud.free()
+
+
+func test_player_range_uses_effective_grow_in_radius() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2.ZERO
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+	cloud._spawn_elapsed = 1.0
+
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	player.global_position = Vector2(300, 0)
+	cloud._player = player
+
+	assert_false(cloud._is_player_in_range(),
+		"Player outside the currently visible grow-in radius should not trigger illusions")
+
+	cloud._spawn_elapsed = 6.0
+	assert_true(cloud._is_player_in_range(),
+		"Player inside the fully grown cloud radius should trigger illusions")
+
+
+func test_initial_illusion_batch_stays_armed_until_first_player_contact() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.global_position = Vector2.ZERO
+	cloud.cloud_radius = 600.0
+	cloud.grow_in_duration = 6.0
+	cloud._spawn_elapsed = 1.0
+
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	player.global_position = Vector2(300, 0)
+	cloud._player = player
+
+	assert_false(cloud._is_player_in_range(),
+		"Player starts outside the visible grow-in radius")
+	assert_false(cloud._illusions_spawned,
+		"Initial illusion batch should start armed")
+
+	# Reproduce the owner log path: early cloud ticks see the player outside the
+	# visible gas. This must not consume the first-contact burst.
+	cloud._physics_process(0.0)
+
+	assert_false(cloud._illusions_spawned,
+		"Missing the cloud at spawn time must not consume the initial burst")
+
+	cloud._spawn_elapsed = 6.0
+	assert_true(cloud._is_player_in_range(),
+		"Player later enters the visible gas as grow-in reaches them")
+
+	cloud._physics_process(0.0)
+
+	assert_true(cloud._illusions_spawned,
+		"Initial batch should fire on first actual contact with visible gas")
+
+
+func test_cluster_spawn_skips_when_remaining_budget_is_too_small() -> void:
+	var cloud := ChemicalCloud.new()
+	add_child_autofree(cloud)
+	cloud.min_initial_copies_per_enemy = 4
+	cloud.max_initial_copies_per_enemy = 4
+
+	var enemy := MockEnemy.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var spawned := cloud._spawn_illusion_cluster_for_enemy(enemy, 3)
+	assert_eq(spawned, 0,
+		"Initial spawning should not spend the last few slots on a visibly too-small partial cluster")

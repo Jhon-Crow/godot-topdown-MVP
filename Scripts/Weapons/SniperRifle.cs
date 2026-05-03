@@ -161,6 +161,12 @@ public partial class SniperRifle : BaseWeapon
     private bool _aimAngleInitialized = false;
 
     /// <summary>
+    /// Base turn speed used when weapon data does not provide sensitivity.
+    /// Keeps laser aim slightly inertial instead of snapping instantly to the cursor.
+    /// </summary>
+    private const float DefaultLaserAimTurnSpeed = 7.5f;
+
+    /// <summary>
     /// Current recoil offset angle in radians.
     /// Heavy sniper recoil.
     /// </summary>
@@ -295,12 +301,31 @@ public partial class SniperRifle : BaseWeapon
 
     public override void _ExitTree()
     {
+        LogToFile("[trace] SniperRifle._ExitTree begin");
         // Clean up scope overlay when weapon is removed from scene tree
         if (_isScopeActive)
         {
-            DeactivateScope();
+            bool isSceneReloading = IsSceneReloadInProgress();
+            LogToFile($"[trace] SniperRifle._ExitTree deactivating scope (isSceneReloading={isSceneReloading})");
+            DeactivateScope(queueFreeOverlay: !isSceneReloading, emitSignal: !isSceneReloading);
         }
+        LogToFile("[trace] SniperRifle._ExitTree end");
         base._ExitTree();
+    }
+
+    /// <summary>
+    /// Log a message via the FileLogger autoload (Issue #1927).
+    /// Used to trace teardown order during scene reload.
+    /// </summary>
+    private void LogToFile(string message)
+    {
+        var fullMessage = $"[SniperRifle] {message}";
+        GD.Print(fullMessage);
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        {
+            fileLogger.Call("log_info", fullMessage);
+        }
     }
 
     public override void _Process(double delta)
@@ -541,8 +566,9 @@ public partial class SniperRifle : BaseWeapon
         {
             if (toMouse.LengthSquared() > 0.001f)
             {
-                direction = toMouse.Normalized();
-                _currentAimAngle = targetAngle;
+                float delta = (float)GetProcessDeltaTime();
+                _currentAimAngle = Mathf.LerpAngle(_currentAimAngle, targetAngle, Mathf.Clamp(DefaultLaserAimTurnSpeed * delta, 0.0f, 1.0f));
+                direction = new Vector2(Mathf.Cos(_currentAimAngle), Mathf.Sin(_currentAimAngle));
             }
             else
             {
@@ -2497,6 +2523,11 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     public void DeactivateScope()
     {
+        DeactivateScope(queueFreeOverlay: true, emitSignal: true);
+    }
+
+    private void DeactivateScope(bool queueFreeOverlay, bool emitSignal)
+    {
         if (!_isScopeActive)
         {
             return;
@@ -2505,16 +2536,21 @@ public partial class SniperRifle : BaseWeapon
         _isScopeActive = false;
 
         // Restore original camera offset
-        if (_playerCamera != null)
+        if (_playerCamera != null && IsInstanceValid(_playerCamera))
         {
             _playerCamera.Offset = _originalCameraOffset;
         }
 
         // Remove scope overlay
-        RemoveScopeOverlay();
+        RemoveScopeOverlay(queueFreeOverlay);
 
-        EmitSignal(SignalName.ScopeStateChanged, false);
-        GD.Print("[SniperRifle] Scope deactivated.");
+        if (emitSignal)
+        {
+            EmitSignal(SignalName.ScopeStateChanged, false);
+        }
+        GD.Print(queueFreeOverlay
+            ? "[SniperRifle] Scope deactivated."
+            : "[SniperRifle] Scope deactivated during scene reload; overlay left to scene teardown.");
     }
 
     /// <summary>
@@ -2862,14 +2898,26 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Removes the scope overlay from the scene.
     /// </summary>
-    private void RemoveScopeOverlay()
+    private void RemoveScopeOverlay(bool queueFreeOverlay = true)
     {
         if (_scopeOverlay != null && IsInstanceValid(_scopeOverlay))
         {
-            _scopeOverlay.QueueFree();
-            _scopeOverlay = null;
-            _scopeCrosshair = null;
-            _scopeBackground = null;
+            if (queueFreeOverlay)
+            {
+                _scopeOverlay.QueueFree();
+            }
         }
+
+        _scopeOverlay = null;
+        _scopeCrosshair = null;
+        _scopeBackground = null;
+    }
+
+    private bool IsSceneReloadInProgress()
+    {
+        Node? gameManager = GetNodeOrNull("/root/GameManager");
+        return gameManager != null
+            && gameManager.HasMethod("is_reloading_scene")
+            && gameManager.Call("is_reloading_scene").AsBool();
     }
 }

@@ -104,6 +104,12 @@ public partial class AssaultRifle : BaseWeapon
     private bool _aimAngleInitialized = false;
 
     /// <summary>
+    /// Base turn speed used when weapon data does not provide sensitivity.
+    /// Keeps laser aim slightly inertial instead of snapping instantly to the cursor.
+    /// </summary>
+    private const float DefaultLaserAimTurnSpeed = 7.5f;
+
+    /// <summary>
     /// Whether the weapon is currently firing a burst.
     /// </summary>
     private bool _isBurstFiring;
@@ -324,8 +330,9 @@ public partial class AssaultRifle : BaseWeapon
             // Automatic mode: direct aim at cursor (instant response)
             if (toMouse.LengthSquared() > 0.001f)
             {
-                direction = toMouse.Normalized();
-                _currentAimAngle = targetAngle;
+                float delta = (float)GetProcessDeltaTime();
+                _currentAimAngle = Mathf.LerpAngle(_currentAimAngle, targetAngle, Mathf.Clamp(DefaultLaserAimTurnSpeed * delta, 0.0f, 1.0f));
+                direction = new Vector2(Mathf.Cos(_currentAimAngle), Mathf.Sin(_currentAimAngle));
             }
             else
             {

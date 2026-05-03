@@ -416,7 +416,7 @@ func _process(delta: float) -> void:
 ## Resets all statistics to initial values.
 ## Issue #1334 Round 9: player_alive is NOT reset here — it stays false until
 ## set_player() is called with a valid new player. Previously, _reset_stats() set
-## player_alive = true BEFORE reload_current_scene() completed (reload is deferred).
+## player_alive = true BEFORE the scene restart completed (reload is deferred).
 ## This created a window where enemies saw player_alive = true but the old player
 ## node was in a transitional/freed state, causing native segfaults. Now player_alive
 ## remains false throughout the reload transition and is only set true when the new
@@ -528,6 +528,11 @@ func on_player_death() -> void:
 var _reloading: bool = false
 
 
+## Exposes the reload guard for teardown-sensitive nodes.
+func is_reloading_scene() -> bool:
+	return _reloading
+
+
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
@@ -537,14 +542,46 @@ func restart_scene() -> void:
 		_log_to_file("restart_scene() — already reloading, skipping")
 		return
 	_log_to_file("restart_scene() — starting scene reload")
+	# Issue #1927: arm the file logger to flush every write for the next few
+	# seconds so a hard crash mid-reload does not lose the last log lines that
+	# point to the actual crash site.
+	var fl := get_node_or_null("/root/FileLogger")
+	if fl != null and fl.has_method("force_immediate_flush_window"):
+		fl.force_immediate_flush_window()
 	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
-	get_tree().reload_current_scene()
-	# Issue #1334: Reset the reload guard after the current frame ends.
-	# call_deferred runs at the end of the frame, after reload_current_scene()
-	# has processed.  GameManager is an autoload so it persists across reloads.
-	call_deferred("_reset_reloading")
+	var current_scene := get_tree().current_scene
+	var scene_path := ""
+	if current_scene:
+		scene_path = current_scene.scene_file_path
+	_log_to_file("restart_scene() — scheduling deferred scene reload: %s" % (scene_path if scene_path != "" else "<unknown>"))
+	call_deferred("_reload_current_scene_by_path", scene_path)
+
+
+## Issue #1927: Use the same explicit scene-change path that startup navigation
+## already survives, and defer it out of the UI button signal stack before the
+## outgoing level begins native/C# teardown.
+func _reload_current_scene_by_path(scene_path: String) -> void:
+	if scene_path == "":
+		_log_to_file("restart_scene() — cannot reload because current scene path is empty")
+		call_deferred("_reset_reloading")
+		return
+	_log_to_file("restart_scene() — deferred change_scene_to_file begin: %s" % scene_path)
+	var error := get_tree().change_scene_to_file(scene_path)
+	if error != OK:
+		_log_to_file("restart_scene() — change_scene_to_file failed with error: %s" % error)
+		call_deferred("_reset_reloading")
+	else:
+		_log_to_file("restart_scene() — change_scene_to_file returned OK")
+		# Issue #1334: Reset the reload guard on the next frame, after
+		# change_scene_to_file() has completed its documented end-of-frame
+		# old-scene deletion and new-scene instantiation window. GameManager is
+		# an autoload so it persists across reloads.
+		var connect_error := get_tree().process_frame.connect(_reset_reloading, CONNECT_ONE_SHOT)
+		if connect_error != OK:
+			_log_to_file("restart_scene() — failed to schedule reload guard reset: %s" % connect_error)
+			call_deferred("_reset_reloading")
 
 
 ## Issue #1334: Deferred callback to clear the reload guard.

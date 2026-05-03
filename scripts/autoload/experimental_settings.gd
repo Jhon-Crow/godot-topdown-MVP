@@ -156,6 +156,7 @@ var roguelike_unlocked: bool = false
 
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
+const SETTINGS_SCHEMA_VERSION := 2
 
 
 func _ready() -> void:
@@ -538,6 +539,7 @@ func is_roguelike_unlocked() -> bool:
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
+	config.set_value("experimental", "settings_schema_version", SETTINGS_SCHEMA_VERSION)
 	config.set_value("experimental", "fov_enabled", fov_enabled)
 	config.set_value("experimental", "complex_grenade_throwing", complex_grenade_throwing)
 	config.set_value("experimental", "ai_prediction_enabled", ai_prediction_enabled)
@@ -574,6 +576,7 @@ func _load_settings() -> void:
 	var config := ConfigFile.new()
 	var error := config.load(SETTINGS_PATH)
 	if error == OK:
+		var saved_schema_version: int = int(config.get_value("experimental", "settings_schema_version", 1))
 		fov_enabled = config.get_value("experimental", "fov_enabled", true)
 		complex_grenade_throwing = config.get_value("experimental", "complex_grenade_throwing", false)
 		ai_prediction_enabled = config.get_value("experimental", "ai_prediction_enabled", false)
@@ -582,6 +585,8 @@ func _load_settings() -> void:
 		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 		replay_enabled = config.get_value("experimental", "replay_enabled", false)
 		logging_enabled = config.get_value("experimental", "logging_enabled", false)
+		if saved_schema_version < SETTINGS_SCHEMA_VERSION:
+			logging_enabled = false
 		enemy_flashlight_blinding_enabled = config.get_value("experimental", "enemy_flashlight_blinding_enabled", false)
 		fps_counter_enabled = config.get_value("experimental", "fps_counter_enabled", false)
 		fps_drop_logging_enabled = config.get_value("experimental", "fps_drop_logging_enabled", false)
@@ -600,6 +605,8 @@ func _load_settings() -> void:
 		cover_infinite_rays_enabled = config.get_value("experimental", "cover_infinite_rays_enabled", true)
 		cover_sector_rays_enabled = config.get_value("experimental", "cover_sector_rays_enabled", true)
 		roguelike_unlocked = config.get_value("experimental", "roguelike_unlocked", false)
+		if saved_schema_version < SETTINGS_SCHEMA_VERSION:
+			_save_settings()
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true

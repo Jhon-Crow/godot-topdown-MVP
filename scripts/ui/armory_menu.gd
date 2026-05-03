@@ -25,6 +25,10 @@ const GRENADE_CASE_ICON_PATH: String = "res://assets/sprites/weapons/grenade_cas
 ## Path to item case icon used for locked/closed active items.
 const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon.png"
 
+const LASER_CURSOR_PATH: String = "res://assets/sprites/ui/red_dot_cursor.svg"
+const LASER_CURSOR_HOVER_PATH: String = "res://assets/sprites/ui/red_dot_cursor_hover.svg"
+const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(32, 32)
+
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, description
 ## Note: 'unlocked' field is now read from GameManager.unlocked_weapons
@@ -195,6 +199,42 @@ var _lmb_hold_tracking: Dictionary = {}
 
 ## Duration (in seconds) to hold LMB to unlock an item.
 const UNLOCK_HOLD_DURATION: float = 1.5
+
+## Number of tiny glowing UI sparks emitted when a card opens.
+const UNLOCK_SPARK_COUNT: int = 52
+const UNLOCK_SPARK_RADIAL_COUNT: int = 18
+
+## Pixel size range for the visible orange spark core.
+const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0
+const UNLOCK_SPARK_CORE_WIDTH_MAX: float = 1.0
+const UNLOCK_SPARK_CORE_HEIGHT_MIN: float = 1.0
+const UNLOCK_SPARK_CORE_HEIGHT_MAX: float = 3.0
+
+## Soft halo multiplier around each micro spark core.
+const UNLOCK_SPARK_GLOW_SCALE_MIN: float = 4.0
+const UNLOCK_SPARK_GLOW_SCALE_MAX: float = 7.0
+
+## Distance range for sparks flying out of the opened unlock card.
+const UNLOCK_SPARK_DISTANCE_MIN: float = 70.0
+const UNLOCK_SPARK_DISTANCE_MAX: float = 140.0
+
+## Vertical arc range for unlock sparks before gravity pulls them downward.
+const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 24.0
+const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 58.0
+
+## Gravity-like downward fall range for unlock sparks.
+const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 86.0
+const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 165.0
+
+## Longer lifetime lets sparks linger, fall slowly, and shrink out.
+const UNLOCK_SPARK_DURATION_MIN: float = 1.45
+const UNLOCK_SPARK_DURATION_MAX: float = 2.10
+const UNLOCK_SPARK_CLEANUP_PADDING: float = 0.18
+
+## Fan spread for sparks: upward hemisphere from upper-left to upper-right.
+## In Godot screen coords up=-Y so center is -PI/2; fan half-width ~80°.
+const UNLOCK_SPARK_ANGLE_CENTER: float = -PI / 2.0
+const UNLOCK_SPARK_ANGLE_HALF_SPREAD: float = 1.40
 
 ## Timer for processing LMB hold progress.
 var _unlock_timer: Timer = null
@@ -1044,11 +1084,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked, condition_met))
-	if is_unlocked:
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	else:
-		# Locked items show pointing hand to indicate they can be unlocked
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_connect_laser_hover_cursor(slot)
 
 	# Apply style: gold if condition is met and item is locked, default otherwise
 	if not is_unlocked and condition_met:
@@ -1148,7 +1184,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked, condition_met))
-	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_connect_laser_hover_cursor(slot)
 
 	# Apply style: gold if condition is met and item is locked, default otherwise
 	if not is_unlocked and condition_met:
@@ -1157,6 +1193,19 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		_apply_default_style(slot)
 
 	return slot
+
+
+func _connect_laser_hover_cursor(control: Control) -> void:
+	control.mouse_entered.connect(_set_laser_hover_cursor)
+	control.mouse_exited.connect(_set_laser_default_cursor)
+
+
+func _set_laser_hover_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_HOVER_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
+
+
+func _set_laser_default_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
 
 
 ## Handle click on an active item slot.
@@ -2160,6 +2209,114 @@ func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
 	return glow
 
 
+## Emits tiny glowing UI sparks from an unlock card at the reveal moment.
+func _emit_unlock_sparks(slot: PanelContainer) -> void:
+	if not is_instance_valid(slot):
+		return
+
+	var spark_layer := Control.new()
+	spark_layer.name = "UnlockSparkLayer"
+	spark_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	spark_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spark_layer.clip_contents = false
+	add_child(spark_layer)
+
+	var slot_center := spark_layer.get_global_transform().affine_inverse() * slot.get_global_rect().get_center()
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+
+	for i in range(UNLOCK_SPARK_COUNT):
+		var spark := Control.new()
+		spark.name = "UnlockSpark"
+		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark_layer.add_child(spark)
+
+		# Most sparks keep the diagonal up-left/up-right burst, while a smaller
+		# radial ember set prevents the effect from reading as a strict upward jet.
+		var angle: float
+		if i < UNLOCK_SPARK_RADIAL_COUNT:
+			angle = TAU * float(i) / float(UNLOCK_SPARK_RADIAL_COUNT) + rng.randf_range(-0.16, 0.16)
+		else:
+			var fan_index := i - UNLOCK_SPARK_RADIAL_COUNT
+			var fan_count := UNLOCK_SPARK_COUNT - UNLOCK_SPARK_RADIAL_COUNT
+			var t := float(fan_index) / maxf(float(fan_count - 1), 1.0)
+			angle = UNLOCK_SPARK_ANGLE_CENTER + (t * 2.0 - 1.0) * UNLOCK_SPARK_ANGLE_HALF_SPREAD \
+				+ rng.randf_range(-0.18, 0.18)
+
+		# Doom-2016-style menu embers read as tiny orange pixels with soft heat glow,
+		# not as large UI rectangles.
+		var core_width := rng.randf_range(UNLOCK_SPARK_CORE_WIDTH_MIN, UNLOCK_SPARK_CORE_WIDTH_MAX)
+		var core_height := rng.randf_range(UNLOCK_SPARK_CORE_HEIGHT_MIN, UNLOCK_SPARK_CORE_HEIGHT_MAX)
+		var core_size := Vector2(core_width, core_height)
+		var max_core_axis: float = maxf(core_size.x, core_size.y)
+		var glow_scale: float = rng.randf_range(UNLOCK_SPARK_GLOW_SCALE_MIN, UNLOCK_SPARK_GLOW_SCALE_MAX)
+		var halo_diameter: float = max_core_axis * glow_scale
+		var halo_size := Vector2(halo_diameter, halo_diameter)
+		spark.custom_minimum_size = halo_size
+		spark.size = halo_size
+		spark.rotation = angle + PI / 2.0
+		spark.pivot_offset = spark.size * 0.5
+		spark.position = slot_center - spark.pivot_offset
+
+		var outer_glow := ColorRect.new()
+		outer_glow.name = "UnlockSparkGlowOuter"
+		outer_glow.size = halo_size
+		outer_glow.position = Vector2.ZERO
+		outer_glow.color = Color(1.0, rng.randf_range(0.32, 0.46), 0.02, 0.10)
+		outer_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(outer_glow)
+
+		var inner_glow_size := halo_size * rng.randf_range(0.42, 0.60)
+		var inner_glow := ColorRect.new()
+		inner_glow.name = "UnlockSparkGlowInner"
+		inner_glow.size = inner_glow_size
+		inner_glow.position = (halo_size - inner_glow_size) * 0.5
+		inner_glow.color = Color(1.0, rng.randf_range(0.55, 0.72), 0.05, 0.24)
+		inner_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(inner_glow)
+
+		var core := ColorRect.new()
+		core.name = "UnlockSparkCore"
+		core.size = core_size
+		core.position = (halo_size - core_size) * 0.5
+		core.color = Color(1.0, rng.randf_range(0.42, 0.62), rng.randf_range(0.02, 0.08), 1.0)
+		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(core)
+
+		var distance := rng.randf_range(UNLOCK_SPARK_DISTANCE_MIN, UNLOCK_SPARK_DISTANCE_MAX)
+		var launch_offset := Vector2.RIGHT.rotated(angle) * distance
+		var arc_peak := slot_center + launch_offset * 0.45 \
+			- Vector2(0.0, rng.randf_range(UNLOCK_SPARK_ARC_HEIGHT_MIN, UNLOCK_SPARK_ARC_HEIGHT_MAX)) \
+			- spark.pivot_offset
+		var target_position := slot_center + launch_offset \
+			+ Vector2(0.0, rng.randf_range(UNLOCK_SPARK_GRAVITY_FALL_MIN, UNLOCK_SPARK_GRAVITY_FALL_MAX)) \
+			- spark.pivot_offset
+		var target_scale := Vector2(rng.randf_range(0.08, 0.22), rng.randf_range(0.08, 0.22))
+		var duration := rng.randf_range(UNLOCK_SPARK_DURATION_MIN, UNLOCK_SPARK_DURATION_MAX)
+		var movement_tween := create_tween()
+		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.30) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		movement_tween.tween_property(spark, "position", target_position, duration * 0.70) \
+			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+		var spark_tween := create_tween()
+		spark_tween.set_parallel(true)
+		spark_tween.tween_property(spark, "scale", target_scale, duration) \
+			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		spark_tween.tween_property(outer_glow, "color:a", 0.0, duration * 0.92) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.05)
+		spark_tween.tween_property(inner_glow, "color:a", 0.0, duration * 0.88) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.10)
+		spark_tween.tween_property(core, "color:a", 0.0, duration * 0.82) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.15)
+
+	var cleanup_timer := get_tree().create_timer(UNLOCK_SPARK_DURATION_MAX + UNLOCK_SPARK_CLEANUP_PADDING)
+	cleanup_timer.timeout.connect(func():
+		if is_instance_valid(spark_layer):
+			spark_layer.queue_free()
+	)
+
+
 ## Updates the progress overlay visual to show current unlock progress.
 func _update_progress_overlay(slot: PanelContainer, progress: float) -> void:
 	var overlay: ColorRect = _slot_progress_overlays.get(slot)
@@ -2210,6 +2367,7 @@ func _play_unlock_reveal_animation(slot: PanelContainer, callback: Callable) -> 
 
 	# Create glow overlay for flash effect
 	var glow := _create_glow_overlay(slot)
+	_emit_unlock_sparks(slot)
 
 	# Get the icon container for scale animation
 	var vbox: VBoxContainer = slot.get_child(0) as VBoxContainer

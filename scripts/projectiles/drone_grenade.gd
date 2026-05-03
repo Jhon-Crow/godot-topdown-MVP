@@ -52,8 +52,16 @@ var _drone_launched: bool = false
 ## Whether the drone is alive (not yet exploded).
 var _drone_alive: bool = false
 
-## Reference to the Camera2D that follows the player (reparented to drone while active).
+## Reference to the Camera2D that follows the player.
+## Issue #1911: the camera is NOT reparented — reparenting a Camera2D in Godot 4
+## resets its internal position_smoothing state, producing a hard cut that the
+## user perceives as "the level restarting". Instead we keep the camera a child
+## of the player and, while the drone owns the view, write its LOCAL `position`
+## each physics frame so its `global_position` equals the drone's.
 var _player_camera: Camera2D = null
+
+## True while the drone is driving the camera's position (pilot/throw view).
+var _camera_owned_by_drone: bool = false
 
 ## Reference to the player node (to return control after explosion).
 var _player: Node2D = null
@@ -214,30 +222,47 @@ func _find_player_and_camera() -> void:
 	])
 
 
-## Reparent the player's camera to follow the drone.
+## Start having the drone drive the player's Camera2D.
+## Issue #1911: do NOT reparent the Camera2D. Reparenting (or toggling `top_level`)
+## resets Camera2D's internal position_smoothing state in Godot 4, producing a hard
+## cut the user perceives as a level reset. Instead we leave the camera a child of
+## the player and, each physics frame, set its LOCAL `position` so that
+## `global_position = player.global_position + camera.position = drone.global_position`.
+## The hierarchy and top_level flag never change, so position_smoothing runs
+## uninterrupted and smoothly pans the viewport from player area to drone area.
 func _attach_camera_to_drone() -> void:
 	if _player_camera == null:
 		return
-	var old_parent := _player_camera.get_parent()
-	if old_parent:
-		old_parent.remove_child(_player_camera)
-	add_child(_player_camera)
-	_player_camera.global_position = global_position
+	_camera_owned_by_drone = true
 	_player_camera.make_current()
+	_sync_camera_to_drone()
 	FileLogger.info("[DroneGrenade] Camera attached to drone")
 
 
-## Return the camera to the player.
+## Return the camera to the player (Issue #1911).
+## Zeroing the camera's local position re-centers it on the player without touching
+## the node hierarchy. position_smoothing then pans the viewport back smoothly
+## from the drone's last location to the player.
 func _detach_camera_from_drone() -> void:
 	if _player_camera == null or not is_instance_valid(_player_camera):
 		return
-	if _player_camera.get_parent() == self:
-		remove_child(_player_camera)
+	_camera_owned_by_drone = false
 	if _player != null and is_instance_valid(_player):
-		_player.add_child(_player_camera)
-		_player_camera.global_position = _player.global_position
+		_player_camera.position = Vector2.ZERO
 		_player_camera.make_current()
 	FileLogger.info("[DroneGrenade] Camera returned to player")
+
+
+## Write the camera's local offset so its global_position equals the drone's.
+## Called each physics frame while the drone owns the view (Issue #1911).
+func _sync_camera_to_drone() -> void:
+	if not _camera_owned_by_drone:
+		return
+	if _player_camera == null or not is_instance_valid(_player_camera):
+		return
+	if _player == null or not is_instance_valid(_player):
+		return
+	_player_camera.position = global_position - _player.global_position
 
 
 ## Disable player movement + shooting while drone is active.
@@ -282,6 +307,11 @@ func _physics_process(delta: float) -> void:
 
 	if not _drone_launched or not _drone_alive:
 		return
+
+	# Issue #1911: keep the camera's global_position centered on the drone
+	# while the drone owns the view. This drives position_smoothing's target
+	# without ever reparenting the camera, so smoothing state is preserved.
+	_sync_camera_to_drone()
 
 	# Issue #1667: tick down enemy-targeting delay.
 	if not _enemy_targeting_active:

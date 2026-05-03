@@ -21,6 +21,8 @@ BACK,Back,Назад
 SOUND_SETTINGS_TITLE,Sound Settings,Настройки звука
 EFFECTS_VOLUME,Effects Volume,Громкость эффектов
 MUSIC_VOLUME,Music Volume,Громкость музыки
+MUSIC_MUFFLE,Music Muffle,Глушение музыки
+ENABLED,Enabled,Включено
 GAMEPLAY_SETTINGS_TITLE,Gameplay Settings,Настройки геймплея
 BLOOD_AMOUNT,Blood Amount,Количество крови
 WEAPON_HINTS,Weapon Hints,Подсказки оружия
