@@ -197,27 +197,32 @@ var _lmb_hold_tracking: Dictionary = {}
 const UNLOCK_HOLD_DURATION: float = 1.5
 
 ## Number of large glowing UI sparks emitted when a card opens.
-const UNLOCK_SPARK_COUNT: int = 32
+const UNLOCK_SPARK_COUNT: int = 36
 
-## Pixel size range for the large unlock sparks.
-const UNLOCK_SPARK_SIZE_MIN: float = 5.0
-const UNLOCK_SPARK_SIZE_MAX: float = 11.0
+## Pixel size range for the large unlock sparks (thin streak shape).
+const UNLOCK_SPARK_SIZE_MIN: float = 4.0
+const UNLOCK_SPARK_SIZE_MAX: float = 8.0
 
 ## Distance range for sparks flying out of the opened unlock card.
-const UNLOCK_SPARK_DISTANCE_MIN: float = 58.0
-const UNLOCK_SPARK_DISTANCE_MAX: float = 126.0
+const UNLOCK_SPARK_DISTANCE_MIN: float = 70.0
+const UNLOCK_SPARK_DISTANCE_MAX: float = 140.0
 
 ## Vertical arc range for unlock sparks before gravity pulls them downward.
-const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 34.0
-const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 78.0
+const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 40.0
+const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 90.0
 
 ## Gravity-like downward fall range for unlock sparks.
-const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 42.0
-const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 96.0
+const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 50.0
+const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 110.0
 
 ## Longer lifetime keeps the heavier spark burst readable.
-const UNLOCK_SPARK_DURATION_MIN: float = 0.72
-const UNLOCK_SPARK_DURATION_MAX: float = 0.96
+const UNLOCK_SPARK_DURATION_MIN: float = 0.70
+const UNLOCK_SPARK_DURATION_MAX: float = 1.05
+
+## Fan spread for sparks: upward hemisphere from upper-left to upper-right.
+## In Godot screen coords up=-Y so center is -PI/2; fan half-width ~80°.
+const UNLOCK_SPARK_ANGLE_CENTER: float = -PI / 2.0
+const UNLOCK_SPARK_ANGLE_HALF_SPREAD: float = 1.40
 
 ## Timer for processing LMB hold progress.
 var _unlock_timer: Timer = null
@@ -2205,12 +2210,20 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark_layer.add_child(spark)
 
-		var spark_size := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
-		var core_size := Vector2(spark_size, spark_size * rng.randf_range(0.55, 1.15))
-		var halo_size := core_size * rng.randf_range(2.6, 3.4)
+		# Spread sparks evenly across the upper fan then randomise slightly.
+		var t := float(i) / float(UNLOCK_SPARK_COUNT)
+		var angle := UNLOCK_SPARK_ANGLE_CENTER + (t * 2.0 - 1.0) * UNLOCK_SPARK_ANGLE_HALF_SPREAD \
+			+ rng.randf_range(-0.12, 0.12)
+
+		# Each spark is a thin elongated streak aligned to its travel direction.
+		var spark_width := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
+		var streak_ratio := rng.randf_range(2.5, 4.5)
+		var core_size := Vector2(spark_width, spark_width * streak_ratio)
+		var halo_size := core_size * rng.randf_range(2.2, 2.8)
 		spark.custom_minimum_size = halo_size
 		spark.size = halo_size
-		spark.rotation = rng.randf_range(-PI, PI)
+		# Rotate so the streak points along the travel direction.
+		spark.rotation = angle + PI / 2.0
 		spark.pivot_offset = spark.size * 0.5
 		spark.position = slot_center - spark.pivot_offset
 
@@ -2218,7 +2231,7 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		halo.name = "UnlockSparkGlow"
 		halo.size = halo_size
 		halo.position = Vector2.ZERO
-		halo.color = Color(1.0, rng.randf_range(0.72, 0.94), rng.randf_range(0.12, 0.26), 0.28)
+		halo.color = Color(1.0, rng.randf_range(0.72, 0.94), rng.randf_range(0.12, 0.26), 0.32)
 		halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark.add_child(halo)
 
@@ -2226,33 +2239,34 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		core.name = "UnlockSparkCore"
 		core.size = core_size
 		core.position = (halo_size - core_size) * 0.5
-		core.color = Color(1.0, rng.randf_range(0.88, 1.0), rng.randf_range(0.28, 0.42), 1.0)
+		core.color = Color(1.0, rng.randf_range(0.88, 1.0), rng.randf_range(0.55, 0.75), 1.0)
 		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark.add_child(core)
 
-		var angle := (TAU * float(i) / float(UNLOCK_SPARK_COUNT)) + rng.randf_range(-0.28, 0.28)
 		var distance := rng.randf_range(UNLOCK_SPARK_DISTANCE_MIN, UNLOCK_SPARK_DISTANCE_MAX)
 		var launch_offset := Vector2.RIGHT.rotated(angle) * distance
-		var arc_peak := slot_center + launch_offset * 0.48 - Vector2(0.0, rng.randf_range(UNLOCK_SPARK_ARC_HEIGHT_MIN, UNLOCK_SPARK_ARC_HEIGHT_MAX)) - spark.pivot_offset
-		var target_position := slot_center + launch_offset + Vector2(0.0, rng.randf_range(UNLOCK_SPARK_GRAVITY_FALL_MIN, UNLOCK_SPARK_GRAVITY_FALL_MAX)) - spark.pivot_offset
-		var target_scale := Vector2(rng.randf_range(0.15, 0.35), rng.randf_range(0.15, 0.35))
+		var arc_peak := slot_center + launch_offset * 0.45 \
+			- Vector2(0.0, rng.randf_range(UNLOCK_SPARK_ARC_HEIGHT_MIN, UNLOCK_SPARK_ARC_HEIGHT_MAX)) \
+			- spark.pivot_offset
+		var target_position := slot_center + launch_offset \
+			+ Vector2(0.0, rng.randf_range(UNLOCK_SPARK_GRAVITY_FALL_MIN, UNLOCK_SPARK_GRAVITY_FALL_MAX)) \
+			- spark.pivot_offset
+		var target_scale := Vector2(rng.randf_range(0.08, 0.22), rng.randf_range(0.08, 0.22))
 		var duration := rng.randf_range(UNLOCK_SPARK_DURATION_MIN, UNLOCK_SPARK_DURATION_MAX)
 		var movement_tween := create_tween()
-		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.42) \
+		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.40) \
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		movement_tween.tween_property(spark, "position", target_position, duration * 0.58) \
+		movement_tween.tween_property(spark, "position", target_position, duration * 0.60) \
 			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 
 		var spark_tween := create_tween()
 		spark_tween.set_parallel(true)
-		spark_tween.tween_property(spark, "rotation", spark.rotation + rng.randf_range(-3.0, 3.0), duration) \
-			.set_ease(Tween.EASE_OUT)
 		spark_tween.tween_property(spark, "scale", target_scale, duration) \
 			.set_ease(Tween.EASE_IN)
 		spark_tween.tween_property(halo, "color:a", 0.0, duration) \
-			.set_ease(Tween.EASE_IN).set_delay(duration * 0.12)
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.10)
 		spark_tween.tween_property(core, "color:a", 0.0, duration) \
-			.set_ease(Tween.EASE_IN).set_delay(duration * 0.18)
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.15)
 
 	var cleanup_timer := get_tree().create_timer(1.15)
 	cleanup_timer.timeout.connect(func():

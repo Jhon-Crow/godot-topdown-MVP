@@ -38,9 +38,11 @@ Chosen option: programmatic UI sparks.
 
 ## Implementation
 
-`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` over the card and emits 32 large gold/orange sparks from the card center. Each spark has a bright core and a larger translucent halo, so the effect reads as glowing even in UI-space without depending on global bloom.
+`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` over the card and emits 36 gold/orange sparks from the card center. Each spark is an elongated streak (thin rectangle, aspect ratio 2.5–4.5×) rotated to point along its travel direction, with a bright core and a larger translucent halo for a sparkler glow in UI-space.
 
-The sparks now move slower over 0.72-0.96 seconds. Motion is split into two tween phases: an upward launch peak and a downward landing offset, which makes each spark travel along an arc as if gravity pulls it down after the burst.
+Sparks are distributed across an upward fan (~±80° from vertical, like a YouTube like-button burst) rather than a full 360° ring. This gives the effect the characteristic diagonal-left and diagonal-right scatter the owner requested, instead of corn-like jets going straight up.
+
+Motion is split into two tween phases over 0.70–1.05 s: an upward arc peak, then a downward landing. Each spark decelerates as it climbs and accelerates as it falls, simulating gravity. The streak's rotation is fixed to its launch angle so it always looks like a flying spark, not a tumbling blob.
 
 The reveal animation calls `_emit_unlock_sparks(slot)` as the card opening starts, so the sparks appear at the completion moment of the hold-to-unlock interaction.
 
@@ -53,7 +55,9 @@ Godot canvas items support per-item material/blend behavior, and canvas item sha
 Added source-level regression tests in `tests/unit/test_armory_menu.gd` to ensure:
 
 - the unlock reveal invokes `_emit_unlock_sparks(slot)`;
-- the spark burst uses a large visible count and size;
-- sparks can fly outside the card bounds.
+- the spark burst uses a defined count and size (36 sparks, max 8 px width);
+- sparks can fly outside the card bounds;
 - sparks use slower arc motion with downward fall;
-- sparks include a glow halo plus bright core.
+- sparks include a glow halo plus bright core;
+- sparks are elongated streaks (streak_ratio), not round circles;
+- a fan angle constant (UNLOCK_SPARK_ANGLE_CENTER) is defined, so sparks go up-left/up-right rather than all directions.
