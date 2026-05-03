@@ -5,8 +5,8 @@ extends Node
 ## - Effects volume (громкость эффектов): controls all sound effects
 ## - Music volume (громкость музыки): controls background music
 ##
-## Volumes are stored as linear values [0.0, 1.0] and converted to dB for
-## Godot's audio bus system. Settings are persisted to disk.
+## Volumes are stored as linear values and converted to dB for Godot's audio
+## bus system. Settings are persisted to disk.
 
 ## Signal emitted when any sound setting changes.
 signal settings_changed
@@ -14,7 +14,7 @@ signal settings_changed
 ## Linear volume for sound effects [0.0, 1.0]. Default is full volume.
 var effects_volume: float = 1.0
 
-## Linear volume for music [0.0, 1.0]. Default is full volume.
+## Linear volume for music [0.0, 2.0]. Default is full volume.
 var music_volume: float = 1.0
 
 ## Whether pause-screen music muffling is enabled. Default preserves existing behaviour.
@@ -35,6 +35,12 @@ const MIN_VOLUME_DB: float = -80.0
 ## Maximum volume in dB (full volume).
 const MAX_VOLUME_DB: float = 0.0
 
+## Maximum linear volume for effects (100%).
+const MAX_EFFECTS_VOLUME: float = 1.0
+
+## Maximum linear volume for music (200%).
+const MAX_MUSIC_VOLUME: float = 2.0
+
 
 func _ready() -> void:
 	_load_settings()
@@ -46,7 +52,7 @@ func _ready() -> void:
 ## Sets the effects volume.
 ## @param volume: Linear volume value [0.0, 1.0].
 func set_effects_volume(volume: float) -> void:
-	volume = clamp(volume, 0.0, 1.0)
+	volume = clamp(volume, 0.0, MAX_EFFECTS_VOLUME)
 	if not is_equal_approx(effects_volume, volume):
 		effects_volume = volume
 		_apply_effects_volume()
@@ -61,9 +67,9 @@ func get_effects_volume() -> float:
 
 
 ## Sets the music volume.
-## @param volume: Linear volume value [0.0, 1.0].
+## @param volume: Linear volume value [0.0, 2.0].
 func set_music_volume(volume: float) -> void:
-	volume = clamp(volume, 0.0, 1.0)
+	volume = clamp(volume, 0.0, MAX_MUSIC_VOLUME)
 	if not is_equal_approx(music_volume, volume):
 		music_volume = volume
 		_apply_music_volume()
@@ -72,7 +78,7 @@ func set_music_volume(volume: float) -> void:
 		_log_to_file("Music volume set to %.2f" % volume)
 
 
-## Gets the current music volume as a linear value [0.0, 1.0].
+## Gets the current music volume as a linear value [0.0, 2.0].
 func get_music_volume() -> float:
 	return music_volume
 
@@ -95,7 +101,7 @@ func is_music_muffle_enabled() -> bool:
 	return music_muffle_enabled
 
 
-## Converts a linear volume [0.0, 1.0] to decibels.
+## Converts a linear volume to decibels.
 ## Returns MIN_VOLUME_DB for zero volume (silence).
 func linear_to_db(linear: float) -> float:
 	if linear <= 0.0:
@@ -148,8 +154,8 @@ func _load_settings() -> void:
 		music_volume = config.get_value("sound", "music_volume", 1.0)
 		music_muffle_enabled = config.get_value("sound", "music_muffle_enabled", true)
 		# Clamp values in case the file was edited manually
-		effects_volume = clamp(effects_volume, 0.0, 1.0)
-		music_volume = clamp(music_volume, 0.0, 1.0)
+		effects_volume = clamp(effects_volume, 0.0, MAX_EFFECTS_VOLUME)
+		music_volume = clamp(music_volume, 0.0, MAX_MUSIC_VOLUME)
 	else:
 		effects_volume = 1.0
 		music_volume = 1.0

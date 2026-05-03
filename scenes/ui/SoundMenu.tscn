@@ -89,12 +89,12 @@ custom_minimum_size = Vector2(250, 30)
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.0
-max_value = 100.0
+max_value = 200.0
 step = 1.0
 value = 100.0
 
 [node name="MusicValueLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicContainer"]
-custom_minimum_size = Vector2(45, 0)
+custom_minimum_size = Vector2(55, 0)
 layout_mode = 2
 text = "100%"
 horizontal_alignment = 2
