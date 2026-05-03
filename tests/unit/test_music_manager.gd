@@ -90,6 +90,28 @@ func test_audio_player_routes_through_music_bus() -> void:
 		"Music should keep playing while the game is paused")
 
 
+func test_music_bus_has_pause_low_pass_filter() -> void:
+	var effect := manager.get_pause_muffle_effect()
+	assert_not_null(effect,
+		"MusicManager should install a low-pass filter for pause muffling")
+	assert_true(effect is AudioEffectLowPassFilter,
+		"Pause muffle effect should be an AudioEffectLowPassFilter")
+	assert_almost_eq(effect.cutoff_hz, MUSIC_MANAGER.PAUSE_MUFFLED_CUTOFF_HZ, 0.01,
+		"Pause muffle filter should start at the muffled cutoff")
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should start disabled during gameplay")
+
+
+func test_set_pause_muffle_enabled_toggles_bus_effect() -> void:
+	manager.set_pause_muffle_enabled(true)
+	assert_true(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be enabled when the pause menu opens")
+
+	manager.set_pause_muffle_enabled(false)
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be disabled when the pause menu closes")
+
+
 func test_credit_label_is_present_with_correct_text() -> void:
 	var canvas: CanvasLayer = manager.get_node("MusicCreditCanvas")
 	assert_not_null(canvas, "Credit canvas should be created")

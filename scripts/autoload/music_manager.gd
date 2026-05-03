@@ -36,6 +36,15 @@ const LEVEL_MUSIC: Dictionary = {
 ## Name of the audio bus that the music slider in sound settings drives.
 const MUSIC_BUS: String = "Music"
 
+## Cutoff used for the pause-screen muffled/underwater effect.
+const PAUSE_MUFFLED_CUTOFF_HZ: float = 650.0
+
+## Filter slope for the pause-screen muffled effect.
+const PAUSE_MUFFLED_DB: int = AudioEffectFilter.FILTER_24DB
+
+## Resonance used to keep the low-passed pause music heavy without whistling.
+const PAUSE_MUFFLED_RESONANCE: float = 0.45
+
 ## Credit text drawn in the bottom-left of the GUI.
 const CREDIT_TEXT: String = "music by Instrumental Healthcare"
 
@@ -63,9 +72,13 @@ var _exit_zones_connected: bool = false
 ## we can reconnect to the new exit zone instances (Issue #1929).
 var _connected_exit_zones: Array = []
 
+## Index of the low-pass effect installed on the Music bus for pause muffling.
+var _pause_muffle_effect_index: int = -1
+
 
 func _ready() -> void:
 	_ensure_music_bus()
+	_ensure_pause_muffle_effect()
 	_create_player()
 	_create_credit_label()
 
@@ -100,6 +113,31 @@ func _ensure_music_bus() -> void:
 	var sound_settings: Node = get_node_or_null("/root/SoundSettings")
 	if sound_settings and sound_settings.has_method("_apply_music_volume"):
 		sound_settings._apply_music_volume()
+
+
+## Adds a disabled low-pass filter to the Music bus. PauseMenu enables it while
+## visible, giving the music a strong underwater-like muffled tone without
+## affecting SFX routed through other buses.
+func _ensure_pause_muffle_effect() -> void:
+	var bus_idx := AudioServer.get_bus_index(MUSIC_BUS)
+	if bus_idx < 0:
+		return
+
+	for effect_idx in range(AudioServer.get_bus_effect_count(bus_idx)):
+		var existing := AudioServer.get_bus_effect(bus_idx, effect_idx)
+		if existing is AudioEffectLowPassFilter and existing.resource_name == "PauseMuffleLowPass":
+			_pause_muffle_effect_index = effect_idx
+			AudioServer.set_bus_effect_enabled(bus_idx, effect_idx, false)
+			return
+
+	var filter := AudioEffectLowPassFilter.new()
+	filter.resource_name = "PauseMuffleLowPass"
+	filter.cutoff_hz = PAUSE_MUFFLED_CUTOFF_HZ
+	filter.db = PAUSE_MUFFLED_DB
+	filter.resonance = PAUSE_MUFFLED_RESONANCE
+	AudioServer.add_bus_effect(bus_idx, filter)
+	_pause_muffle_effect_index = AudioServer.get_bus_effect_count(bus_idx) - 1
+	AudioServer.set_bus_effect_enabled(bus_idx, _pause_muffle_effect_index, false)
 
 
 func _create_player() -> void:
@@ -250,6 +288,37 @@ func _find_exit_zones(node: Node) -> Array:
 func _on_exit_zone_activated() -> void:
 	if _player and _player.playing:
 		_player.stop()
+
+
+## Public API: toggles the pause-screen muffled music effect.
+func set_pause_muffle_enabled(enabled: bool) -> void:
+	var bus_idx := AudioServer.get_bus_index(MUSIC_BUS)
+	if bus_idx < 0:
+		return
+	if _pause_muffle_effect_index < 0 or _pause_muffle_effect_index >= AudioServer.get_bus_effect_count(bus_idx):
+		_ensure_pause_muffle_effect()
+	if _pause_muffle_effect_index >= 0 and _pause_muffle_effect_index < AudioServer.get_bus_effect_count(bus_idx):
+		AudioServer.set_bus_effect_enabled(bus_idx, _pause_muffle_effect_index, enabled)
+
+
+## Public API: returns whether the pause-screen muffled music effect is active.
+func is_pause_muffle_enabled() -> bool:
+	var bus_idx := AudioServer.get_bus_index(MUSIC_BUS)
+	if bus_idx < 0:
+		return false
+	if _pause_muffle_effect_index < 0 or _pause_muffle_effect_index >= AudioServer.get_bus_effect_count(bus_idx):
+		return false
+	return AudioServer.is_bus_effect_enabled(bus_idx, _pause_muffle_effect_index)
+
+
+## Public API: returns the installed pause low-pass effect for tests/debugging.
+func get_pause_muffle_effect() -> AudioEffect:
+	var bus_idx := AudioServer.get_bus_index(MUSIC_BUS)
+	if bus_idx < 0:
+		return null
+	if _pause_muffle_effect_index < 0 or _pause_muffle_effect_index >= AudioServer.get_bus_effect_count(bus_idx):
+		return null
+	return AudioServer.get_bus_effect(bus_idx, _pause_muffle_effect_index)
 
 
 ## Public API: returns the currently mapped music path for a scene, or
