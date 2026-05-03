@@ -15,12 +15,13 @@ LASER_WEAPON_FILES = [
 ]
 
 
-def test_red_dot_cursor_has_no_solid_center_dot():
+def test_red_dot_cursor_has_distinct_dot_and_outer_glow():
     svg = CURSOR_ASSET.read_text(encoding="utf-8")
 
-    assert svg.count("<circle") == 1
-    assert 'fill="#ff120c"' not in svg
-    assert 'fill="#fff0df"' not in svg
+    assert 'id="red_dot_cursor_glow"' in svg
+    assert '<circle cx="16" cy="16" r="14"' in svg
+    assert '<circle cx="16" cy="16" r="2.5" fill="#ff120c"' in svg
+    assert '<circle cx="16" cy="16" r="1.0" fill="#fff0df"' in svg
 
 
 def test_shared_laser_glow_is_larger_than_original_cursor_draft():
@@ -33,5 +34,5 @@ def test_shared_laser_glow_is_larger_than_original_cursor_draft():
 def test_laser_weapons_have_small_default_aim_inertia():
     for path in LASER_WEAPON_FILES:
         source = path.read_text(encoding="utf-8")
-        assert "DefaultLaserAimTurnSpeed = 18.0f" in source, path
+        assert "DefaultLaserAimTurnSpeed = 7.5f" in source, path
         assert "Mathf.LerpAngle(_currentAimAngle, targetAngle" in source, path

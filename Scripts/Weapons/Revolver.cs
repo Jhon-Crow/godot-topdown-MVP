@@ -167,7 +167,7 @@ public partial class Revolver : BaseWeapon
     /// Base turn speed used when weapon data does not provide sensitivity.
     /// Keeps laser aim slightly inertial instead of snapping instantly to the cursor.
     /// </summary>
-    private const float DefaultLaserAimTurnSpeed = 18.0f;
+    private const float DefaultLaserAimTurnSpeed = 7.5f;
 
     /// <summary>
     /// Current recoil offset angle in radians.
