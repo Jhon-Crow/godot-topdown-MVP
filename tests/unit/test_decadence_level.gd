@@ -38,6 +38,7 @@ class MockDecadenceLevel:
 	## Nightclub dimensions (~2400x2000 pixels).
 	var map_width: int = 2400
 	var map_height: int = 2000
+	var _ammo_label_text: String = ""
 
 	## Initialize with enemies.
 	func initialize(enemy_count: int) -> void:
@@ -59,6 +60,31 @@ class MockDecadenceLevel:
 		if not _level_cleared or _level_completed:
 			return
 		_level_completed = true
+
+	func update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
+		_ammo_label_text = "AMMO: %d/%d" % [current_mag, reserve]
+
+	func _get_weapon_display_current_ammo(weapon: Dictionary) -> Variant:
+		if weapon.get("name") == "Shotgun" and weapon.get("ShellsInTube") != null:
+			return weapon.get("ShellsInTube")
+		return weapon.get("CurrentAmmo")
+
+	func refresh_weapon_hud(weapon: Dictionary) -> void:
+		var displayed_current = _get_weapon_display_current_ammo(weapon)
+		var reserve = weapon.get("ReserveAmmo")
+		if displayed_current != null and reserve != null:
+			update_ammo_label_magazine(displayed_current, reserve)
+
+	func choose_current_weapon(current_weapon: Dictionary, selected_weapon: Dictionary, stale_first_child: Dictionary) -> Dictionary:
+		if not current_weapon.is_empty():
+			return current_weapon
+		if not selected_weapon.is_empty():
+			return selected_weapon
+		return stale_first_child
+
+	func simulate_deferred_weapon_refresh(stale_first_child: Dictionary, final_current_weapon: Dictionary) -> void:
+		refresh_weapon_hud(choose_current_weapon({}, {}, stale_first_child))
+		refresh_weapon_hud(choose_current_weapon(final_current_weapon, {}, stale_first_child))
 
 
 var level: MockDecadenceLevel
@@ -154,3 +180,27 @@ func test_player_exit_blocked_before_clear() -> void:
 func test_map_dimensions() -> void:
 	assert_eq(level.map_width, 2400, "Decadence map width should be 2400")
 	assert_eq(level.map_height, 2000, "Decadence map height should be 2000")
+
+
+# ============================================================================
+# Ammo HUD Tests
+# ============================================================================
+
+
+func test_deferred_weapon_refresh_replaces_stale_makarov_hud_with_m16() -> void:
+	var stale_makarov := {"name": "MakarovPM", "CurrentAmmo": 9, "ReserveAmmo": 81}
+	var equipped_m16 := {"name": "AssaultRifle", "CurrentAmmo": 30, "ReserveAmmo": 60}
+
+	level.simulate_deferred_weapon_refresh(stale_makarov, equipped_m16)
+
+	assert_eq(level._ammo_label_text, "AMMO: 30/60",
+		"Decadence HUD should refresh from startup Makarov ammo to the deferred selected weapon")
+
+
+func test_source_refreshes_hud_from_player_current_weapon_after_deferred_equip() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/levels/decadence_level.gd")
+
+	assert_string_contains(source, "var current_weapon = _player.get(\"CurrentWeapon\")",
+		"Decadence should prefer Player.CurrentWeapon over stale child weapons")
+	assert_string_contains(source, "call_deferred(\"_refresh_current_weapon_tracking\", \"deferred selected weapon\")",
+		"Decadence should refresh ammo tracking after C# deferred weapon selection")
