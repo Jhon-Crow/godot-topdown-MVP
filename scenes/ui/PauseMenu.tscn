@@ -15,15 +15,15 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pause_glass"]
 shader = ExtResource("13_pause_glass")
-shader_parameter/crack_scale = 1.42
-shader_parameter/crack_warp = 0.42
-shader_parameter/crack_warp_scale = 2.67
-shader_parameter/crack_profile = 1.0
+shader_parameter/crack_scale = 2.2
+shader_parameter/crack_warp = 0.018
+shader_parameter/crack_warp_scale = 8.0
+shader_parameter/crack_profile = 1.35
 shader_parameter/crack_sharpness = 70.0
-shader_parameter/crack_width = 0.00042
-shader_parameter/crack_coverage = 0.13
+shader_parameter/crack_width = 0.0011
+shader_parameter/crack_coverage = 0.35
 shader_parameter/crack_color = Color(0.46, 0.55, 0.6, 1.0)
-shader_parameter/crack_opacity = 0.13
+shader_parameter/crack_opacity = 0.18
 shader_parameter/darkness = 0.36
 shader_parameter/vignette_strength = 0.28
 

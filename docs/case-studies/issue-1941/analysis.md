@@ -10,6 +10,7 @@ Issue #1941 asks to add a shader so the pause background looks like slightly scr
 - The project uses Godot 4 CanvasItem shaders in `scripts/shaders`.
 - `scripts/shaders/cinema_film.gdshader` documents a practical compatibility concern: overlay-only effects are more robust than screen-reading effects in Godot Compatibility rendering.
 - `tests/unit/test_pause_menu.gd` already covers PauseMenu scene loading and button connectivity, making it the correct place for a regression guard.
+- `docs/case-studies/issue-1941/logs/game_log_20260503_224305.txt` was downloaded from the latest PR feedback. It confirms the "shader disappeared" report was produced by Godot 4.3-stable on Windows from branch `issue-1941-52ae5c339306`, commit `d1c18a99993b74ac7453ea5ac094a6a8df6705cb`.
 
 ## External Research
 
@@ -67,10 +68,27 @@ The tuned version keeps the Voronoi + FBM structure but makes it behave like a f
 ### v4 (feedback tuning) — sparse screen-space overlay without clipping
 Latest feedback said the overlay was still too obvious because too many scratches were visible on one screen, and that the shader cutoff became visible near the screen edge.
 
-The current revision addresses those two specific failure modes:
+That revision addressed those two specific failure modes:
 
 - Removed the multi-scale loop entirely. The shader now renders one sparse Voronoi crack field, so it cannot look like the same glass damage was applied several times.
 - Lowered `crack_scale` to `1.42` and `crack_coverage` to `0.13`, leaving only occasional cracks instead of a dense web across the whole pause menu.
 - Lowered `crack_opacity` to `0.13` and desaturated the tint so the cracks read as faint glass scratches rather than bright UI decoration.
 - Switched crack coordinates from raw `UV` to aspect-corrected `SCREEN_UV` with an inward scale margin. This keeps the procedural field larger than the visible pause background and removes the hard crop/cutoff artifact shown in the review screenshot.
 - Updated the regression test to guard the sparse defaults (`crack_opacity`, `crack_coverage`, and `crack_scale`).
+
+### v5 (current) — guaranteed sparse hairline fracture cluster
+The next feedback said "шейдер исчез" ("the shader disappeared").  The downloaded log ties that report to v4 commit `d1c18a99993b74ac7453ea5ac094a6a8df6705cb`.
+
+Root cause:
+
+- v4 lowered `crack_scale` to about one to two cells across the screen.
+- v4 also used a whole-cell deterministic mask with `crack_coverage = 0.13`.
+- At common pause-menu aspect ratios, that combination can mask every visible Voronoi cell. The shader still runs and darkens the pause background, but the crack contribution becomes zero, so the glass damage appears to disappear.
+
+The current revision removes the coarse whole-cell visibility mask and replaces the full-screen Voronoi web with a small deterministic fracture cluster:
+
+- One short main hairline crack and two faint branches are always present, so the effect cannot disappear due to random/sparse cell selection.
+- Crack width remains low (`crack_width = 0.0011`) and opacity remains subtle (`crack_opacity = 0.18`), so the result does not return to the original thick bright-line problem.
+- Crack coverage is now an intensity limiter (`crack_coverage = 0.35`) instead of a binary cell mask, preserving sparse visibility without creating all-or-nothing blank screens.
+- Coordinates use full `UV` with aspect correction, avoiding the previous visible crop artifact while keeping the fracture fully inside the pause overlay.
+- The regression test now guards both sides of the tuning range: opacity/width stay subtle, while opacity/coverage also remain above zero so the shader remains visible.

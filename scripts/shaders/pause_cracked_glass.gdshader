@@ -1,26 +1,26 @@
 shader_type canvas_item;
 
 // Realistic cracked glass overlay for the pause menu background.
-// Uses Voronoi cell-edge distance + FBM warp (ported from godotshaders.com/shader/cracked-glass/)
-// to produce thin, organic-looking crack webs.
+// Uses a small deterministic fracture cluster: one hairline crack with two
+// short branches. This keeps the effect visible without covering the screen.
 //
 // Overlay-only approach (no hint_screen_texture) keeps compatibility with
 // Godot's GL Compatibility renderer — same reasoning as cinema_film.gdshader.
 
-uniform float crack_scale    : hint_range(1.0, 10.0) = 1.42;
-uniform float crack_warp     : hint_range(0.0, 10.0) = 0.42;
-uniform float crack_warp_scale : hint_range(0.0, 10.0) = 2.67;
-uniform float crack_profile  : hint_range(0.0, 10.0) = 1.0;
+uniform float crack_scale    : hint_range(1.0, 10.0) = 2.2;
+uniform float crack_warp     : hint_range(0.0, 10.0) = 0.018;
+uniform float crack_warp_scale : hint_range(0.0, 10.0) = 8.0;
+uniform float crack_profile  : hint_range(0.0, 10.0) = 1.35;
 uniform float crack_sharpness : hint_range(0.0, 100.0) = 70.0;
-uniform float crack_width    : hint_range(0.0, 0.02) = 0.00042;
-uniform float crack_coverage : hint_range(0.0, 1.0) = 0.13;
+uniform float crack_width    : hint_range(0.0, 0.02) = 0.0011;
+uniform float crack_coverage : hint_range(0.0, 1.0) = 0.35;
 
 uniform vec4  crack_color    : source_color = vec4(0.46, 0.55, 0.60, 1.0);
-uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.13;
+uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.18;
 uniform float darkness       : hint_range(0.0, 1.0) = 0.36;
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.28;
 
-// ── Noise helpers ────────────────────────────────────────────────────────────
+// -- Noise helpers ------------------------------------------------------------
 
 vec2 hash2(vec2 p) {
 	p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -51,64 +51,50 @@ float fbm(vec2 n) {
 	return total;
 }
 
-// ── Voronoi cell-edge distance (returns distance to nearest Voronoi border) ──
+// -- Sparse fracture field ----------------------------------------------------
 
-float voronoi_edge(vec2 u) {
-	vec2 p = floor(u);
-	vec2 f = fract(u);
-
-	// Find nearest cell centre.
-	float min_d = 8.0;
-	vec2  min_c = vec2(0.0);
-	vec2  min_r = vec2(0.0);
-	for (int j = -1; j <= 1; j++) {
-		for (int i = -1; i <= 1; i++) {
-			vec2 g = vec2(float(i), float(j));
-			vec2 o = hash2(p + g);
-			vec2 r = g - f + o;
-			float d = dot(r, r);
-			if (d < min_d) { min_d = d; min_c = g; min_r = r; }
-		}
-	}
-
-	// Distance to the nearest cell border.
-	float edge_d = 8.0;
-	for (int j = -2; j <= 2; j++) {
-		for (int i = -2; i <= 2; i++) {
-			vec2 g = min_c + vec2(float(i), float(j));
-			vec2 o = hash2(p + g);
-			vec2 r = g - f + o;
-			if (dot(min_r - r, min_r - r) > 1e-5) {
-				edge_d = min(edge_d, 0.5 * dot(min_r + r, normalize(r - min_r)));
-			}
-		}
-	}
-	return edge_d;
+float line_distance(vec2 p, vec2 a, vec2 b) {
+	vec2 pa = p - a;
+	vec2 ba = b - a;
+	float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+	return length(pa - ba * h);
 }
 
-// ── Sparse single-scale crack field ─────────────────────────────────────────
+float fracture_line(vec2 p, vec2 a, vec2 b, float width, float strength) {
+	float len = length(b - a);
+	float along = clamp(dot(p - a, b - a) / max(0.0001, len * len), 0.0, 1.0);
+	float taper = smoothstep(0.0, 0.18, along) * (1.0 - smoothstep(0.72, 1.0, along));
+	float d = line_distance(p, a, b);
+	float line = 1.0 - smoothstep(width, width * 2.8, d);
+	return line * taper * strength;
+}
 
 float generate_cracks(vec2 uv) {
-	vec2 U = uv * crack_scale;
-	// FBM-warp the coordinates for organic, non-uniform cracks.
-	vec2 warp = vec2(fbm(U / crack_warp_scale)) * crack_warp * crack_warp_scale;
-	float d = voronoi_edge(U + warp);
+	vec2 U = uv;
+	float warp_a = fbm(U * crack_warp_scale + vec2(3.1, 1.7));
+	float warp_b = fbm(U * (crack_warp_scale * 0.73) + vec2(8.6, 4.2));
+	U += vec2(warp_a, warp_b) * crack_warp;
 
-	// Remap: values near the border (small d) become bright.
-	float crack = 1.0 - min(1.0, crack_sharpness * pow(max(0.0, d - crack_width), crack_profile));
-	float coverage_mask = step(1.0 - crack_coverage, hash2(floor(U)).x);
-	return clamp(crack * coverage_mask, 0.0, 1.0);
+	float width = crack_width / max(0.1, crack_scale);
+	float cracks = 0.0;
+	cracks = max(cracks, fracture_line(U, vec2(0.18, 0.62), vec2(0.82, 0.33), width, 1.0));
+	cracks = max(cracks, fracture_line(U, vec2(0.43, 0.51), vec2(0.31, 0.28), width * 0.74, 0.45));
+	cracks = max(cracks, fracture_line(U, vec2(0.56, 0.45), vec2(0.73, 0.61), width * 0.68, 0.38));
+
+	float chip = 1.0 - smoothstep(width * 2.0, width * 9.0, length(U - vec2(0.43, 0.51)));
+	cracks = max(cracks, chip * 0.18);
+
+	return clamp(pow(cracks, crack_profile) * crack_coverage, 0.0, 1.0);
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// -- Main ---------------------------------------------------------------------
 
 void fragment() {
 	vec4 base = COLOR;
 
-	vec2 screen_uv = SCREEN_UV;
-	vec2 aspect_uv = screen_uv - vec2(0.5);
+	vec2 aspect_uv = UV - vec2(0.5);
 	aspect_uv.x *= SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
-	aspect_uv = aspect_uv * 0.82 + vec2(0.5);
+	aspect_uv += vec2(0.5);
 	float cracks = generate_cracks(aspect_uv);
 
 	// Darken the background.

@@ -114,16 +114,28 @@ func test_pause_menu_background_uses_cracked_glass_shader() -> void:
 		"PauseMenu background must use the cracked glass pause shader")
 	assert_lte(
 		float(material.get_shader_parameter("crack_opacity")),
-		0.15,
+		0.2,
 		"PauseMenu cracks must remain a subtle glass overlay")
+	assert_gt(
+		float(material.get_shader_parameter("crack_opacity")),
+		0.0,
+		"PauseMenu cracks must remain visible")
 	assert_lte(
 		float(material.get_shader_parameter("crack_coverage")),
-		0.15,
+		0.4,
 		"PauseMenu cracks must not uniformly cover the full screen")
+	assert_gte(
+		float(material.get_shader_parameter("crack_coverage")),
+		0.25,
+		"PauseMenu cracks must not disappear due to over-sparse masking")
 	assert_lte(
 		float(material.get_shader_parameter("crack_scale")),
-		1.5,
+		2.5,
 		"PauseMenu cracks must stay sparse instead of filling the screen with small cells")
+	assert_lte(
+		float(material.get_shader_parameter("crack_width")),
+		0.0015,
+		"PauseMenu cracks must stay hairline-thin")
 
 
 # ============================================================================
