@@ -1161,5 +1161,9 @@ func test_unlock_sparks_arc_downward_and_glow() -> void:
 		"Unlock sparks should animate in two position phases to create an arc")
 	assert_true(source.contains("var core_size := Vector2(core_width, core_height)"),
 		"Unlock sparks should build their visible particle from a tiny 1x1 to 1x3 core")
+	assert_true(source.contains("var halo_diameter: float = max_core_axis * glow_scale"),
+		"Unlock spark glow sizing should use explicit float typing for Godot 4.3 script loading")
+	assert_false(source.contains("var halo_diameter := max(core_size.x, core_size.y)"),
+		"Unlock spark glow sizing should avoid Variant max() inference that can break exported Godot 4.3 builds")
 	assert_false(source.contains("var streak_ratio :="),
 		"Unlock sparks should no longer use large rectangular streak sizing after owner feedback")

@@ -46,6 +46,12 @@ Motion is split into two tween phases over 0.70–1.05 s: an upward arc peak, th
 
 The reveal animation calls `_emit_unlock_sparks(slot)` as the card opening starts, so the sparks appear at the completion moment of the hold-to-unlock interaction.
 
+## Regression log, May 3 2026
+
+Owner feedback after commit `ae9e6f9a` reported that the whole armory screen no longer displayed. The attached runtime log is preserved at `docs/case-studies/issue-1933/logs/game_log_20260503_170820.txt`. The log shows the exported Windows build was running branch `issue-1933-b70261fed6d9` at commit `ae9e6f9ae99f44374fbd60aaf74cd31b41c7d494`, opened the pause-menu armory at `17:09:07`, instantiated `res://scenes/ui/ArmoryMenu.tscn`, and attached `res://scripts/ui/armory_menu.gd`, but then reported `_populate_weapon_grid method NOT found` even though that method exists in source. That points to the script not being fully usable in the exported Godot 4.3 runtime, rather than the armory UI flow being absent.
+
+The newest spark code used `var halo_diameter := max(core_size.x, core_size.y) * rng.randf_range(...)`. In GDScript 4.3, the generic `max()` returns a Variant and `:=` depends on inference. Exported builds can fail script loading or method lookup when parse/type inference hits an unsupported or ambiguous construct. The fix rewrites this to explicit float steps using `maxf()`, a typed `glow_scale`, and a typed `halo_diameter`, keeping the same visual result while avoiding the risky inference path.
+
 ## Online Research Notes
 
 Godot canvas items support per-item material/blend behavior, and canvas item shaders document additive blending (`blend_add`) for glow-like 2D effects. For this UI case, a local layered glow/core structure was chosen instead of a shader or renderer-level bloom setting because it is deterministic, needs no scene/project setting changes, and keeps the effect scoped to the unlock card. The latest visual target is closer to small orange Doom 2016 menu embers than large sparkler shards, so the implementation now favors tiny cores with transparent heat halos.
@@ -60,4 +66,5 @@ Added source-level regression tests in `tests/unit/test_armory_menu.gd` to ensur
 - sparks use slower arc motion with downward fall;
 - sparks include outer glow, inner glow, and bright orange core layers;
 - sparks are no longer large rectangular streaks;
-- a fan angle constant (UNLOCK_SPARK_ANGLE_CENTER) is defined, so sparks go up-left/up-right rather than all directions.
+- a fan angle constant (UNLOCK_SPARK_ANGLE_CENTER) is defined, so sparks go up-left/up-right rather than all directions;
+- spark glow sizing avoids Variant `max()` inference and uses explicit float typing so the armory script remains loadable in Godot 4.3 exported builds.

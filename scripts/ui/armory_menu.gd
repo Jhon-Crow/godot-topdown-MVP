@@ -2226,10 +2226,9 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		var core_width := rng.randf_range(UNLOCK_SPARK_CORE_WIDTH_MIN, UNLOCK_SPARK_CORE_WIDTH_MAX)
 		var core_height := rng.randf_range(UNLOCK_SPARK_CORE_HEIGHT_MIN, UNLOCK_SPARK_CORE_HEIGHT_MAX)
 		var core_size := Vector2(core_width, core_height)
-		var halo_diameter := max(core_size.x, core_size.y) * rng.randf_range(
-			UNLOCK_SPARK_GLOW_SCALE_MIN,
-			UNLOCK_SPARK_GLOW_SCALE_MAX
-		)
+		var max_core_axis: float = maxf(core_size.x, core_size.y)
+		var glow_scale: float = rng.randf_range(UNLOCK_SPARK_GLOW_SCALE_MIN, UNLOCK_SPARK_GLOW_SCALE_MAX)
+		var halo_diameter: float = max_core_axis * glow_scale
 		var halo_size := Vector2(halo_diameter, halo_diameter)
 		spark.custom_minimum_size = halo_size
 		spark.size = halo_size
