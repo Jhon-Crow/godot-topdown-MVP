@@ -19,4 +19,4 @@ def test_red_dot_cursor_asset_is_small_and_glowing():
     assert 'width="32"' in svg
     assert 'height="32"' in svg
     assert "radialGradient" in svg
-    assert "#ff120c" in svg
+    assert "#ff160f" in svg

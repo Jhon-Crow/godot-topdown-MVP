@@ -75,10 +75,10 @@ public class LaserGlowEffect
     /// </summary>
     private static readonly GlowLayerDef[] GlowLayers = new[]
     {
-        new GlowLayerDef(6.0f, 0.6f, 0),    // Core boost — tight bright halo around beam
-        new GlowLayerDef(14.0f, 0.15f, 0),  // Inner glow — visible soft aura
-        new GlowLayerDef(28.0f, 0.05f, 0),  // Mid glow — subtle extended scatter
-        new GlowLayerDef(48.0f, 0.02f, 0),  // Outer glow — barely perceptible atmospheric haze
+        new GlowLayerDef(8.0f, 0.55f, 0),   // Core boost — tight bright halo around beam
+        new GlowLayerDef(20.0f, 0.18f, 0),  // Inner glow — visible soft aura
+        new GlowLayerDef(42.0f, 0.07f, 0),  // Mid glow — stronger extended scatter
+        new GlowLayerDef(72.0f, 0.03f, 0),  // Outer glow — broad atmospheric haze
     };
 
     // =========================================================================
@@ -96,7 +96,7 @@ public class LaserGlowEffect
     /// Texture scale of the endpoint PointLight2D. Small scale for a tight dot,
     /// similar to flashlight scatter but smaller since laser dot is subtler.
     /// </summary>
-    private const float EndpointGlowTextureScale = 0.35f;
+    private const float EndpointGlowTextureScale = 0.55f;
 
     /// <summary>
     /// Size of the circular glow texture in pixels.
