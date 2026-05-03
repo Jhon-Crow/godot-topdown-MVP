@@ -61,5 +61,16 @@ The tuned version keeps the Voronoi + FBM structure but makes it behave like a f
 ## Verification
 
 - `test_pause_menu_background_uses_cracked_glass_shader` ensures `PauseMenu.tscn` keeps the cracked glass shader attached to its full-screen background.
-- The same test now guards the subtle tuned defaults (`crack_depth`, `crack_opacity`, and `crack_coverage`) so future edits do not accidentally return to an over-layered full-screen crack web.
+- The same test now guards the sparse tuned defaults (`crack_opacity`, `crack_coverage`, and `crack_scale`) so future edits do not accidentally return to an over-layered full-screen crack web.
 - Existing PauseMenu tests continue to verify scene load, instantiation, and button signal wiring.
+
+### v4 (feedback tuning) — sparse screen-space overlay without clipping
+Latest feedback said the overlay was still too obvious because too many scratches were visible on one screen, and that the shader cutoff became visible near the screen edge.
+
+The current revision addresses those two specific failure modes:
+
+- Removed the multi-scale loop entirely. The shader now renders one sparse Voronoi crack field, so it cannot look like the same glass damage was applied several times.
+- Lowered `crack_scale` to `1.42` and `crack_coverage` to `0.13`, leaving only occasional cracks instead of a dense web across the whole pause menu.
+- Lowered `crack_opacity` to `0.13` and desaturated the tint so the cracks read as faint glass scratches rather than bright UI decoration.
+- Switched crack coordinates from raw `UV` to aspect-corrected `SCREEN_UV` with an inward scale margin. This keeps the procedural field larger than the visible pause background and removes the hard crop/cutoff artifact shown in the review screenshot.
+- Updated the regression test to guard the sparse defaults (`crack_opacity`, `crack_coverage`, and `crack_scale`).

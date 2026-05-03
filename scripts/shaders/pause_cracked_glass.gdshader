@@ -7,17 +7,16 @@ shader_type canvas_item;
 // Overlay-only approach (no hint_screen_texture) keeps compatibility with
 // Godot's GL Compatibility renderer — same reasoning as cinema_film.gdshader.
 
-uniform float crack_depth    : hint_range(0.0, 10.0) = 2.0;
-uniform float crack_scale    : hint_range(1.0, 10.0) = 2.85;
-uniform float crack_warp     : hint_range(0.0, 10.0) = 0.9;
+uniform float crack_scale    : hint_range(1.0, 10.0) = 1.42;
+uniform float crack_warp     : hint_range(0.0, 10.0) = 0.42;
 uniform float crack_warp_scale : hint_range(0.0, 10.0) = 2.67;
 uniform float crack_profile  : hint_range(0.0, 10.0) = 1.0;
 uniform float crack_sharpness : hint_range(0.0, 100.0) = 70.0;
-uniform float crack_width    : hint_range(0.0, 0.02) = 0.00065;
-uniform float crack_coverage : hint_range(0.0, 1.0) = 0.38;
+uniform float crack_width    : hint_range(0.0, 0.02) = 0.00042;
+uniform float crack_coverage : hint_range(0.0, 1.0) = 0.13;
 
-uniform vec4  crack_color    : source_color = vec4(0.58, 0.70, 0.78, 1.0);
-uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.22;
+uniform vec4  crack_color    : source_color = vec4(0.46, 0.55, 0.60, 1.0);
+uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.13;
 uniform float darkness       : hint_range(0.0, 1.0) = 0.36;
 uniform float vignette_strength : hint_range(0.0, 1.0) = 0.28;
 
@@ -87,25 +86,18 @@ float voronoi_edge(vec2 u) {
 	return edge_d;
 }
 
-// ── Crack accumulation across several Voronoi scales ────────────────────────
+// ── Sparse single-scale crack field ─────────────────────────────────────────
 
 float generate_cracks(vec2 uv) {
 	vec2 U = uv * crack_scale;
-	float result = 0.0;
+	// FBM-warp the coordinates for organic, non-uniform cracks.
+	vec2 warp = vec2(fbm(U / crack_warp_scale)) * crack_warp * crack_warp_scale;
+	float d = voronoi_edge(U + warp);
 
-	for (float i = 0.0; i < crack_depth; i++) {
-		// FBM-warp the coordinates for organic, non-uniform cracks.
-		vec2 warp = vec2(fbm(U / crack_warp_scale)) * crack_warp * crack_warp_scale;
-		float d = voronoi_edge(U + warp);
-
-		// Remap: values near the border (small d) become bright.
-		float crack = 1.0 - min(1.0, crack_sharpness * pow(max(0.0, d - crack_width), crack_profile));
-		float coverage_mask = step(1.0 - crack_coverage, hash2(floor(U)).x);
-		result = max(result, crack * coverage_mask / exp2(i));
-
-		U *= 1.55;
-	}
-	return clamp(result, 0.0, 1.0);
+	// Remap: values near the border (small d) become bright.
+	float crack = 1.0 - min(1.0, crack_sharpness * pow(max(0.0, d - crack_width), crack_profile));
+	float coverage_mask = step(1.0 - crack_coverage, hash2(floor(U)).x);
+	return clamp(crack * coverage_mask, 0.0, 1.0);
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -113,7 +105,11 @@ float generate_cracks(vec2 uv) {
 void fragment() {
 	vec4 base = COLOR;
 
-	float cracks = generate_cracks(UV);
+	vec2 screen_uv = SCREEN_UV;
+	vec2 aspect_uv = screen_uv - vec2(0.5);
+	aspect_uv.x *= SCREEN_PIXEL_SIZE.y / SCREEN_PIXEL_SIZE.x;
+	aspect_uv = aspect_uv * 0.82 + vec2(0.5);
+	float cracks = generate_cracks(aspect_uv);
 
 	// Darken the background.
 	vec3 col = base.rgb * (1.0 - darkness);
