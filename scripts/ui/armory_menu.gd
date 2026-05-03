@@ -196,12 +196,18 @@ var _lmb_hold_tracking: Dictionary = {}
 ## Duration (in seconds) to hold LMB to unlock an item.
 const UNLOCK_HOLD_DURATION: float = 1.5
 
-## Number of large glowing UI sparks emitted when a card opens.
+## Number of tiny glowing UI sparks emitted when a card opens.
 const UNLOCK_SPARK_COUNT: int = 36
 
-## Pixel size range for the large unlock sparks (thin streak shape).
-const UNLOCK_SPARK_SIZE_MIN: float = 4.0
-const UNLOCK_SPARK_SIZE_MAX: float = 8.0
+## Pixel size range for the visible orange spark core.
+const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0
+const UNLOCK_SPARK_CORE_WIDTH_MAX: float = 1.0
+const UNLOCK_SPARK_CORE_HEIGHT_MIN: float = 1.0
+const UNLOCK_SPARK_CORE_HEIGHT_MAX: float = 3.0
+
+## Soft halo multiplier around each micro spark core.
+const UNLOCK_SPARK_GLOW_SCALE_MIN: float = 4.0
+const UNLOCK_SPARK_GLOW_SCALE_MAX: float = 7.0
 
 ## Distance range for sparks flying out of the opened unlock card.
 const UNLOCK_SPARK_DISTANCE_MIN: float = 70.0
@@ -2188,7 +2194,7 @@ func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
 	return glow
 
 
-## Emits large glowing UI sparks from an unlock card at the reveal moment.
+## Emits tiny glowing UI sparks from an unlock card at the reveal moment.
 func _emit_unlock_sparks(slot: PanelContainer) -> void:
 	if not is_instance_valid(slot):
 		return
@@ -2215,31 +2221,44 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		var angle := UNLOCK_SPARK_ANGLE_CENTER + (t * 2.0 - 1.0) * UNLOCK_SPARK_ANGLE_HALF_SPREAD \
 			+ rng.randf_range(-0.12, 0.12)
 
-		# Each spark is a thin elongated streak aligned to its travel direction.
-		var spark_width := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
-		var streak_ratio := rng.randf_range(2.5, 4.5)
-		var core_size := Vector2(spark_width, spark_width * streak_ratio)
-		var halo_size := core_size * rng.randf_range(2.2, 2.8)
+		# Doom-2016-style menu embers read as tiny orange pixels with soft heat glow,
+		# not as large UI rectangles.
+		var core_width := rng.randf_range(UNLOCK_SPARK_CORE_WIDTH_MIN, UNLOCK_SPARK_CORE_WIDTH_MAX)
+		var core_height := rng.randf_range(UNLOCK_SPARK_CORE_HEIGHT_MIN, UNLOCK_SPARK_CORE_HEIGHT_MAX)
+		var core_size := Vector2(core_width, core_height)
+		var halo_diameter := max(core_size.x, core_size.y) * rng.randf_range(
+			UNLOCK_SPARK_GLOW_SCALE_MIN,
+			UNLOCK_SPARK_GLOW_SCALE_MAX
+		)
+		var halo_size := Vector2(halo_diameter, halo_diameter)
 		spark.custom_minimum_size = halo_size
 		spark.size = halo_size
-		# Rotate so the streak points along the travel direction.
 		spark.rotation = angle + PI / 2.0
 		spark.pivot_offset = spark.size * 0.5
 		spark.position = slot_center - spark.pivot_offset
 
-		var halo := ColorRect.new()
-		halo.name = "UnlockSparkGlow"
-		halo.size = halo_size
-		halo.position = Vector2.ZERO
-		halo.color = Color(1.0, rng.randf_range(0.72, 0.94), rng.randf_range(0.12, 0.26), 0.32)
-		halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		spark.add_child(halo)
+		var outer_glow := ColorRect.new()
+		outer_glow.name = "UnlockSparkGlowOuter"
+		outer_glow.size = halo_size
+		outer_glow.position = Vector2.ZERO
+		outer_glow.color = Color(1.0, rng.randf_range(0.32, 0.46), 0.02, 0.10)
+		outer_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(outer_glow)
+
+		var inner_glow_size := halo_size * rng.randf_range(0.42, 0.60)
+		var inner_glow := ColorRect.new()
+		inner_glow.name = "UnlockSparkGlowInner"
+		inner_glow.size = inner_glow_size
+		inner_glow.position = (halo_size - inner_glow_size) * 0.5
+		inner_glow.color = Color(1.0, rng.randf_range(0.55, 0.72), 0.05, 0.24)
+		inner_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(inner_glow)
 
 		var core := ColorRect.new()
 		core.name = "UnlockSparkCore"
 		core.size = core_size
 		core.position = (halo_size - core_size) * 0.5
-		core.color = Color(1.0, rng.randf_range(0.88, 1.0), rng.randf_range(0.55, 0.75), 1.0)
+		core.color = Color(1.0, rng.randf_range(0.42, 0.62), rng.randf_range(0.02, 0.08), 1.0)
 		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark.add_child(core)
 
@@ -2263,7 +2282,9 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		spark_tween.set_parallel(true)
 		spark_tween.tween_property(spark, "scale", target_scale, duration) \
 			.set_ease(Tween.EASE_IN)
-		spark_tween.tween_property(halo, "color:a", 0.0, duration) \
+		spark_tween.tween_property(outer_glow, "color:a", 0.0, duration) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.05)
+		spark_tween.tween_property(inner_glow, "color:a", 0.0, duration) \
 			.set_ease(Tween.EASE_IN).set_delay(duration * 0.10)
 		spark_tween.tween_property(core, "color:a", 0.0, duration) \
 			.set_ease(Tween.EASE_IN).set_delay(duration * 0.15)

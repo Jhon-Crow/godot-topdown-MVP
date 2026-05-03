@@ -1117,15 +1117,21 @@ func test_unlock_reveal_animation_emits_sparks() -> void:
 		"Unlock reveal animation must emit sparks at the card-opening moment (Issue #1933)")
 
 
-func test_unlock_sparks_are_large_and_fly_outward() -> void:
+func test_unlock_sparks_are_tiny_orange_pixels_and_fly_outward() -> void:
 	var source := _read_armory_menu_source()
 	if source.is_empty():
 		return
 
 	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 36"),
 		"Unlock reveal should emit a denser burst of sparks after owner feedback")
-	assert_true(source.contains("const UNLOCK_SPARK_SIZE_MAX: float = 8.0"),
-		"Unlock sparks should have a defined max size for the card reveal")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0"),
+		"Unlock spark cores should be 1 px wide after owner feedback")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MAX: float = 1.0"),
+		"Unlock spark cores should stay 1 px wide instead of becoming UI rectangles")
+	assert_true(source.contains("const UNLOCK_SPARK_CORE_HEIGHT_MAX: float = 3.0"),
+		"Unlock spark cores should be at most 1x3 px after owner feedback")
+	assert_true(source.contains("UNLOCK_SPARK_GLOW_SCALE_MAX"),
+		"Unlock sparks should use a soft glow around the tiny orange core")
 	assert_true(source.contains("const UNLOCK_SPARK_DISTANCE_MAX: float = 140.0"),
 		"Unlock sparks should fly outward from the card instead of staying inside it")
 	assert_true(source.contains("spark_layer.clip_contents = false"),
@@ -1145,11 +1151,15 @@ func test_unlock_sparks_arc_downward_and_glow() -> void:
 		"Unlock sparks should visibly fall downward after the initial burst")
 	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MIN: float = 0.70"),
 		"Unlock sparks should move slower than the original quick straight burst")
-	assert_true(source.contains("UnlockSparkGlow"),
-		"Unlock sparks should include a glow halo for a sparkler-like effect")
+	assert_true(source.contains("UnlockSparkGlowOuter"),
+		"Unlock sparks should include a soft outer glow for a realistic ember effect")
+	assert_true(source.contains("UnlockSparkGlowInner"),
+		"Unlock sparks should include a warmer inner glow around the orange core")
 	assert_true(source.contains("UnlockSparkCore"),
 		"Unlock sparks should include a bright core inside the glow")
 	assert_true(source.contains("movement_tween.tween_property(spark, \"position\", target_position"),
 		"Unlock sparks should animate in two position phases to create an arc")
-	assert_true(source.contains("streak_ratio"),
-		"Unlock sparks should be elongated streaks, not round circles (Issue #1933 owner feedback)")
+	assert_true(source.contains("var core_size := Vector2(core_width, core_height)"),
+		"Unlock sparks should build their visible particle from a tiny 1x1 to 1x3 core")
+	assert_false(source.contains("var streak_ratio :="),
+		"Unlock sparks should no longer use large rectangular streak sizing after owner feedback")
