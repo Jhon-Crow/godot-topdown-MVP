@@ -13,6 +13,7 @@ extends GutTest
 class MockSoundSettings:
 	var effects_volume: float = 1.0
 	var music_volume: float = 1.0
+	var music_muffle_enabled: bool = true
 	var settings_changed_count: int = 0
 
 	func set_effects_volume(volume: float) -> void:
@@ -29,6 +30,13 @@ class MockSoundSettings:
 	func get_music_volume() -> float:
 		return music_volume
 
+	func set_music_muffle_enabled(enabled: bool) -> void:
+		music_muffle_enabled = enabled
+		settings_changed_count += 1
+
+	func is_music_muffle_enabled() -> bool:
+		return music_muffle_enabled
+
 
 # ============================================================================
 # Mock SoundMenu logic (mirrors sound_menu.gd logic)
@@ -39,6 +47,7 @@ class MockSoundMenu:
 	## Simulated slider values (0..100)
 	var effects_slider_value: float = 100.0
 	var music_slider_value: float = 100.0
+	var music_muffle_button_pressed: bool = true
 
 	## Simulated label texts
 	var effects_value_text: String = "100%"
@@ -52,6 +61,7 @@ class MockSoundMenu:
 		effects_value_text = "%d%%" % int(effects_slider_value)
 		music_slider_value = sound_settings.get_music_volume() * 100.0
 		music_value_text = "%d%%" % int(music_slider_value)
+		music_muffle_button_pressed = sound_settings.is_music_muffle_enabled()
 
 	func on_effects_volume_changed(value: float, sound_settings: MockSoundSettings) -> void:
 		sound_settings.set_effects_volume(value / 100.0)
@@ -60,6 +70,9 @@ class MockSoundMenu:
 	func on_music_volume_changed(value: float, sound_settings: MockSoundSettings) -> void:
 		sound_settings.set_music_volume(value / 100.0)
 		music_value_text = "%d%%" % int(value)
+
+	func on_music_muffle_toggled(enabled: bool, sound_settings: MockSoundSettings) -> void:
+		sound_settings.set_music_muffle_enabled(enabled)
 
 	func on_back_pressed() -> void:
 		back_pressed_count += 1
@@ -126,6 +139,13 @@ func test_update_ui_sets_music_label_text() -> void:
 		"Music label should show '30%%' when slider is 30")
 
 
+func test_update_ui_sets_music_muffle_toggle() -> void:
+	sound_settings.music_muffle_enabled = false
+	menu.update_ui(sound_settings)
+	assert_false(menu.music_muffle_button_pressed,
+		"Music muffle toggle should reflect SoundSettings")
+
+
 # ============================================================================
 # Slider Change Tests
 # ============================================================================
@@ -169,6 +189,12 @@ func test_on_music_volume_changed_mutes_to_zero() -> void:
 		"Music volume should be muted (0.0) when slider is at 0")
 	assert_eq(menu.music_value_text, "0%",
 		"Music label should show '0%%' when muted")
+
+
+func test_on_music_muffle_toggled_updates_settings() -> void:
+	menu.on_music_muffle_toggled(false, sound_settings)
+	assert_false(sound_settings.is_music_muffle_enabled(),
+		"SoundSettings music muffle should be disabled when toggle is off")
 
 
 # ============================================================================

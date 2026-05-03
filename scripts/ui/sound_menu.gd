@@ -13,6 +13,7 @@ signal back_pressed
 @onready var effects_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EffectsContainer/EffectsValueLabel
 @onready var music_slider: HSlider = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicContainer/MusicSlider
 @onready var music_value_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicContainer/MusicValueLabel
+@onready var music_muffle_check_button: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicMuffleContainer/MusicMuffleCheckButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 
 
@@ -22,10 +23,13 @@ func _ready() -> void:
 			"Effects Volume")
 	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicContainer,
 			"Music Volume")
+	_setup_row_hover($MenuContainer/PanelContainer/MarginContainer/VBoxContainer/MusicMuffleContainer,
+			"Music Muffle")
 
 	# Connect button and slider signals
 	effects_slider.value_changed.connect(_on_effects_volume_changed)
 	music_slider.value_changed.connect(_on_music_volume_changed)
+	music_muffle_check_button.toggled.connect(_on_music_muffle_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update sliders from current settings
@@ -56,6 +60,11 @@ func _update_ui() -> void:
 	music_slider.set_block_signals(false)
 	music_value_label.text = "%d%%" % int(sound_settings.get_music_volume() * 100.0)
 
+	if sound_settings.has_method("is_music_muffle_enabled"):
+		music_muffle_check_button.set_block_signals(true)
+		music_muffle_check_button.button_pressed = sound_settings.is_music_muffle_enabled()
+		music_muffle_check_button.set_block_signals(false)
+
 
 func _on_effects_volume_changed(value: float) -> void:
 	var sound_settings: Node = get_node_or_null("/root/SoundSettings")
@@ -69,6 +78,12 @@ func _on_music_volume_changed(value: float) -> void:
 	if sound_settings:
 		sound_settings.set_music_volume(value / 100.0)
 	music_value_label.text = "%d%%" % int(value)
+
+
+func _on_music_muffle_toggled(enabled: bool) -> void:
+	var sound_settings: Node = get_node_or_null("/root/SoundSettings")
+	if sound_settings and sound_settings.has_method("set_music_muffle_enabled"):
+		sound_settings.set_music_muffle_enabled(enabled)
 
 
 func _unhandled_input(event: InputEvent) -> void:

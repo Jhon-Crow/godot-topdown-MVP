@@ -9,6 +9,15 @@ extends GutTest
 const MUSIC_MANAGER = preload("res://scripts/autoload/music_manager.gd")
 
 
+class MockSoundSettingsNode:
+	extends Node
+
+	var music_muffle_enabled: bool = true
+
+	func is_music_muffle_enabled() -> bool:
+		return music_muffle_enabled
+
+
 # ============================================================================
 # Mapping Tests (no node required)
 # ============================================================================
@@ -58,6 +67,7 @@ func test_main_levels_are_mapped() -> void:
 
 
 var manager: Node = null
+var _mock_sound_settings: Node = null
 
 
 func before_each() -> void:
@@ -65,6 +75,12 @@ func before_each() -> void:
 	add_child_autofree(manager)
 	# Allow _ready() to run.
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	if is_instance_valid(_mock_sound_settings):
+		_mock_sound_settings.queue_free()
+		_mock_sound_settings = null
 
 
 ## Build a tiny, valid AudioStream for tests. AudioStreamGenerator works in
@@ -110,6 +126,18 @@ func test_set_pause_muffle_enabled_toggles_bus_effect() -> void:
 	manager.set_pause_muffle_enabled(false)
 	assert_false(manager.is_pause_muffle_enabled(),
 		"Pause muffle effect should be disabled when the pause menu closes")
+
+
+func test_set_pause_muffle_enabled_respects_sound_settings_toggle() -> void:
+	_mock_sound_settings = MockSoundSettingsNode.new()
+	_mock_sound_settings.name = "SoundSettings"
+	_mock_sound_settings.music_muffle_enabled = false
+	get_tree().root.add_child(_mock_sound_settings)
+
+	manager.set_pause_muffle_enabled(true)
+
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should stay disabled when SoundSettings toggle is off")
 
 
 func test_sync_to_new_scene_disables_pause_muffle() -> void:
