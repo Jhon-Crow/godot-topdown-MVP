@@ -542,6 +542,12 @@ func restart_scene() -> void:
 		_log_to_file("restart_scene() — already reloading, skipping")
 		return
 	_log_to_file("restart_scene() — starting scene reload")
+	# Issue #1927: arm the file logger to flush every write for the next few
+	# seconds so a hard crash mid-reload does not lose the last log lines that
+	# point to the actual crash site.
+	var fl := get_node_or_null("/root/FileLogger")
+	if fl != null and fl.has_method("force_immediate_flush_window"):
+		fl.force_immediate_flush_window()
 	_reloading = true
 	_reset_stats()
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
