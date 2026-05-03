@@ -2,7 +2,7 @@
 
 ## Issue
 
-Owner request: add large sparks at the final moment when the player opens an available unlock card by holding LMB in the armory menu.
+Owner request: add large sparks at the final moment when the player opens an available unlock card by holding LMB in the armory menu. Follow-up feedback asked for more sparks, slower movement, gravity-like downward arcs, and a bright sparkler-style glow.
 
 ## Existing Flow
 
@@ -32,14 +32,21 @@ The project already has particle-style visual effects such as `scenes/effects/Sp
    - Minimal dependencies.
    - Works directly in card-local coordinates.
    - Easy to test by source contract and visual inspection.
+   - Can fake glow per spark with local halo/core controls without requiring project-wide bloom settings.
 
 Chosen option: programmatic UI sparks.
 
 ## Implementation
 
-`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` over the card and emits 18 large gold/orange `ColorRect` sparks from the card center. Each spark flies outward 58-126 px, rotates, shrinks, fades, and the layer removes itself after the burst.
+`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` over the card and emits 32 large gold/orange sparks from the card center. Each spark has a bright core and a larger translucent halo, so the effect reads as glowing even in UI-space without depending on global bloom.
+
+The sparks now move slower over 0.72-0.96 seconds. Motion is split into two tween phases: an upward launch peak and a downward landing offset, which makes each spark travel along an arc as if gravity pulls it down after the burst.
 
 The reveal animation calls `_emit_unlock_sparks(slot)` as the card opening starts, so the sparks appear at the completion moment of the hold-to-unlock interaction.
+
+## Online Research Notes
+
+Godot canvas items support per-item material/blend behavior, and canvas item shaders document additive blending (`blend_add`) for glow-like 2D effects. For this UI case, a local halo/core structure was chosen instead of a shader or renderer-level bloom setting because it is deterministic, needs no scene/project setting changes, and keeps the effect scoped to the unlock card.
 
 ## Verification
 
@@ -48,3 +55,5 @@ Added source-level regression tests in `tests/unit/test_armory_menu.gd` to ensur
 - the unlock reveal invokes `_emit_unlock_sparks(slot)`;
 - the spark burst uses a large visible count and size;
 - sparks can fly outside the card bounds.
+- sparks use slower arc motion with downward fall;
+- sparks include a glow halo plus bright core.

@@ -1122,11 +1122,30 @@ func test_unlock_sparks_are_large_and_fly_outward() -> void:
 	if source.is_empty():
 		return
 
-	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 18"),
-		"Unlock reveal should emit a burst of large sparks, not a tiny single flash")
+	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 32"),
+		"Unlock reveal should emit a denser burst of sparks after owner feedback")
 	assert_true(source.contains("const UNLOCK_SPARK_SIZE_MAX: float = 11.0"),
 		"Unlock sparks should be visually large enough for the card reveal")
 	assert_true(source.contains("const UNLOCK_SPARK_DISTANCE_MAX: float = 126.0"),
 		"Unlock sparks should fly outward from the card instead of staying inside it")
 	assert_true(source.contains("spark_layer.clip_contents = false"),
 		"Spark layer must allow particles to leave the card bounds")
+
+
+func test_unlock_sparks_arc_downward_and_glow() -> void:
+	var source := _read_armory_menu_source()
+	if source.is_empty():
+		return
+
+	assert_true(source.contains("const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 34.0"),
+		"Unlock sparks should launch upward before falling into a gravity-like arc")
+	assert_true(source.contains("const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 96.0"),
+		"Unlock sparks should visibly fall downward after the initial burst")
+	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MIN: float = 0.72"),
+		"Unlock sparks should move slower than the original quick straight burst")
+	assert_true(source.contains("UnlockSparkGlow"),
+		"Unlock sparks should include a glow halo for a sparkler-like effect")
+	assert_true(source.contains("UnlockSparkCore"),
+		"Unlock sparks should include a bright core inside the glow")
+	assert_true(source.contains("movement_tween.tween_property(spark, \"position\", target_position"),
+		"Unlock sparks should animate in two position phases to create an arc")

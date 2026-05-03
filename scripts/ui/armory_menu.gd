@@ -196,8 +196,8 @@ var _lmb_hold_tracking: Dictionary = {}
 ## Duration (in seconds) to hold LMB to unlock an item.
 const UNLOCK_HOLD_DURATION: float = 1.5
 
-## Number of large UI sparks emitted when a card opens.
-const UNLOCK_SPARK_COUNT: int = 18
+## Number of large glowing UI sparks emitted when a card opens.
+const UNLOCK_SPARK_COUNT: int = 32
 
 ## Pixel size range for the large unlock sparks.
 const UNLOCK_SPARK_SIZE_MIN: float = 5.0
@@ -206,6 +206,18 @@ const UNLOCK_SPARK_SIZE_MAX: float = 11.0
 ## Distance range for sparks flying out of the opened unlock card.
 const UNLOCK_SPARK_DISTANCE_MIN: float = 58.0
 const UNLOCK_SPARK_DISTANCE_MAX: float = 126.0
+
+## Vertical arc range for unlock sparks before gravity pulls them downward.
+const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 34.0
+const UNLOCK_SPARK_ARC_HEIGHT_MAX: float = 78.0
+
+## Gravity-like downward fall range for unlock sparks.
+const UNLOCK_SPARK_GRAVITY_FALL_MIN: float = 42.0
+const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 96.0
+
+## Longer lifetime keeps the heavier spark burst readable.
+const UNLOCK_SPARK_DURATION_MIN: float = 0.72
+const UNLOCK_SPARK_DURATION_MAX: float = 0.96
 
 ## Timer for processing LMB hold progress.
 var _unlock_timer: Timer = null
@@ -2171,7 +2183,7 @@ func _create_glow_overlay(slot: PanelContainer) -> ColorRect:
 	return glow
 
 
-## Emits large short-lived UI sparks from an unlock card at the reveal moment.
+## Emits large glowing UI sparks from an unlock card at the reveal moment.
 func _emit_unlock_sparks(slot: PanelContainer) -> void:
 	if not is_instance_valid(slot):
 		return
@@ -2188,34 +2200,61 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 	rng.randomize()
 
 	for i in range(UNLOCK_SPARK_COUNT):
-		var spark := ColorRect.new()
+		var spark := Control.new()
 		spark.name = "UnlockSpark"
-		var spark_size := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
-		spark.custom_minimum_size = Vector2(spark_size, spark_size * rng.randf_range(0.55, 1.15))
-		spark.size = spark.custom_minimum_size
-		spark.pivot_offset = spark.size * 0.5
-		spark.position = slot_center - spark.pivot_offset
-		spark.rotation = rng.randf_range(-PI, PI)
-		spark.color = Color(1.0, rng.randf_range(0.62, 0.9), rng.randf_range(0.12, 0.28), 1.0)
 		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark_layer.add_child(spark)
 
+		var spark_size := rng.randf_range(UNLOCK_SPARK_SIZE_MIN, UNLOCK_SPARK_SIZE_MAX)
+		var core_size := Vector2(spark_size, spark_size * rng.randf_range(0.55, 1.15))
+		var halo_size := core_size * rng.randf_range(2.6, 3.4)
+		spark.custom_minimum_size = halo_size
+		spark.size = halo_size
+		spark.rotation = rng.randf_range(-PI, PI)
+		spark.pivot_offset = spark.size * 0.5
+		spark.position = slot_center - spark.pivot_offset
+
+		var halo := ColorRect.new()
+		halo.name = "UnlockSparkGlow"
+		halo.size = halo_size
+		halo.position = Vector2.ZERO
+		halo.color = Color(1.0, rng.randf_range(0.72, 0.94), rng.randf_range(0.12, 0.26), 0.28)
+		halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(halo)
+
+		var core := ColorRect.new()
+		core.name = "UnlockSparkCore"
+		core.size = core_size
+		core.position = (halo_size - core_size) * 0.5
+		core.color = Color(1.0, rng.randf_range(0.88, 1.0), rng.randf_range(0.28, 0.42), 1.0)
+		core.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spark.add_child(core)
+
 		var angle := (TAU * float(i) / float(UNLOCK_SPARK_COUNT)) + rng.randf_range(-0.28, 0.28)
 		var distance := rng.randf_range(UNLOCK_SPARK_DISTANCE_MIN, UNLOCK_SPARK_DISTANCE_MAX)
-		var target_position := slot_center + Vector2.RIGHT.rotated(angle) * distance - spark.pivot_offset
+		var launch_offset := Vector2.RIGHT.rotated(angle) * distance
+		var arc_peak := slot_center + launch_offset * 0.48 - Vector2(0.0, rng.randf_range(UNLOCK_SPARK_ARC_HEIGHT_MIN, UNLOCK_SPARK_ARC_HEIGHT_MAX)) - spark.pivot_offset
+		var target_position := slot_center + launch_offset + Vector2(0.0, rng.randf_range(UNLOCK_SPARK_GRAVITY_FALL_MIN, UNLOCK_SPARK_GRAVITY_FALL_MAX)) - spark.pivot_offset
 		var target_scale := Vector2(rng.randf_range(0.15, 0.35), rng.randf_range(0.15, 0.35))
+		var duration := rng.randf_range(UNLOCK_SPARK_DURATION_MIN, UNLOCK_SPARK_DURATION_MAX)
+		var movement_tween := create_tween()
+		movement_tween.tween_property(spark, "position", arc_peak, duration * 0.42) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		movement_tween.tween_property(spark, "position", target_position, duration * 0.58) \
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+
 		var spark_tween := create_tween()
 		spark_tween.set_parallel(true)
-		spark_tween.tween_property(spark, "position", target_position, rng.randf_range(0.28, 0.42)) \
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		spark_tween.tween_property(spark, "rotation", spark.rotation + rng.randf_range(-4.0, 4.0), 0.36) \
+		spark_tween.tween_property(spark, "rotation", spark.rotation + rng.randf_range(-3.0, 3.0), duration) \
 			.set_ease(Tween.EASE_OUT)
-		spark_tween.tween_property(spark, "scale", target_scale, 0.36) \
+		spark_tween.tween_property(spark, "scale", target_scale, duration) \
 			.set_ease(Tween.EASE_IN)
-		spark_tween.tween_property(spark, "color:a", 0.0, 0.36) \
-			.set_ease(Tween.EASE_IN).set_delay(0.08)
+		spark_tween.tween_property(halo, "color:a", 0.0, duration) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.12)
+		spark_tween.tween_property(core, "color:a", 0.0, duration) \
+			.set_ease(Tween.EASE_IN).set_delay(duration * 0.18)
 
-	var cleanup_timer := get_tree().create_timer(0.55)
+	var cleanup_timer := get_tree().create_timer(1.15)
 	cleanup_timer.timeout.connect(func():
 		if is_instance_valid(spark_layer):
 			spark_layer.queue_free()
