@@ -1122,8 +1122,10 @@ func test_unlock_sparks_are_tiny_orange_pixels_and_fly_outward() -> void:
 	if source.is_empty():
 		return
 
-	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 36"),
+	assert_true(source.contains("const UNLOCK_SPARK_COUNT: int = 52"),
 		"Unlock reveal should emit a denser burst of sparks after owner feedback")
+	assert_true(source.contains("const UNLOCK_SPARK_RADIAL_COUNT: int = 18"),
+		"Unlock reveal should add radial embers that fly in all directions")
 	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0"),
 		"Unlock spark cores should be 1 px wide after owner feedback")
 	assert_true(source.contains("const UNLOCK_SPARK_CORE_WIDTH_MAX: float = 1.0"),
@@ -1136,8 +1138,14 @@ func test_unlock_sparks_are_tiny_orange_pixels_and_fly_outward() -> void:
 		"Unlock sparks should fly outward from the card instead of staying inside it")
 	assert_true(source.contains("spark_layer.clip_contents = false"),
 		"Spark layer must allow particles to leave the card bounds")
+	assert_true(source.contains("add_child(spark_layer)"),
+		"Spark layer should be attached to the armory CanvasLayer so top-row sparks are not clipped by slot/grid ancestors")
+	assert_true(source.contains("slot.get_global_rect().get_center()"),
+		"Spark origin should use global slot coordinates after moving the layer outside the slot")
 	assert_true(source.contains("UNLOCK_SPARK_ANGLE_CENTER"),
 		"Unlock sparks should use a fan angle spread (not full 360) for YouTube-like effect")
+	assert_true(source.contains("TAU * float(i) / float(UNLOCK_SPARK_RADIAL_COUNT)"),
+		"Unlock sparks should include a smaller all-directions radial burst")
 
 
 func test_unlock_sparks_arc_downward_and_glow() -> void:

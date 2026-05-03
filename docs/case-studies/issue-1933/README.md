@@ -38,9 +38,9 @@ Chosen option: programmatic UI sparks.
 
 ## Implementation
 
-`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` over the card and emits 36 orange sparks from the card center. Each visible spark core is intentionally tiny: 1 px wide and 1-3 px high. A larger low-alpha orange outer glow plus a warmer inner glow surrounds each core so the effect reads as a hot ember/spark instead of a UI rectangle.
+`_emit_unlock_sparks(slot)` creates a non-clipping `UnlockSparkLayer` on the armory `CanvasLayer`, then converts the opened card center from global UI coordinates into that layer. This avoids the follow-up top-row clipping problem where particles parented inside the slot/grid tree could disappear behind the armory window bounds. It emits 52 orange sparks from the card center. Each visible spark core is intentionally tiny: 1 px wide and 1-3 px high. A larger low-alpha orange outer glow plus a warmer inner glow surrounds each core so the effect reads as a hot ember/spark instead of a UI rectangle.
 
-Sparks are distributed across an upward fan (~±80° from vertical, like a YouTube like-button burst) rather than a full 360° ring. This gives the effect the characteristic diagonal-left and diagonal-right scatter the owner requested, instead of corn-like jets going straight up.
+Most sparks are distributed across an upward fan (~±80° from vertical, like a YouTube like-button burst), while 18 smaller radial embers fly in all directions. This keeps the characteristic diagonal-left and diagonal-right scatter the owner requested while avoiding a strict upward-only jet.
 
 Motion is split into two tween phases over 0.70–1.05 s: an upward arc peak, then a downward landing. Each spark decelerates as it climbs and accelerates as it falls, simulating gravity. The tiny core may be 1-3 px tall and rotates with travel direction, but the visible mass remains pixel-sized so it resembles Doom 2016-style menu embers rather than long rectangular streaks.
 
@@ -61,10 +61,10 @@ Godot canvas items support per-item material/blend behavior, and canvas item sha
 Added source-level regression tests in `tests/unit/test_armory_menu.gd` to ensure:
 
 - the unlock reveal invokes `_emit_unlock_sparks(slot)`;
-- the spark burst uses a defined count and tiny core size (36 sparks, 1 px wide and 1-3 px high);
-- sparks can fly outside the card bounds;
+- the spark burst uses a defined count and tiny core size (52 sparks, 1 px wide and 1-3 px high);
+- sparks can fly outside the card bounds and are attached outside slot/grid clipping ancestors;
 - sparks use slower arc motion with downward fall;
 - sparks include outer glow, inner glow, and bright orange core layers;
 - sparks are no longer large rectangular streaks;
-- a fan angle constant (UNLOCK_SPARK_ANGLE_CENTER) is defined, so sparks go up-left/up-right rather than all directions;
+- a fan angle constant (UNLOCK_SPARK_ANGLE_CENTER) and radial count are defined, so sparks go up-left/up-right plus a smaller all-directions burst;
 - spark glow sizing avoids Variant `max()` inference and uses explicit float typing so the armory script remains loadable in Godot 4.3 exported builds.

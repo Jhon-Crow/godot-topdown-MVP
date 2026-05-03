@@ -197,7 +197,8 @@ var _lmb_hold_tracking: Dictionary = {}
 const UNLOCK_HOLD_DURATION: float = 1.5
 
 ## Number of tiny glowing UI sparks emitted when a card opens.
-const UNLOCK_SPARK_COUNT: int = 36
+const UNLOCK_SPARK_COUNT: int = 52
+const UNLOCK_SPARK_RADIAL_COUNT: int = 18
 
 ## Pixel size range for the visible orange spark core.
 const UNLOCK_SPARK_CORE_WIDTH_MIN: float = 1.0
@@ -2204,9 +2205,9 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 	spark_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	spark_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spark_layer.clip_contents = false
-	slot.add_child(spark_layer)
+	add_child(spark_layer)
 
-	var slot_center := slot.size * 0.5
+	var slot_center := spark_layer.get_global_transform().affine_inverse() * slot.get_global_rect().get_center()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 
@@ -2216,10 +2217,17 @@ func _emit_unlock_sparks(slot: PanelContainer) -> void:
 		spark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		spark_layer.add_child(spark)
 
-		# Spread sparks evenly across the upper fan then randomise slightly.
-		var t := float(i) / float(UNLOCK_SPARK_COUNT)
-		var angle := UNLOCK_SPARK_ANGLE_CENTER + (t * 2.0 - 1.0) * UNLOCK_SPARK_ANGLE_HALF_SPREAD \
-			+ rng.randf_range(-0.12, 0.12)
+		# Most sparks keep the diagonal up-left/up-right burst, while a smaller
+		# radial ember set prevents the effect from reading as a strict upward jet.
+		var angle: float
+		if i < UNLOCK_SPARK_RADIAL_COUNT:
+			angle = TAU * float(i) / float(UNLOCK_SPARK_RADIAL_COUNT) + rng.randf_range(-0.16, 0.16)
+		else:
+			var fan_index := i - UNLOCK_SPARK_RADIAL_COUNT
+			var fan_count := UNLOCK_SPARK_COUNT - UNLOCK_SPARK_RADIAL_COUNT
+			var t := float(fan_index) / maxf(float(fan_count - 1), 1.0)
+			angle = UNLOCK_SPARK_ANGLE_CENTER + (t * 2.0 - 1.0) * UNLOCK_SPARK_ANGLE_HALF_SPREAD \
+				+ rng.randf_range(-0.18, 0.18)
 
 		# Doom-2016-style menu embers read as tiny orange pixels with soft heat glow,
 		# not as large UI rectangles.
