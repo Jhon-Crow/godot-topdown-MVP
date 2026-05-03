@@ -1852,11 +1852,16 @@ public partial class Revolver : BaseWeapon
 
     public override void _ExitTree()
     {
-        // Clean up cylinder HUD when revolver is removed (Issue #691)
+        // Clean up cylinder HUD when revolver is removed (Issue #691, #1927).
+        // Only disconnect the signal here — do NOT call QueueFree() on the HUD.
+        // The RevolverCylinderUI is a child of RevolverCylinderHUDLayer, which is
+        // a child of the level root. When the scene is reloaded the entire level tree
+        // (including the HUD layer) is freed automatically. Calling QueueFree() on an
+        // already-being-freed node causes a hard crash (Issue #1927).
+        // RevolverCylinderUI._ExitTree() disconnects its own signals, so this is safe.
         if (_cylinderUI != null && IsInstanceValid(_cylinderUI))
         {
             _cylinderUI.DisconnectFromRevolver();
-            _cylinderUI.QueueFree();
             _cylinderUI = null;
         }
 
