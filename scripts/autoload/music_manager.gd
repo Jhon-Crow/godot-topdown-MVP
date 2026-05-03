@@ -210,6 +210,7 @@ func _sync_to_current_scene() -> void:
 	_current_scene_path = path
 	_connected_exit_zones.clear()
 	_exit_zones_connected = _connect_exit_zones(scene)
+	set_pause_muffle_enabled(false)
 	_play_track_for_path(path)
 
 

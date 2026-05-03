@@ -112,6 +112,26 @@ func test_set_pause_muffle_enabled_toggles_bus_effect() -> void:
 		"Pause muffle effect should be disabled when the pause menu closes")
 
 
+func test_sync_to_new_scene_disables_pause_muffle() -> void:
+	# Regression for PR #1932 owner feedback: choosing another level from the
+	# paused Levels menu routes through SceneLoader, so PauseMenu is freed by
+	# the scene change before it can resume the game itself. MusicManager must
+	# clear the global bus effect whenever the current scene changes.
+	manager.set_pause_muffle_enabled(true)
+	manager._current_scene_path = "res://scenes/levels/LabyrinthLevel.tscn"
+
+	var scene := Node2D.new()
+	scene.name = "BuildingLevel"
+	scene.scene_file_path = "res://scenes/levels/BuildingLevel.tscn"
+	add_child_autofree(scene)
+	get_tree().current_scene = scene
+
+	manager._sync_to_current_scene()
+
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be disabled when a new level scene becomes current")
+
+
 func test_credit_label_is_present_with_correct_text() -> void:
 	var canvas: CanvasLayer = manager.get_node("MusicCreditCanvas")
 	assert_not_null(canvas, "Credit canvas should be created")
