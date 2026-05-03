@@ -381,3 +381,29 @@ func test_exit_zone_refreshes_text_on_locale_change() -> void:
 		"Exit zone should listen for locale changes")
 	assert_true(source.contains("func _on_locale_changed(_locale: String) -> void:"),
 		"Exit zone should refresh visible text when locale changes")
+
+
+# ============================================================================
+# Activation Signal (Issue #1925) Tests
+# ============================================================================
+
+
+func test_exit_zone_declares_activated_signal() -> void:
+	# MusicManager listens for `activated` to stop the level music. Make sure
+	# the contract stays in place even if ExitZone is refactored later.
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_true(source.contains("signal activated"),
+		"ExitZone should declare an `activated` signal")
+	assert_true(source.contains("activated.emit()"),
+		"ExitZone should emit `activated` from activate()")
+
+
+func test_exit_zone_activated_emits_only_on_state_change() -> void:
+	# The level scripts call activate() multiple times via call_deferred from
+	# different paths (death of last enemy, fallback timers...). The signal
+	# must only fire once so listeners (MusicManager) don't bounce.
+	var source := FileAccess.get_file_as_string("res://scripts/components/exit_zone.gd")
+
+	assert_true(source.contains("if not was_active"),
+		"activate() should guard the signal emission with a state check")
