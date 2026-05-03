@@ -17,6 +17,9 @@ class MockSoundSettings:
 	## Linear volume for music [0.0, 1.0].
 	var music_volume: float = 1.0
 
+	## Whether pause-screen music muffling is enabled.
+	var music_muffle_enabled: bool = true
+
 	## Track emitted signals
 	var settings_changed_count: int = 0
 
@@ -43,6 +46,14 @@ class MockSoundSettings:
 
 	func get_music_volume() -> float:
 		return music_volume
+
+	func set_music_muffle_enabled(enabled: bool) -> void:
+		if music_muffle_enabled != enabled:
+			music_muffle_enabled = enabled
+			settings_changed_count += 1
+
+	func is_music_muffle_enabled() -> bool:
+		return music_muffle_enabled
 
 	func linear_to_db(linear: float) -> float:
 		if linear <= 0.0:
@@ -74,6 +85,11 @@ func test_default_effects_volume_is_full() -> void:
 func test_default_music_volume_is_full() -> void:
 	assert_eq(settings.get_music_volume(), 1.0,
 		"Default music volume should be 1.0 (100%)")
+
+
+func test_default_music_muffle_is_enabled() -> void:
+	assert_true(settings.is_music_muffle_enabled(),
+		"Music muffle should be enabled by default to preserve existing pause behavior")
 
 
 # ============================================================================
@@ -150,6 +166,24 @@ func test_set_music_volume_no_signal_when_same() -> void:
 	settings.set_music_volume(1.0)  # Already 1.0 by default
 	assert_eq(settings.settings_changed_count, 0,
 		"settings_changed should NOT be emitted when value does not change")
+
+
+func test_set_music_muffle_enabled_stores_value() -> void:
+	settings.set_music_muffle_enabled(false)
+	assert_false(settings.is_music_muffle_enabled(),
+		"Music muffle setting should store false when disabled")
+
+
+func test_set_music_muffle_enabled_emits_signal_on_change() -> void:
+	settings.set_music_muffle_enabled(false)
+	assert_eq(settings.settings_changed_count, 1,
+		"settings_changed should be emitted when music muffle setting changes")
+
+
+func test_set_music_muffle_enabled_no_signal_when_same() -> void:
+	settings.set_music_muffle_enabled(true)  # Already true by default
+	assert_eq(settings.settings_changed_count, 0,
+		"settings_changed should NOT be emitted when music muffle setting does not change")
 
 
 # ============================================================================

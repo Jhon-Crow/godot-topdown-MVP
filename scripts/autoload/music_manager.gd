@@ -304,6 +304,11 @@ func set_pause_muffle_enabled(enabled: bool) -> void:
 	var bus_idx := AudioServer.get_bus_index(MUSIC_BUS)
 	if bus_idx < 0:
 		return
+	if enabled:
+		var sound_settings: Node = get_node_or_null("/root/SoundSettings")
+		if sound_settings and sound_settings.has_method("is_music_muffle_enabled") \
+				and not sound_settings.is_music_muffle_enabled():
+			enabled = false
 	if _pause_muffle_effect_index < 0 or _pause_muffle_effect_index >= AudioServer.get_bus_effect_count(bus_idx):
 		_ensure_pause_muffle_effect()
 	if _pause_muffle_effect_index >= 0 and _pause_muffle_effect_index < AudioServer.get_bus_effect_count(bus_idx):

@@ -17,6 +17,9 @@ var effects_volume: float = 1.0
 ## Linear volume for music [0.0, 1.0]. Default is full volume.
 var music_volume: float = 1.0
 
+## Whether pause-screen music muffling is enabled. Default preserves existing behaviour.
+var music_muffle_enabled: bool = true
+
 ## Name of the audio bus used for sound effects.
 const EFFECTS_BUS: String = "Effects"
 
@@ -36,7 +39,8 @@ const MAX_VOLUME_DB: float = 0.0
 func _ready() -> void:
 	_load_settings()
 	_apply_volumes()
-	_log_to_file("SoundSettings initialized - effects: %.2f, music: %.2f" % [effects_volume, music_volume])
+	_log_to_file("SoundSettings initialized - effects: %.2f, music: %.2f, muffle: %s"
+			% [effects_volume, music_volume, str(music_muffle_enabled)])
 
 
 ## Sets the effects volume.
@@ -71,6 +75,24 @@ func set_music_volume(volume: float) -> void:
 ## Gets the current music volume as a linear value [0.0, 1.0].
 func get_music_volume() -> float:
 	return music_volume
+
+
+## Sets whether pause-screen music muffling is enabled.
+func set_music_muffle_enabled(enabled: bool) -> void:
+	if music_muffle_enabled != enabled:
+		music_muffle_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		if not enabled:
+			var music_manager: Node = get_node_or_null("/root/MusicManager")
+			if music_manager and music_manager.has_method("set_pause_muffle_enabled"):
+				music_manager.set_pause_muffle_enabled(false)
+		_log_to_file("Music muffle enabled set to %s" % str(enabled))
+
+
+## Returns true when pause-screen music muffling is enabled.
+func is_music_muffle_enabled() -> bool:
+	return music_muffle_enabled
 
 
 ## Converts a linear volume [0.0, 1.0] to decibels.
@@ -111,6 +133,7 @@ func _save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("sound", "effects_volume", effects_volume)
 	config.set_value("sound", "music_volume", music_volume)
+	config.set_value("sound", "music_muffle_enabled", music_muffle_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("SoundSettings: Failed to save settings: " + str(error))
@@ -123,12 +146,14 @@ func _load_settings() -> void:
 	if error == OK:
 		effects_volume = config.get_value("sound", "effects_volume", 1.0)
 		music_volume = config.get_value("sound", "music_volume", 1.0)
+		music_muffle_enabled = config.get_value("sound", "music_muffle_enabled", true)
 		# Clamp values in case the file was edited manually
 		effects_volume = clamp(effects_volume, 0.0, 1.0)
 		music_volume = clamp(music_volume, 0.0, 1.0)
 	else:
 		effects_volume = 1.0
 		music_volume = 1.0
+		music_muffle_enabled = true
 
 
 ## Logs a message via FileLogger if available.
