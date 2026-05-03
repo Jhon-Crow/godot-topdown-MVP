@@ -42,7 +42,37 @@ The original log proves the apply action triggered `restart_scene()` and the rel
 
 ## Root Cause
 
-The crash pattern is scene-owned weapon overlays being explicitly `QueueFree()`-ed from weapon `_ExitTree()` while `GameManager.restart_scene()` is already tearing down the current scene.
+There are **two independent crash paths**, not one. The first PR addressed only path A (teardown ownership). Owner feedback "вылетает при выборе ASVK или револьвера" exposed path B (duplicate weapon instantiation race), which is the dominant trigger when the user picks a weapon in the armory and presses Apply.
+
+### Path B (primary): Duplicate weapon instantiation race during scene reload
+
+When `GameManager.restart_scene()` reloads the current level after the player presses Apply in the armory, two independent code paths both try to instantiate the selected weapon as a child of `Player`:
+
+1. **C# `Player._Ready()`** calls `ApplySelectedWeaponFromGameManager()` (`Scripts/Characters/Player.cs:3016+`). It loads e.g. `res://scenes/weapons/csharp/Revolver.tscn`, instantiates the scene, sets `weapon.Name = "Revolver"`, calls `AddChild(weapon)`, and assigns `CurrentWeapon = weapon`.
+2. **Level GDScript `_setup_selected_weapon()`** runs from the level's `_ready()`. In the vulnerable levels it does the same: `load(...).instantiate()`, `revolver.name = "Revolver"`, `_player.add_child(revolver)`, then `_player.EquipWeapon(revolver)`.
+
+Godot does not allow two siblings to share a name, so the second `add_child()` causes the engine to auto-rename the new node — `"Revolver"` becomes `"Revolver2"`, `"SniperRifle"` becomes `"SniperRifle2"`. Then `EquipWeapon(revolver)` removes the original first instance from the tree.
+
+The first instance was instantiated by Player.cs and ran its `_Ready()` immediately. For Revolver and SniperRifle this means deferred setup is already queued:
+
+- **Revolver** (`Scripts/Weapons/Revolver.cs:360`): `CallDeferred(MethodName.SetupCylinderHUD)`.
+- **SniperRifle / ASVK**: scope overlay creation and signal wiring against the level root.
+
+When that deferred call fires, the original Revolver/SniperRifle is no longer in the tree, but its native object is still alive. The setup code touches `GetTree()` / `GetParent()` / scene-root overlays in states it never expected — that is the hard native crash with no GDScript stack trace. It matches the symptom: "press Apply → crash within a frame".
+
+Some levels were already protected: `labyrinth_level.gd` had a `weapon_names` early-return guard (originally added in "Bug fix round 6"), and `test_tier.gd` had the same pattern. The vulnerable levels were:
+
+| Level | Pre-fix state |
+| --- | --- |
+| `decadence_level.gd` | No protection at all |
+| `sewer_level.gd` | No protection at all |
+| `city_level.gd` | Protection dict missing `revolver`, `ak_gl`, `m16` |
+
+Owner feedback specifically called out revolver and ASVK, which are the two weapons with deferred-setup logic that crashes when orphaned by the duplicate. Other duplicates (Shotgun, MakarovPM) merely cause UI/signal bugs of the same family that previous bug-fix rounds addressed (see the "Bug fix round 6" comment in `labyrinth_level.gd:1745`).
+
+### Path A (secondary): Scene-owned weapon overlays explicitly QueueFreed from weapon `_ExitTree()`
+
+This was the path the first PR addressed. It still exists as a latent risk and the fix is kept.
 
 ### Revolver HUD
 
@@ -62,11 +92,23 @@ That is the same ownership error as the revolver HUD, and it matches the owner f
 
 ## Fix
 
-### GameManager
+### Path B fix: duplicate-weapon protection in level scripts
+
+Brought the `labyrinth_level.gd` early-return guard into the three vulnerable level scripts so the GDScript `_setup_selected_weapon()` no longer instantiates a second copy of a weapon that C# `Player._Ready()` already added.
+
+- `scripts/levels/decadence_level.gd` `_setup_selected_weapon()`: added the full `weapon_names` dict and the `_player.get("CurrentWeapon") == existing_weapon` early-return before any `load().instantiate()` path.
+- `scripts/levels/sewer_level.gd` `_setup_selected_weapon()`: same insertion.
+- `scripts/levels/city_level.gd` `_setup_selected_weapon()`: extended the existing `weapon_names` dict to cover `revolver`, `ak_gl`, and `m16` so the early-return now fires for the weapons the user can pick in the armory.
+
+The audit covered all 14 level scripts that define `_setup_selected_weapon()`. After the fix, 13 use the explicit `weapon_names` + early-return pattern; `test_tier.gd` already had its own copy of the same pattern.
+
+### Path A fix (kept from the previous PR)
+
+#### GameManager
 
 Added `is_reloading_scene()` so C# weapon cleanup code can distinguish normal weapon removal from current-scene teardown.
 
-### ASVK
+#### ASVK
 
 Changed ASVK `_ExitTree()` to:
 
@@ -74,20 +116,25 @@ Changed ASVK `_ExitTree()` to:
 - During scene reload, deactivate local scope state and camera offset without explicitly queue-freeing the `ScopeOverlay` or emitting teardown signals.
 - During normal scope release or non-reload weapon removal, keep the existing behavior and queue-free the overlay.
 
-### Revolver
+#### Revolver
 
 Kept the previous correction: `_ExitTree()` disconnects the cylinder UI reference but does not queue-free the level-owned HUD.
 
 ## Regression Test
 
-Added `tests/unit/test_issue_1927_scene_reload_overlay_cleanup.gd`.
+`tests/unit/test_issue_1927_scene_reload_overlay_cleanup.gd` locks down both crash paths in source.
 
-The test locks down the ownership contract:
+Path A (ownership):
 
 - `GameManager` exposes the reload guard.
 - ASVK checks the reload guard from `_ExitTree()`.
 - ASVK overlay cleanup makes explicit queue-free optional.
 - Revolver no longer calls `_cylinderUI.QueueFree()`.
+
+Path B (duplicate weapon race):
+
+- `decadence_level.gd`, `sewer_level.gd`, and `city_level.gd` each include `revolver` and `sniper` in their `weapon_names` dict.
+- Each of those level scripts contains the `_player.get("CurrentWeapon") == existing_weapon` early-return.
 
 ## Reproduction Steps
 
@@ -102,7 +149,9 @@ The test locks down the ownership contract:
 - No error message appears (hard engine crash, not GDScript exception)
 - The original log continues after `restart_scene()`, so the visible symptom is a few frames after pressing Apply
 - The relevant overlays are created by weapon code but owned by the level/current scene root
-- The first PR fixed the revolver-specific instance, but ASVK had the same ownership pattern
+- The first PR fixed the path A ownership bug, which is real but not the dominant trigger; the user's "вылетает при выборе ASVK или револьвера" reproduces path B (duplicate-instantiation race), and the two bugs share the same surface symptom — apply weapon → crash within a frame
+- One level (`labyrinth_level.gd`) had already been hardened against the race in an earlier round (see comment at `labyrinth_level.gd:1745`), masking how broadly other levels were unprotected
+- Owner-uploaded follow-up logs (`game_log_20260503_101617.txt`, `_101640.txt`, `_105042.txt`, `_105107.txt`) returned HTTP 416 from GitHub user-attachments storage, so direct log evidence of the new crash was unavailable; root-cause had to come from code inspection
 
 ## Verification
 
