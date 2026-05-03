@@ -92,6 +92,7 @@ func toggle_pause() -> void:
 ## Pauses the game and shows the menu.
 func pause_game() -> void:
 	get_tree().paused = true
+	_set_music_pause_muffle_enabled(true)
 	# Show cursor for menu interaction (still confined to window)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
@@ -119,6 +120,7 @@ func pause_game() -> void:
 ## Resumes the game and hides the menu.
 func resume_game() -> void:
 	get_tree().paused = false
+	_set_music_pause_muffle_enabled(false)
 	# Hide cursor again for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	hide()
@@ -230,6 +232,7 @@ func _on_levels_back() -> void:
 func _on_training_pressed() -> void:
 	# Load the tutorial level directly
 	get_tree().paused = false
+	_set_music_pause_muffle_enabled(false)
 	# Restore hidden cursor for gameplay (confined and hidden)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
@@ -246,6 +249,7 @@ func _on_training_pressed() -> void:
 func _on_roguelike_pressed() -> void:
 	# Load the roguelike level directly (Issue #1061)
 	get_tree().paused = false
+	_set_music_pause_muffle_enabled(false)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
 	var roguelike_path: String = "res://scenes/levels/RoguelikeLevel.tscn"
@@ -263,6 +267,7 @@ func _on_roguelike_pressed() -> void:
 func _on_arena_pressed() -> void:
 	# Load the Arena level directly (same pattern as Training button).
 	get_tree().paused = false
+	_set_music_pause_muffle_enabled(false)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 
 	var arena_path: String = "res://scenes/levels/ArenaLevel.tscn"
@@ -275,7 +280,14 @@ func _on_arena_pressed() -> void:
 
 func _on_quit_pressed() -> void:
 	get_tree().paused = false
+	_set_music_pause_muffle_enabled(false)
 	get_tree().quit()
+
+
+func _set_music_pause_muffle_enabled(enabled: bool) -> void:
+	var music_manager: Node = get_node_or_null("/root/MusicManager")
+	if music_manager and music_manager.has_method("set_pause_muffle_enabled"):
+		music_manager.set_pause_muffle_enabled(enabled)
 
 
 ## Refresh the armory button state:

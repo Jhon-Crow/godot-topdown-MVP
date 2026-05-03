@@ -90,6 +90,78 @@ func test_audio_player_routes_through_music_bus() -> void:
 		"Music should keep playing while the game is paused")
 
 
+func test_music_bus_has_pause_low_pass_filter() -> void:
+	var effect := manager.get_pause_muffle_effect()
+	assert_not_null(effect,
+		"MusicManager should install a low-pass filter for pause muffling")
+	assert_true(effect is AudioEffectLowPassFilter,
+		"Pause muffle effect should be an AudioEffectLowPassFilter")
+	assert_almost_eq(effect.cutoff_hz, MUSIC_MANAGER.PAUSE_MUFFLED_CUTOFF_HZ, 0.01,
+		"Pause muffle filter should start at the muffled cutoff")
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should start disabled during gameplay")
+
+
+func test_set_pause_muffle_enabled_toggles_bus_effect() -> void:
+	manager.set_pause_muffle_enabled(true)
+	assert_true(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be enabled when the pause menu opens")
+
+	manager.set_pause_muffle_enabled(false)
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be disabled when the pause menu closes")
+
+
+func test_sync_to_new_scene_disables_pause_muffle() -> void:
+	# Regression for PR #1932 owner feedback: choosing another level from the
+	# paused Levels menu routes through SceneLoader, so PauseMenu is freed by
+	# the scene change before it can resume the game itself. MusicManager must
+	# clear the global bus effect whenever the current scene changes.
+	manager.set_pause_muffle_enabled(true)
+	manager._current_scene_path = "res://scenes/levels/LabyrinthLevel.tscn"
+
+	var scene := Node2D.new()
+	scene.name = "BuildingLevel"
+	scene.scene_file_path = "res://scenes/levels/BuildingLevel.tscn"
+	add_child_autofree(scene)
+	get_tree().current_scene = scene
+
+	manager._sync_to_current_scene()
+
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be disabled when a new level scene becomes current")
+
+
+func test_sync_to_reloaded_same_scene_disables_pause_muffle_without_restarting_music() -> void:
+	# Regression for owner feedback after commit 40bfff67: applying a weapon
+	# from the armory can restart the current level, replacing the scene
+	# instance while keeping the same scene_file_path. That must clear the
+	# global pause bus effect without replaying the music track.
+	var old_scene := Node2D.new()
+	old_scene.name = "LabyrinthLevel"
+	old_scene.scene_file_path = "res://scenes/levels/LabyrinthLevel.tscn"
+	add_child_autofree(old_scene)
+
+	var new_scene := Node2D.new()
+	new_scene.name = "LabyrinthLevel"
+	new_scene.scene_file_path = "res://scenes/levels/LabyrinthLevel.tscn"
+	add_child_autofree(new_scene)
+
+	manager.set_pause_muffle_enabled(true)
+	manager._current_scene_path = new_scene.scene_file_path
+	manager._current_scene_instance = old_scene
+	get_tree().current_scene = new_scene
+
+	manager._sync_to_current_scene()
+
+	assert_false(manager.is_pause_muffle_enabled(),
+		"Pause muffle effect should be disabled when the same level is restarted")
+	assert_eq(manager._current_scene_path, new_scene.scene_file_path,
+		"Scene path should remain cached so music playback is not restarted on same-level reload")
+	assert_eq(manager._current_scene_instance, new_scene,
+		"MusicManager should track the replacement scene instance after same-level reload")
+
+
 func test_credit_label_is_present_with_correct_text() -> void:
 	var canvas: CanvasLayer = manager.get_node("MusicCreditCanvas")
 	assert_not_null(canvas, "Credit canvas should be created")
