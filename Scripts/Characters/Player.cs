@@ -1125,9 +1125,10 @@ public partial class Player : BaseCharacter
         }
 
         // Apply weapon selection from GameManager (C# fallback for GDScript level scripts)
-        // This ensures weapon selection works even when GDScript level scripts fail to execute
-        // due to Godot 4.3 binary tokenization issues (godotengine/godot#94150, #96065)
-        ApplySelectedWeaponFromGameManager();
+        // after this node and scene-owned child weapons finish their _Ready() work.
+        // Replacing/freeing the scene-placed MakarovPM inside Player._Ready() can race
+        // weapon deferred initialization during exported scene startup (Issue #1927).
+        CallDeferred(MethodName.ApplySelectedWeaponFromGameManager);
 
         // Store base positions for walking animation
         if (_bodySprite != null)
@@ -3015,6 +3016,16 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void ApplySelectedWeaponFromGameManager()
     {
+        LogToFile("[Player.Weapon] [trace] ApplySelectedWeaponFromGameManager entered (deferred)");
+        // Issue #1927: by the time the deferred call runs, the player itself may
+        // have been removed from the tree (e.g. on rapid restart).  Bail out
+        // before touching GameManager or scene resources.
+        if (!IsInsideTree())
+        {
+            LogToFile("[Player.Weapon] [trace] Aborted — Player not inside tree");
+            return;
+        }
+
         var gameManager = GetNodeOrNull("/root/GameManager");
         if (gameManager == null)
         {
@@ -3089,19 +3100,25 @@ public partial class Player : BaseCharacter
         if (CurrentWeapon != null)
         {
             var oldWeaponName = CurrentWeapon.Name;
+            LogToFile($"[Player.Weapon] [trace] About to RemoveChild({oldWeaponName})");
             RemoveChild(CurrentWeapon);
+            LogToFile($"[Player.Weapon] [trace] About to QueueFree({oldWeaponName})");
             CurrentWeapon.QueueFree();
             CurrentWeapon = null;
             LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
         }
 
         // Load and instantiate the selected weapon
+        LogToFile($"[Player.Weapon] [trace] Loading scene: {scenePath}");
         var weaponScene = GD.Load<PackedScene>(scenePath);
         if (weaponScene != null)
         {
+            LogToFile($"[Player.Weapon] [trace] Instantiating {weaponNodeName}");
             var weapon = weaponScene.Instantiate<BaseWeapon>();
             weapon.Name = weaponNodeName;
+            LogToFile($"[Player.Weapon] [trace] AddChild({weaponNodeName}) — about to enter tree");
             AddChild(weapon);
+            LogToFile($"[Player.Weapon] [trace] AddChild({weaponNodeName}) returned (entered tree)");
             CurrentWeapon = weapon;
             // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
             // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().

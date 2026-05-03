@@ -354,6 +354,25 @@ func _setup_selected_weapon() -> void:
 		selected_weapon_id = game_manager.get_selected_weapon_id()
 	if selected_weapon_id == "":
 		return
+	# Issue #1927: C# Player._Ready() already calls ApplySelectedWeaponFromGameManager() and
+	# instantiates the selected weapon. If we instantiate again here Godot auto-renames the
+	# duplicate ("Revolver2"/"SniperRifle2"); the orphaned first instance still has deferred
+	# setup queued (Revolver: SetupCylinderHUD; SniperRifle: scope overlay) which fires after
+	# the level's EquipWeapon() RemoveChilds it, hard-crashing the engine.
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver"
+	}
+	if selected_weapon_id in weapon_names:
+		var expected_name: String = weapon_names[selected_weapon_id]
+		var existing_weapon = _player.get_node_or_null(expected_name)
+		if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+			return
 	if selected_weapon_id == "makarov_pm":
 		var makarov = _player.get_node_or_null("MakarovPM")
 		if makarov and _player.get("CurrentWeapon") == null:

@@ -33,11 +33,28 @@ const FLUSH_INTERVAL: float = 1.0
 ## Timer node that triggers periodic batch flush (Issue #885).
 var _flush_timer: Timer = null
 
+## When true, every _write_log call flushes immediately instead of batching.
+## Used during fragile windows (startup, scene reload) so a hard crash leaves
+## a complete log file (Issue #1927). Disabled automatically after a short
+## window to avoid FPS impact during normal gameplay.
+var _immediate_flush: bool = true
+
+## Tree time (msec) at which immediate-flush mode auto-disables.
+var _immediate_flush_until_msec: int = 0
+
+## How long (in milliseconds) immediate-flush stays active after startup
+## or after force_immediate_flush_window() is called (Issue #1927).
+const IMMEDIATE_FLUSH_WINDOW_MSEC: int = 10000
+
 
 func _ready() -> void:
 	_setup_flush_timer()
 	_setup_log_file()
 	_log_startup_info()
+	# Issue #1927: keep flushing on every write for the first few seconds so a
+	# hard crash during startup or first scene change still produces a usable log.
+	_immediate_flush = true
+	_immediate_flush_until_msec = Time.get_ticks_msec() + IMMEDIATE_FLUSH_WINDOW_MSEC
 
 
 ## Create and start the periodic flush timer (Issue #885).
@@ -163,11 +180,34 @@ func _write_log(level: String, message: String) -> void:
 		# Flush errors immediately so they are not lost on crash (Issue #885).
 		if level == "ERROR":
 			_flush_write_buffer()
+		elif _immediate_flush:
+			# Issue #1927: flush every write while inside the immediate-flush
+			# window so logs are not lost on a hard crash during scene reload.
+			if _immediate_flush_until_msec != 0 and Time.get_ticks_msec() > _immediate_flush_until_msec:
+				_immediate_flush = false
+			else:
+				_flush_write_buffer()
 	else:
 		# Buffer messages if file not ready yet
 		_log_buffer.append(log_line)
 		if _log_buffer.size() > MAX_BUFFER_SIZE:
 			_log_buffer.pop_front()
+
+
+## Re-arm the immediate-flush window (Issue #1927).
+## Call this just before risky operations like scene reload or weapon swap so
+## that a subsequent hard crash leaves a complete log file on disk.
+func force_immediate_flush_window() -> void:
+	_immediate_flush = true
+	_immediate_flush_until_msec = Time.get_ticks_msec() + IMMEDIATE_FLUSH_WINDOW_MSEC
+	_flush_write_buffer()
+
+
+## Flush the write buffer right now without changing the flush mode (Issue #1927).
+## Useful from C# code paths that want to checkpoint the log without taking the
+## FPS hit of permanently enabling immediate flushing.
+func flush_now() -> void:
+	_flush_write_buffer()
 
 
 ## Flush all buffered log lines to disk (Issue #885).

@@ -890,11 +890,20 @@ func _setup_selected_weapon() -> void:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
 	if selected_weapon_id != "m16":
+		# Issue #1927: include ak_gl/revolver/m16 so the early-return guard fires for
+		# every weapon that C# Player._Ready() already instantiated via
+		# ApplySelectedWeaponFromGameManager(). Without these entries the second
+		# instantiation below produced an orphaned "Revolver2"/"SniperRifle2" duplicate
+		# whose deferred setup (cylinder HUD / scope overlay) fired after RemoveChild,
+		# hard-crashing the engine.
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle"
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle",
+			"ak_gl": "AKGL",
+			"revolver": "Revolver"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]

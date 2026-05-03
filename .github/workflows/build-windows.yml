@@ -30,12 +30,16 @@ jobs:
 
       # Generate build_info.cfg so the game log shows which branch/commit was used.
       # This helps diagnose "wrong build" issues (e.g., Issue #1417 sessions 3-6).
+      # Issue #1927: under pull_request_target the default ${{ github.sha }} points at
+      # the merge commit on main, not the PR head, so logs reported a stale SHA that
+      # no longer existed on the branch.  Prefer pull_request.head.sha when available
+      # so the recorded commit matches the actual code that was built.
       - name: Generate build_info.cfg
         run: |
           cat > build_info.cfg <<EOF
           [build]
           branch="${{ github.head_ref || github.ref_name }}"
-          commit="${{ github.sha }}"
+          commit="${{ github.event.pull_request.head.sha || github.sha }}"
           date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           pr="${{ github.event.pull_request.number || '' }}"
           EOF
