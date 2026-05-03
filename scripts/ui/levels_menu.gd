@@ -10,7 +10,7 @@ signal back_pressed
 
 const LASER_CURSOR_PATH: String = "res://assets/sprites/ui/red_dot_cursor.svg"
 const LASER_CURSOR_HOVER_PATH: String = "res://assets/sprites/ui/red_dot_cursor_hover.svg"
-const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(16, 16)
+const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(32, 32)
 
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [

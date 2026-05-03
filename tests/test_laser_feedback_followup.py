@@ -20,8 +20,11 @@ def test_red_dot_cursor_has_distinct_dot_and_outer_glow():
     svg = CURSOR_ASSET.read_text(encoding="utf-8")
 
     assert 'id="red_dot_cursor_glow"' in svg
-    assert '<circle cx="16" cy="16" r="21"' in svg
-    assert '<circle cx="16" cy="16" r="2.5" fill="#ff120c"' in svg
+    assert 'width="64"' in svg
+    assert 'height="64"' in svg
+    assert 'offset="82%" stop-color="#ff160f" stop-opacity="0.025"' in svg
+    assert '<circle cx="32" cy="32" r="28"' in svg
+    assert '<circle cx="32" cy="32" r="2.5" fill="#ff120c"' in svg
     assert "#fff0df" not in svg
 
 
@@ -29,8 +32,11 @@ def test_hover_cursor_replaces_default_interaction_cursor():
     svg = HOVER_CURSOR_ASSET.read_text(encoding="utf-8")
 
     assert 'id="red_dot_cursor_hover_glow"' in svg
-    assert '<circle cx="16" cy="16" r="16"' in svg
-    assert '<circle cx="16" cy="16" r="3.5" fill="#ff120c"' in svg
+    assert 'width="64"' in svg
+    assert 'height="64"' in svg
+    assert 'offset="84%" stop-color="#ff160f" stop-opacity="0.018"' in svg
+    assert '<circle cx="32" cy="32" r="23"' in svg
+    assert '<circle cx="32" cy="32" r="3.5" fill="#ff120c"' in svg
     assert "#fff0df" not in svg
 
 

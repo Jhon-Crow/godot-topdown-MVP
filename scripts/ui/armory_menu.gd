@@ -27,7 +27,7 @@ const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon
 
 const LASER_CURSOR_PATH: String = "res://assets/sprites/ui/red_dot_cursor.svg"
 const LASER_CURSOR_HOVER_PATH: String = "res://assets/sprites/ui/red_dot_cursor_hover.svg"
-const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(16, 16)
+const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(32, 32)
 
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, description
