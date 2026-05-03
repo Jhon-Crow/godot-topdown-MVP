@@ -1153,12 +1153,16 @@ func test_unlock_sparks_arc_downward_and_glow() -> void:
 	if source.is_empty():
 		return
 
-	assert_true(source.contains("const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 40.0"),
-		"Unlock sparks should launch upward before falling into a gravity-like arc")
-	assert_true(source.contains("const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 110.0"),
+	assert_true(source.contains("const UNLOCK_SPARK_ARC_HEIGHT_MIN: float = 24.0"),
+		"Unlock sparks should use a lower launch arc so the longer fall reads as slow drifting")
+	assert_true(source.contains("const UNLOCK_SPARK_GRAVITY_FALL_MAX: float = 165.0"),
 		"Unlock sparks should visibly fall downward after the initial burst")
-	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MIN: float = 0.70"),
-		"Unlock sparks should move slower than the original quick straight burst")
+	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MIN: float = 1.45"),
+		"Unlock sparks should linger much longer after the card opens")
+	assert_true(source.contains("const UNLOCK_SPARK_DURATION_MAX: float = 2.10"),
+		"Unlock sparks should have enough lifetime to fall slowly while shrinking")
+	assert_true(source.contains("const UNLOCK_SPARK_CLEANUP_PADDING: float = 0.18"),
+		"Unlock spark cleanup should be tied to the configured maximum lifetime")
 	assert_true(source.contains("UnlockSparkGlowOuter"),
 		"Unlock sparks should include a soft outer glow for a realistic ember effect")
 	assert_true(source.contains("UnlockSparkGlowInner"),
@@ -1167,10 +1171,16 @@ func test_unlock_sparks_arc_downward_and_glow() -> void:
 		"Unlock sparks should include a bright core inside the glow")
 	assert_true(source.contains("movement_tween.tween_property(spark, \"position\", target_position"),
 		"Unlock sparks should animate in two position phases to create an arc")
+	assert_true(source.contains("duration * 0.70"),
+		"Unlock sparks should spend most of their lifetime in the slow downward fall")
+	assert_true(source.contains("Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)"),
+		"Unlock sparks should use smoother slow fall and shrink easing")
 	assert_true(source.contains("var core_size := Vector2(core_width, core_height)"),
 		"Unlock sparks should build their visible particle from a tiny 1x1 to 1x3 core")
 	assert_true(source.contains("var halo_diameter: float = max_core_axis * glow_scale"),
 		"Unlock spark glow sizing should use explicit float typing for Godot 4.3 script loading")
+	assert_true(source.contains("UNLOCK_SPARK_DURATION_MAX + UNLOCK_SPARK_CLEANUP_PADDING"),
+		"Unlock spark layer should not be removed before the longer fade completes")
 	assert_false(source.contains("var halo_diameter := max(core_size.x, core_size.y)"),
 		"Unlock spark glow sizing should avoid Variant max() inference that can break exported Godot 4.3 builds")
 	assert_false(source.contains("var streak_ratio :="),
