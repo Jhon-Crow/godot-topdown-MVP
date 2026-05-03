@@ -3016,6 +3016,16 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void ApplySelectedWeaponFromGameManager()
     {
+        LogToFile("[Player.Weapon] [trace] ApplySelectedWeaponFromGameManager entered (deferred)");
+        // Issue #1927: by the time the deferred call runs, the player itself may
+        // have been removed from the tree (e.g. on rapid restart).  Bail out
+        // before touching GameManager or scene resources.
+        if (!IsInsideTree())
+        {
+            LogToFile("[Player.Weapon] [trace] Aborted — Player not inside tree");
+            return;
+        }
+
         var gameManager = GetNodeOrNull("/root/GameManager");
         if (gameManager == null)
         {
@@ -3090,19 +3100,25 @@ public partial class Player : BaseCharacter
         if (CurrentWeapon != null)
         {
             var oldWeaponName = CurrentWeapon.Name;
+            LogToFile($"[Player.Weapon] [trace] About to RemoveChild({oldWeaponName})");
             RemoveChild(CurrentWeapon);
+            LogToFile($"[Player.Weapon] [trace] About to QueueFree({oldWeaponName})");
             CurrentWeapon.QueueFree();
             CurrentWeapon = null;
             LogToFile($"[Player.Weapon] Removed current weapon: {oldWeaponName}");
         }
 
         // Load and instantiate the selected weapon
+        LogToFile($"[Player.Weapon] [trace] Loading scene: {scenePath}");
         var weaponScene = GD.Load<PackedScene>(scenePath);
         if (weaponScene != null)
         {
+            LogToFile($"[Player.Weapon] [trace] Instantiating {weaponNodeName}");
             var weapon = weaponScene.Instantiate<BaseWeapon>();
             weapon.Name = weaponNodeName;
+            LogToFile($"[Player.Weapon] [trace] AddChild({weaponNodeName}) — about to enter tree");
             AddChild(weapon);
+            LogToFile($"[Player.Weapon] [trace] AddChild({weaponNodeName}) returned (entered tree)");
             CurrentWeapon = weapon;
             // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
             // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().

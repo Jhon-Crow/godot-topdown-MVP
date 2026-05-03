@@ -295,13 +295,31 @@ public partial class SniperRifle : BaseWeapon
 
     public override void _ExitTree()
     {
+        LogToFile("[trace] SniperRifle._ExitTree begin");
         // Clean up scope overlay when weapon is removed from scene tree
         if (_isScopeActive)
         {
             bool isSceneReloading = IsSceneReloadInProgress();
+            LogToFile($"[trace] SniperRifle._ExitTree deactivating scope (isSceneReloading={isSceneReloading})");
             DeactivateScope(queueFreeOverlay: !isSceneReloading, emitSignal: !isSceneReloading);
         }
+        LogToFile("[trace] SniperRifle._ExitTree end");
         base._ExitTree();
+    }
+
+    /// <summary>
+    /// Log a message via the FileLogger autoload (Issue #1927).
+    /// Used to trace teardown order during scene reload.
+    /// </summary>
+    private void LogToFile(string message)
+    {
+        var fullMessage = $"[SniperRifle] {message}";
+        GD.Print(fullMessage);
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        {
+            fileLogger.Call("log_info", fullMessage);
+        }
     }
 
     public override void _Process(double delta)
