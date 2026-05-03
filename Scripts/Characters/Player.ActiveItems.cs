@@ -1522,10 +1522,23 @@ public partial class Player
         _breakerBulletsActive = true;
         LogToFile("[Player.BreakerBullets] Breaker bullets active — bullets will detonate 95px before walls, with enemy proximity fuse (40px arming distance)");
 
-        // Set breaker bullet flag on current weapon so all spawned bullets get the flag
-        if (CurrentWeapon != null)
+        SyncBreakerBulletsToCurrentWeapon();
+    }
+
+    /// <summary>
+    /// Propagates the passive breaker-bullet state to the currently equipped weapon.
+    /// Some C# fallback levels replace the default weapon after InitBreakerBullets() runs.
+    /// </summary>
+    private void SyncBreakerBulletsToCurrentWeapon()
+    {
+        if (CurrentWeapon == null)
         {
-            CurrentWeapon.IsBreakerBulletActive = true;
+            return;
+        }
+
+        CurrentWeapon.IsBreakerBulletActive = _breakerBulletsActive;
+        if (_breakerBulletsActive)
+        {
             LogToFile($"[Player.BreakerBullets] Set IsBreakerBulletActive on weapon: {CurrentWeapon.Name}");
         }
     }
