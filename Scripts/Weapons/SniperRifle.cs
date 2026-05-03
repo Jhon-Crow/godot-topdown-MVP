@@ -298,7 +298,8 @@ public partial class SniperRifle : BaseWeapon
         // Clean up scope overlay when weapon is removed from scene tree
         if (_isScopeActive)
         {
-            DeactivateScope();
+            bool isSceneReloading = IsSceneReloadInProgress();
+            DeactivateScope(queueFreeOverlay: !isSceneReloading, emitSignal: !isSceneReloading);
         }
         base._ExitTree();
     }
@@ -2497,6 +2498,11 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     public void DeactivateScope()
     {
+        DeactivateScope(queueFreeOverlay: true, emitSignal: true);
+    }
+
+    private void DeactivateScope(bool queueFreeOverlay, bool emitSignal)
+    {
         if (!_isScopeActive)
         {
             return;
@@ -2505,16 +2511,21 @@ public partial class SniperRifle : BaseWeapon
         _isScopeActive = false;
 
         // Restore original camera offset
-        if (_playerCamera != null)
+        if (_playerCamera != null && IsInstanceValid(_playerCamera))
         {
             _playerCamera.Offset = _originalCameraOffset;
         }
 
         // Remove scope overlay
-        RemoveScopeOverlay();
+        RemoveScopeOverlay(queueFreeOverlay);
 
-        EmitSignal(SignalName.ScopeStateChanged, false);
-        GD.Print("[SniperRifle] Scope deactivated.");
+        if (emitSignal)
+        {
+            EmitSignal(SignalName.ScopeStateChanged, false);
+        }
+        GD.Print(queueFreeOverlay
+            ? "[SniperRifle] Scope deactivated."
+            : "[SniperRifle] Scope deactivated during scene reload; overlay left to scene teardown.");
     }
 
     /// <summary>
@@ -2862,14 +2873,26 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Removes the scope overlay from the scene.
     /// </summary>
-    private void RemoveScopeOverlay()
+    private void RemoveScopeOverlay(bool queueFreeOverlay = true)
     {
         if (_scopeOverlay != null && IsInstanceValid(_scopeOverlay))
         {
-            _scopeOverlay.QueueFree();
-            _scopeOverlay = null;
-            _scopeCrosshair = null;
-            _scopeBackground = null;
+            if (queueFreeOverlay)
+            {
+                _scopeOverlay.QueueFree();
+            }
         }
+
+        _scopeOverlay = null;
+        _scopeCrosshair = null;
+        _scopeBackground = null;
+    }
+
+    private bool IsSceneReloadInProgress()
+    {
+        Node? gameManager = GetNodeOrNull("/root/GameManager");
+        return gameManager != null
+            && gameManager.HasMethod("is_reloading_scene")
+            && gameManager.Call("is_reloading_scene").AsBool();
     }
 }

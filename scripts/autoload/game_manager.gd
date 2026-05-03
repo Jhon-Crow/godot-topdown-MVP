@@ -528,6 +528,11 @@ func on_player_death() -> void:
 var _reloading: bool = false
 
 
+## Exposes the reload guard for teardown-sensitive nodes.
+func is_reloading_scene() -> bool:
+	return _reloading
+
+
 ## Restarts the current scene.
 ## Resets mouse mode to hidden before reloading so the cursor does not persist
 ## from the score screen (Issue #905).
