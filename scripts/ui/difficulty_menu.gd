@@ -551,9 +551,17 @@ func _setup_black_metal_button() -> void:
 	black_metal_button.add_theme_stylebox_override("disabled", disabled_style)
 
 
+## Background colors for Gunslinger button states (Issue #1937).
+## Bright saturated red with low alpha gives a colored-glass appearance.
+const GUNSLINGER_NORMAL_BG: Color = Color(0.9, 0.05, 0.05, 0.28)
+const GUNSLINGER_HOVER_BG: Color = Color(0.95, 0.08, 0.08, 0.42)
+const GUNSLINGER_PRESSED_BG: Color = Color(0.75, 0.02, 0.02, 0.35)
+const GUNSLINGER_DISABLED_BG: Color = Color(0.85, 0.04, 0.04, 0.25)
+
 ## Sets up the Gunslinger button with cowboy-style font and glowing red background (Issue #1742).
 ## The glowing semi-transparent red background evokes the danger of the Gunslinger difficulty.
 ## The Rye Western font handles Latin; Cyrillic falls back to a system serif font.
+## Issue #1937: Reduced alpha values so the background looks like colored glass.
 func _setup_strelok_button() -> void:
 	# Apply cowboy font if loaded
 	if _cowboy_font != null:
@@ -566,27 +574,27 @@ func _setup_strelok_button() -> void:
 	gunslinger_button.add_theme_color_override("font_pressed_color", Color(0.9, 0.7, 0.3))
 	gunslinger_button.add_theme_color_override("font_disabled_color", Color(0.8, 0.6, 0.4))
 
-	# Normal state: semi-transparent glowing red background
+	# Normal state: transparent colored-glass red background (Issue #1937)
 	var normal_style := StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.7, 0.05, 0.05, 0.55)  # Semi-transparent crimson
+	normal_style.bg_color = GUNSLINGER_NORMAL_BG
 	normal_style.set_corner_radius_all(4)
 	normal_style.set_content_margin_all(8)
 	normal_style.shadow_color = Color(1.0, 0.1, 0.1, 0.75)  # Bright red glow
 	normal_style.shadow_size = 8
 	gunslinger_button.add_theme_stylebox_override("normal", normal_style)
 
-	# Hover state: slightly more opaque on hover
+	# Hover state: slightly more visible on hover, still glass-like
 	var hover_style := StyleBoxFlat.new()
-	hover_style.bg_color = Color(0.8, 0.07, 0.07, 0.7)  # More visible on hover
+	hover_style.bg_color = GUNSLINGER_HOVER_BG
 	hover_style.set_corner_radius_all(4)
 	hover_style.set_content_margin_all(8)
 	hover_style.shadow_color = Color(1.0, 0.15, 0.15, 0.9)  # Intense glow on hover
 	hover_style.shadow_size = 12
 	gunslinger_button.add_theme_stylebox_override("hover", hover_style)
 
-	# Pressed state: darker, compressed look
+	# Pressed state: darker, compressed look, still transparent
 	var pressed_style := StyleBoxFlat.new()
-	pressed_style.bg_color = Color(0.5, 0.02, 0.02, 0.6)  # Semi-transparent dark red
+	pressed_style.bg_color = GUNSLINGER_PRESSED_BG
 	pressed_style.set_corner_radius_all(4)
 	pressed_style.set_content_margin_all(8)
 	pressed_style.shadow_color = Color(0.8, 0.1, 0.1, 0.6)
@@ -595,7 +603,7 @@ func _setup_strelok_button() -> void:
 
 	# Disabled state: when Gunslinger is already selected
 	var disabled_style := StyleBoxFlat.new()
-	disabled_style.bg_color = Color(0.6, 0.03, 0.03, 0.5)  # Muted semi-transparent red
+	disabled_style.bg_color = GUNSLINGER_DISABLED_BG
 	disabled_style.set_corner_radius_all(4)
 	disabled_style.set_content_margin_all(8)
 	disabled_style.shadow_color = Color(0.9, 0.1, 0.1, 0.5)
