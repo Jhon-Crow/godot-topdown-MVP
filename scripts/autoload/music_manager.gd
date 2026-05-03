@@ -58,6 +58,11 @@ var _current_scene_path: String = ""
 ## scene, so we stop walking the scene tree every frame.
 var _exit_zones_connected: bool = false
 
+## Exit zone nodes we have connected to in the current scene. Used to detect
+## when the scene was reloaded (same path) and the old nodes were freed, so
+## we can reconnect to the new exit zone instances (Issue #1929).
+var _connected_exit_zones: Array = []
+
 
 func _ready() -> void:
 	_ensure_music_bus()
@@ -143,6 +148,20 @@ func _sync_to_current_scene() -> void:
 		return
 	var path: String = scene.scene_file_path
 	if path == _current_scene_path:
+		# When the same level is restarted (e.g. after player death), the scene
+		# path does not change but all nodes are freed and recreated. Detect
+		# this by checking whether the previously connected exit zone nodes are
+		# still alive; if not, clear the flag so we reconnect to the new
+		# instances (Issue #1929).
+		if _exit_zones_connected:
+			var any_valid := false
+			for node in _connected_exit_zones:
+				if is_instance_valid(node):
+					any_valid = true
+					break
+			if not any_valid:
+				_exit_zones_connected = false
+				_connected_exit_zones.clear()
 		# Levels add their ExitZone via `call_deferred` during _ready, so the
 		# zone may not exist yet on the first sync. Keep retrying until we
 		# successfully connect to one.
@@ -151,6 +170,7 @@ func _sync_to_current_scene() -> void:
 		return
 
 	_current_scene_path = path
+	_connected_exit_zones.clear()
 	_exit_zones_connected = _connect_exit_zones(scene)
 	_play_track_for_path(path)
 
@@ -202,6 +222,11 @@ func _connect_exit_zones(scene: Node) -> bool:
 		any_found = true
 		if node.has_signal("activated") and not node.activated.is_connected(_on_exit_zone_activated):
 			node.activated.connect(_on_exit_zone_activated)
+		# Track this node so we can detect scene reloads via is_instance_valid
+		# (Issue #1929): when the same scene path is loaded again the old nodes
+		# are freed, which lets _sync_to_current_scene know it must reconnect.
+		if not _connected_exit_zones.has(node):
+			_connected_exit_zones.append(node)
 		# If the exit was already active before we connected (e.g. a level
 		# starts cleared), stop immediately.
 		if "_is_active" in node and node._is_active:
