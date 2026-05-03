@@ -325,37 +325,10 @@ func _setup_player_tracking() -> void:
 	elif _player.has_signal("Died"):
 		_player.Died.connect(_on_player_died)
 
-	var weapon = _player.get_node_or_null("Shotgun")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MiniUzi")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SilencedPistol")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("AKGL")
-	if weapon == null:
-		weapon = _player.get_node_or_null("Revolver")
-	if weapon == null:
-		weapon = _player.get_node_or_null("MakarovPM")
+	var weapon = _get_current_player_weapon()
 	if weapon != null:
-		if weapon.has_signal("AmmoChanged"):
-			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
-		if weapon.has_signal("MagazinesChanged"):
-			weapon.MagazinesChanged.connect(_on_magazines_changed)
-		if weapon.has_signal("Fired"):
-			weapon.Fired.connect(_on_shot_fired)
-		if weapon.has_signal("ShellCountChanged"):
-			weapon.ShellCountChanged.connect(_on_shell_count_changed)
-		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
-			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
-		if weapon.has_method("GetMagazineAmmoCounts"):
-			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
-			_update_magazines_label(mag_counts)
-		# Configure silenced pistol ammo based on enemy count (Issue #949)
-		_configure_silenced_pistol_ammo(weapon)
+		_connect_weapon_tracking(weapon, "initial setup")
+		call_deferred("_refresh_current_weapon_tracking", "deferred selected weapon")
 	else:
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
@@ -374,6 +347,95 @@ func _setup_player_tracking() -> void:
 		_player.AmmoDepleted.connect(_on_player_ammo_depleted)
 	elif _player.has_signal("ammo_depleted"):
 		_player.ammo_depleted.connect(_on_player_ammo_depleted)
+
+
+func _refresh_current_weapon_tracking(reason: String = "current weapon") -> void:
+	var weapon = _get_current_player_weapon()
+	if weapon != null:
+		_connect_weapon_tracking(weapon, reason)
+
+
+func _connect_weapon_tracking(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	if weapon.has_signal("AmmoChanged") and not weapon.AmmoChanged.is_connected(_on_weapon_ammo_changed):
+		weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+	if weapon.has_signal("MagazinesChanged") and not weapon.MagazinesChanged.is_connected(_on_magazines_changed):
+		weapon.MagazinesChanged.connect(_on_magazines_changed)
+	if weapon.has_signal("Fired") and not weapon.Fired.is_connected(_on_shot_fired):
+		weapon.Fired.connect(_on_shot_fired)
+	if weapon.has_signal("ShellCountChanged") and not weapon.ShellCountChanged.is_connected(_on_shell_count_changed):
+		weapon.ShellCountChanged.connect(_on_shell_count_changed)
+	_configure_silenced_pistol_ammo(weapon)
+	_refresh_weapon_hud(weapon, reason)
+
+
+## Return the player's actual equipped weapon.
+## C# Player owns the authoritative CurrentWeapon; child-node probing is only a fallback.
+func _get_current_player_weapon() -> Node:
+	if _player == null:
+		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon != null and current_weapon is Node and is_instance_valid(current_weapon):
+		return current_weapon
+
+	var selected_weapon_id: String = GameManager.get_selected_weapon() if GameManager else ""
+	var weapon_names: Dictionary = {
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"m16": "AssaultRifle",
+		"ak_gl": "AKGL",
+		"revolver": "Revolver",
+		"makarov_pm": "MakarovPM"
+	}
+	var expected_name: String = weapon_names.get(selected_weapon_id, "")
+	if expected_name != "":
+		var selected_weapon = _player.get_node_or_null(expected_name)
+		if selected_weapon != null:
+			return selected_weapon
+
+	var weapon = _player.get_node_or_null("Shotgun")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MiniUzi")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SilencedPistol")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AKGL")
+	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MakarovPM")
+	return weapon
+
+
+## Return the loaded ammo value that should be shown in the HUD.
+## Shotgun keeps the loaded shell count in ShellsInTube instead of CurrentAmmo.
+func _get_weapon_display_current_ammo(weapon: Node) -> Variant:
+	if weapon == null:
+		return null
+	if weapon.name == "Shotgun" and weapon.get("ShellsInTube") != null:
+		return weapon.ShellsInTube
+	return weapon.get("CurrentAmmo")
+
+
+## Pushes the authoritative current weapon ammo state into the HUD.
+func _refresh_weapon_hud(weapon: Node, reason: String) -> void:
+	if weapon == null:
+		return
+	var display_current_ammo = _get_weapon_display_current_ammo(weapon)
+	if display_current_ammo != null and weapon.get("ReserveAmmo") != null:
+		_update_ammo_label_magazine(display_current_ammo, weapon.ReserveAmmo)
+		_log_to_file("HUD ammo refreshed (%s): %s %s/%s" % [reason, weapon.name, display_current_ammo, weapon.ReserveAmmo])
+	if weapon.has_method("GetMagazineAmmoCounts"):
+		var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+		_update_magazines_label(mag_counts)
 
 
 func _setup_enemy_tracking() -> void:

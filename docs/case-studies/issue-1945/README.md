@@ -10,6 +10,7 @@ All issue attachments were downloaded into `docs/case-studies/issue-1945/artifac
 - `game_log_20260503_224814.txt`
 - `game_log_20260503_225402.txt`
 - `game_log_20260503_225541.txt`
+- `raw/game_log_20260503_233150.txt`
 
 ## Evidence From Logs
 
@@ -32,6 +33,13 @@ Sewer (`game_log_20260503_225541.txt`) shows:
 
 - Lines 433 and 434: `SewerLevel` configures Makarov PM ammo.
 - Lines 531 and 539: the selected `mini_uzi` is applied and equipped afterward.
+
+Follow-up City report (`raw/game_log_20260503_233150.txt`) shows the same race on a map that was not included in the first patch:
+
+- Line 98: `GameManager` selects `ak_gl`.
+- Lines 872 and 880: the City player and `CityLevel` initialize.
+- Lines 950-959: the deferred player weapon application removes `MakarovPM`, instantiates `AKGL`, and equips it as `30/30`.
+- There is no `CityLevel` HUD refresh for `AKGL` in that log, which matches the owner's report that the counter failed on City after the first fix.
 
 ## Root Cause
 
@@ -63,6 +71,7 @@ The affected levels now use the same ammo HUD selection model:
 Touched levels:
 
 - `scripts/levels/decadence_level.gd`
+- `scripts/levels/city_level.gd`
 - `scripts/levels/revolver_level.gd`
 - `scripts/levels/sewer_level.gd`
 
@@ -70,6 +79,7 @@ Touched levels:
 
 Added unit coverage for the three reported maps:
 
+- `tests/unit/test_city_level.gd`
 - `tests/unit/test_decadence_level.gd`
 - `tests/unit/test_revolver_level.gd`
 - `tests/unit/test_sewer_level.gd`
