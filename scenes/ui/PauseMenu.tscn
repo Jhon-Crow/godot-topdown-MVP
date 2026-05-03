@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dxqmk8f3nw5pe"]
+[gd_scene load_steps=15 format=3 uid="uid://dxqmk8f3nw5pe"]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pause"]
 [ext_resource type="LabelSettings" uid="uid://c3qneonlabel01" path="res://resources/themes/neon_label_settings.tres" id="2_neon_label"]
@@ -11,6 +11,16 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_arena.svg" id="10_icon_arena"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_settings.svg" id="11_icon_settings"]
 [ext_resource type="Texture2D" path="res://assets/sprites/ui/menu_icons/icon_quit.svg" id="12_icon_quit"]
+[ext_resource type="Shader" path="res://scripts/shaders/pause_cracked_glass.gdshader" id="13_pause_glass"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_pause_glass"]
+shader = ExtResource("13_pause_glass")
+shader_parameter/glass_tint = Vector3(0.78, 0.95, 1)
+shader_parameter/tint_strength = 0.18
+shader_parameter/darkness = 0.42
+shader_parameter/crack_intensity = 0.82
+shader_parameter/scratch_intensity = 0.38
+shader_parameter/vignette_strength = 0.36
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 100
@@ -18,12 +28,13 @@ process_mode = 3
 script = ExtResource("1_pause")
 
 [node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_pause_glass")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.5)
+color = Color(0.02, 0.03, 0.04, 0.62)
 
 [node name="MenuContainer" type="Control" parent="."]
 layout_mode = 3

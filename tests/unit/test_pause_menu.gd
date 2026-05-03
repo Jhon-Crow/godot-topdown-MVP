@@ -85,6 +85,35 @@ func test_pause_menu_instantiates() -> void:
 		instance.queue_free()
 
 
+func test_pause_menu_background_uses_cracked_glass_shader() -> void:
+	var scene: PackedScene = _try_load("res://scenes/ui/PauseMenu.tscn") as PackedScene
+	if scene == null:
+		fail_test("PauseMenu.tscn could not be loaded")
+		return
+
+	var instance: Node = scene.instantiate()
+	add_child_autofree(instance)
+
+	var background: ColorRect = instance.get_node_or_null("ColorRect") as ColorRect
+	assert_not_null(background, "PauseMenu must keep a full-screen background ColorRect")
+	if background == null:
+		return
+
+	var material := background.material as ShaderMaterial
+	assert_not_null(material, "PauseMenu background must use a shader material")
+	if material == null:
+		return
+
+	assert_not_null(material.shader, "PauseMenu background shader material must have a shader")
+	if material.shader == null:
+		return
+
+	assert_eq(
+		material.shader.resource_path,
+		"res://scripts/shaders/pause_cracked_glass.gdshader",
+		"PauseMenu background must use the cracked glass pause shader")
+
+
 # ============================================================================
 # PauseMenu button presence
 # ============================================================================
