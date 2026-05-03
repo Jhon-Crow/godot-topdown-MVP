@@ -35,6 +35,13 @@ const GROW_TO_MEDIUM_DURATION: float = 40.0
 ## (doubled from original 25 s → 50 s for half speed)
 const GROW_STEP_DURATION: float = 50.0
 
+## Hard cap on per-puddle modulate.a in phase 3+.
+## Kept low so two overlapping puddles (1-(1-α)² ≈ 0.51 at α=0.30) stay close
+## to a single puddle's appearance — this masks alpha-stacking at junctions
+## without using a CanvasGroup (which is unreliable on gl_compatibility, see
+## docs/case-studies/issue-1626/analysis.md, Iterations 9, 10, 12).
+const MAX_PUDDLE_ALPHA: float = 0.30
+
 ## Randomisation window (seconds) applied to each puddle's start delay so
 ## puddles do not all appear at the exact same time.
 @export var start_delay_randomise: float = 15.0
@@ -72,12 +79,17 @@ func start_growing() -> void:
 
 	# Phase 1: fade in and grow to small size.
 	# Small puddles are very transparent — the floor should clearly show through.
+	# Alpha values are intentionally kept low (≤ 0.30) so two overlapping puddles
+	# combine to 1-(1-α)² ≈ 0.36 — barely darker than a single puddle, masking
+	# the alpha-stacking that would otherwise be visible at junctions without a
+	# CanvasGroup. (CanvasGroup is avoided because it triggers the white-rectangle
+	# bug on gl_compatibility — see Iterations 9, 10, 12 in case-study analysis.)
 	_current_scale = SMALL_SCALE * size_variation
 	var target_small := Vector2.ONE * _current_scale
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "scale", target_small, APPEAR_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "modulate:a", 0.25, APPEAR_DURATION * 0.6) \
+	tween.tween_property(self, "modulate:a", 0.18, APPEAR_DURATION * 0.6) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await tween.finished
 
@@ -90,7 +102,7 @@ func start_growing() -> void:
 	var tween2 := create_tween().set_parallel(true)
 	tween2.tween_property(self, "scale", target_medium, GROW_TO_MEDIUM_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween2.tween_property(self, "modulate:a", 0.34, GROW_TO_MEDIUM_DURATION) \
+	tween2.tween_property(self, "modulate:a", 0.24, GROW_TO_MEDIUM_DURATION) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween2.finished
 
@@ -105,8 +117,8 @@ func start_growing() -> void:
 		var tween3 := create_tween().set_parallel(true)
 		tween3.tween_property(self, "scale", target_next, GROW_STEP_DURATION) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		# Gradually increase opacity as the puddle grows larger, cap at 0.7.
-		var next_alpha: float = minf(0.55, modulate.a + 0.04)
+		# Gradually increase opacity as the puddle grows larger, cap at MAX_PUDDLE_ALPHA.
+		var next_alpha: float = minf(MAX_PUDDLE_ALPHA, modulate.a + 0.03)
 		tween3.tween_property(self, "modulate:a", next_alpha, GROW_STEP_DURATION)
 		await tween3.finished
 

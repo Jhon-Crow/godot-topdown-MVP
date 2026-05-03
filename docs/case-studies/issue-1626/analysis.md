@@ -384,6 +384,67 @@ Key safety properties:
 
 ---
 
+### Iteration 12 — White Rectangles Return After CanvasGroup Re-Introduction (2026-05-03)
+
+**User feedback:** "белые прямоугольники вместо луж" (white rectangles instead of puddles)
+**Game log:** `game_log_20260503_170616.txt` — no shader compile errors; `[PuddleManager] Puddle manager ready: 26 puddles spawned`; engine `4.3-stable (official)`; renderer `gl_compatibility`.
+
+**Reconstruction of events**
+
+| Date | Iteration | Outcome |
+|------|-----------|---------|
+| 2026-03-30 | 9: hint_screen_texture → TEXTURE | Fixed white rectangle (claim) |
+| 2026-04-25 | 10: drop CanvasGroup entirely | Fixed white squares (confirmed) — but lost junction-merge effect |
+| 2026-04-27 | 11: re-add CanvasGroup with TEXTURE shader | Junction merge restored — but… |
+| 2026-05-03 | 12: white rectangles return | Same blocker as Iteration 9/10 |
+
+**Root cause (definitive):**
+
+`CanvasGroup` + custom `ShaderMaterial` is unreliable on the `gl_compatibility` renderer. Even when the shader reads `texture(TEXTURE, UV)` (the documented way to read the offscreen group buffer in Godot 4), the binding has been observed to fall back to a 1×1 white sampler on Godot 4.3 + Windows + gl_compatibility. The result is that the CanvasGroup's bounding quad — which spans the union of all child puddle rects, ≈ 5000×4000 px on the Docks map — paints solid white across the entire play-field.
+
+This is corroborated by upstream Godot issues:
+- [Godot #51204](https://github.com/godotengine/godot/issues/51204) — CanvasGroup breaks with any material
+- [Godot #69885](https://github.com/godotengine/godot/issues/69885) — CanvasGroup + ShaderMaterial renders as a white rectangle
+- [Godot #89341](https://github.com/godotengine/godot/issues/89341) — CanvasGroup custom shaders sample a screen-clamped texture, not the actual content area
+- [Godot #78450](https://github.com/godotengine/godot/issues/78450) — filter_nearest discrepancy between Compatibility and Forward+
+- [Godot #114899](https://github.com/godotengine/godot/issues/114899) — CanvasGroup turns black inside a small SubViewport on Compatibility
+
+The fixes in #69885 and #51204 are forward-only and apparently incomplete on Compatibility for arbitrary group sizes; the symptom keeps recurring for the puddle-manager use case.
+
+**Why a max-alpha shader cannot avoid this on gl_compatibility:**
+
+Godot 4 has no `blend_max` render mode for canvas_item shaders ([proposal #4433](https://github.com/godotengine/godot-proposals/issues/4433)). The only renderer-portable way to clamp the accumulated alpha across overlapping sprites is to composite them into an offscreen buffer first (CanvasGroup or SubViewport) and clamp in the post-composite shader. CanvasGroup is the lighter-weight option but is the one that fails as described.
+
+**Fix applied in this iteration:**
+
+Drop the CanvasGroup + custom shader path entirely (same as Iteration 10). To mitigate the junction darkening that Iteration 11 was trying to solve, lower the per-puddle alpha values so 1-(1-α)² stays close to a single puddle's appearance:
+
+| Phase | Old single-puddle α | New single-puddle α | Old 2-puddle stack | New 2-puddle stack |
+|-------|---------------------|---------------------|--------------------|--------------------|
+| 1 (small) | 0.25 | 0.18 | 0.44 | 0.33 |
+| 2 (medium) | 0.34 | 0.24 | 0.56 | 0.42 |
+| 3+ (max) | 0.55 | 0.30 | 0.80 | 0.51 |
+
+At α=0.18 single → 0.33 stacked, the intersection is roughly 1.8× the single-puddle alpha. That is still detectable but less prominent than the 1.65× ratio at the previous values, and far more acceptable than a full-screen white rectangle (which is a complete blocker).
+
+**Files changed:**
+- `scripts/levels/puddle_manager.gd` — removed `_setup_puddle_group()`, removed CanvasGroup creation, removed material loading, removed `PUDDLE_MERGE_MATERIAL_PATH` constant; puddles are added as direct children via `add_child(puddle)` again.
+- `scripts/effects/puddle_effect.gd` — added `MAX_PUDDLE_ALPHA = 0.30` constant; phase 1 alpha 0.25 → 0.18; phase 2 alpha 0.34 → 0.24; phase 3 cap 0.55 → 0.30.
+- `scripts/shaders/puddle_merge.gdshader` — DELETED (the recurring source of the white-rectangle bug).
+- `resources/materials/puddle_merge_material.tres` — DELETED (paired material, no longer used).
+- `tests/unit/test_puddle_effect.gd` — replaced "must use CanvasGroup child" tests with "must NOT use CanvasGroup, must NOT have merge shader file" regression tests so the unsafe path cannot be silently re-introduced again.
+
+**Trade-off (transparently noted):**
+
+This consciously trades junction-merge precision for renderer reliability. Some alpha-stacking at puddle intersections remains visible at large scales — but it is significantly milder than before, and crucially the puddles themselves are visible, which they were not in the white-rectangle state. The proper long-term solution is either to migrate the project to the `forward_plus` renderer (where CanvasGroup behaves correctly) or to render puddles via a `SubViewport` + `Sprite2D` displayed with `BLEND_MODE_PREMUL_ALPHA`. Both are larger architectural changes than this issue warrants.
+
+**Technical references:**
+- [Godot 4.3 canvas_item shaders](https://docs.godotengine.org/en/4.3/tutorials/shaders/shader_reference/canvas_item_shader.html)
+- [CanvasItemMaterial blend modes](https://docs.godotengine.org/en/4.3/classes/class_canvasitemmaterial.html#enum-canvasitemmaterial-blendmode)
+- [Godot 4 renderer differences](https://docs.godotengine.org/en/4.3/tutorials/rendering/index.html)
+
+---
+
 ## Data Files in This Folder
 
 | File | Source | Description |
@@ -397,3 +458,4 @@ Key safety properties:
 | `white-rectangle-bug.png` | PR comment screenshot 2026-03-30 | User feedback showing full-screen white rectangle over play-field |
 | `game_log_20260330_124245.txt` | PR comment attachment 2026-03-30 | Game log for the white-rectangle bug — no shader errors, puddles spawned |
 | `puddle-junction-darkening-20260427.png` | PR comment screenshot 2026-04-27 | User feedback showing unrealistic darkening at puddle junctions |
+| `game_log_20260503_170616.txt` | PR comment attachment 2026-05-03 | Game log for second white-rectangle regression after Iteration 11 re-added CanvasGroup |

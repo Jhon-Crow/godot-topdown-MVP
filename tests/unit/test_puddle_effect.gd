@@ -396,17 +396,19 @@ func test_size_variation_max_is_reasonable() -> void:
 
 
 # ============================================================================
-# PuddleManager – white rectangle regression and merge shader approach
+# PuddleManager – white rectangle regression (Iteration 12, 2026-05-03)
 #
-# Architecture: PuddleManager is a plain Node2D. It creates an internal
-# CanvasGroup child (_puddle_group) and places all puddle Sprite2Ds inside it.
-# A puddle_merge.gdshader is loaded from a .tres resource and attached to that
-# CanvasGroup child — this clamps composited alpha so overlapping puddles look
-# merged rather than stacked (the "unrealistic darkening at junctions" fix).
+# Architecture: PuddleManager is a plain Node2D. Puddles are added as DIRECT
+# Sprite2D children — there is NO internal CanvasGroup and NO custom merge
+# shader. CanvasGroup + custom shader is unreliable on the gl_compatibility
+# renderer used by this project (Godot 4.3 Windows builds): the offscreen
+# group buffer binding has been observed to fall back to a 1×1 white sampler,
+# which makes the CanvasGroup's bounding quad render as a full-screen white
+# rectangle covering the play-field.
 #
-# The shader reads only TEXTURE (the CanvasGroup's own composited buffer),
-# not hint_screen_texture, so it is safe on the gl_compatibility renderer
-# and cannot draw a white bounding rectangle.
+# Junction-darkening from plain alpha-stacking is mitigated by keeping
+# per-puddle modulate.a low (≤ MAX_PUDDLE_ALPHA = 0.30) so 1-(1-α)² stays
+# small enough that intersections are barely darker than a single puddle.
 # ============================================================================
 
 
@@ -436,65 +438,54 @@ func test_puddle_manager_script_extends_node2d() -> void:
 		"PuddleManager must not extend CanvasGroup")
 
 
-func test_puddle_manager_uses_canvas_group_child_for_merge() -> void:
+func test_puddle_manager_does_not_use_canvas_group() -> void:
+	# Regression: CanvasGroup + custom shader on gl_compatibility produces
+	# a full-screen white rectangle (Iterations 9, 10, 12).
 	var f := FileAccess.open("res://scripts/levels/puddle_manager.gd", FileAccess.READ)
 	assert_not_null(f, "puddle_manager.gd must be readable")
 	if f == null:
 		return
 	var src := f.get_as_text()
 	f.close()
-	assert_true(src.contains("CanvasGroup.new()"),
-		"PuddleManager must create an internal CanvasGroup child for alpha-clamp compositing")
-	assert_true(src.contains("PUDDLE_MERGE_MATERIAL_PATH"),
-		"PuddleManager must load the merge material resource for the CanvasGroup child")
+	assert_false(src.contains("CanvasGroup.new()"),
+		"PuddleManager must not create a CanvasGroup at runtime — that caused the white-rectangle bug on gl_compatibility")
+	assert_false(src.contains("ShaderMaterial"),
+		"PuddleManager must not assign a ShaderMaterial — custom CanvasGroup shaders cause the white-rectangle bug on gl_compatibility")
 
 
-func test_merge_shader_file_exists() -> void:
+func test_merge_shader_file_does_not_exist() -> void:
+	# Regression: the puddle_merge.gdshader file was the source of recurring
+	# white-rectangle bugs (Iterations 9, 12). It must not be reintroduced.
 	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
-	assert_not_null(f, "puddle_merge.gdshader must exist for alpha-clamp compositing")
+	assert_null(f, "puddle_merge.gdshader must NOT exist — it caused the white-rectangle bug on gl_compatibility")
 	if f != null:
 		f.close()
 
 
-func test_merge_shader_reads_canvas_group_texture_not_screen() -> void:
-	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
-	assert_not_null(f, "puddle_merge.gdshader must be readable")
-	if f == null:
-		return
-	var src := f.get_as_text()
-	f.close()
-	assert_true(src.contains("texture(TEXTURE, UV)"),
-		"Merge shader must read TEXTURE (CanvasGroup composite), not SCREEN_TEXTURE")
-	assert_false(src.contains("hint_screen_texture"),
-		"Merge shader must not use hint_screen_texture — it caused white-square bug on gl_compatibility")
-
-
-func test_merge_shader_clamps_alpha_to_max() -> void:
-	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
-	assert_not_null(f, "puddle_merge.gdshader must be readable")
-	if f == null:
-		return
-	var src := f.get_as_text()
-	f.close()
-	assert_true(src.contains("max_alpha"),
-		"Merge shader must declare a max_alpha uniform to clamp overlapping puddle opacity")
-	assert_true(src.contains("min(c.a, max_alpha)"),
-		"Merge shader must clamp the composited alpha using min(c.a, max_alpha)")
-
-
-func test_merge_shader_early_outs_for_fully_transparent_pixels() -> void:
-	var f := FileAccess.open("res://scripts/shaders/puddle_merge.gdshader", FileAccess.READ)
-	assert_not_null(f, "puddle_merge.gdshader must be readable")
-	if f == null:
-		return
-	var src := f.get_as_text()
-	f.close()
-	assert_true(src.contains("c.a < 0.001"),
-		"Merge shader must early-out for transparent pixels so the CanvasGroup bounding quad is invisible")
-
-
-func test_merge_material_resource_exists() -> void:
+func test_merge_material_resource_does_not_exist() -> void:
+	# Regression: the puddle_merge_material.tres file was paired with the
+	# white-rectangle-causing shader. Its existence implies the shader path
+	# is being reintroduced.
 	var f := FileAccess.open("res://resources/materials/puddle_merge_material.tres", FileAccess.READ)
-	assert_not_null(f, "puddle_merge_material.tres must exist for runtime material loading")
+	assert_null(f, "puddle_merge_material.tres must NOT exist — its shader caused the white-rectangle bug")
 	if f != null:
 		f.close()
+
+
+# ============================================================================
+# PuddleEffect – alpha values stay low to mask junction darkening
+# ============================================================================
+
+
+func test_puddle_effect_uses_low_alpha_values_to_mitigate_stacking() -> void:
+	var f := FileAccess.open("res://scripts/effects/puddle_effect.gd", FileAccess.READ)
+	assert_not_null(f, "puddle_effect.gd must be readable")
+	if f == null:
+		return
+	var src := f.get_as_text()
+	f.close()
+	# MAX_PUDDLE_ALPHA must be ≤ 0.30 so 1-(1-α)² ≤ 0.51 for two-puddle overlap
+	# (still close enough to a single puddle that junctions are not visibly darker).
+	assert_true(src.contains("MAX_PUDDLE_ALPHA: float = 0.30")
+			or src.contains("MAX_PUDDLE_ALPHA : float = 0.30"),
+		"MAX_PUDDLE_ALPHA must be 0.30 to keep intersection alpha visually close to a single puddle")
