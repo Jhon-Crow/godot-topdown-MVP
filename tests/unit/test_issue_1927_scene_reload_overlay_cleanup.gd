@@ -3,7 +3,7 @@ extends GutTest
 ##
 ## The crash path is teardown-sensitive C# / engine behavior, so these tests
 ## guard the ownership contract in source: scene-owned weapon overlays must not
-## be explicitly queue-freed while GameManager.reload_current_scene() is already
+## be explicitly queue-freed while GameManager scene restart is already
 ## tearing down the current scene.
 
 
@@ -121,6 +121,28 @@ func test_game_manager_arms_log_flush_before_scene_reload() -> void:
 		"GameManager.restart_scene() should arm the file-logger immediate-flush window before reload (Issue #1927)")
 
 
+## Session 8: latest owner logs prove ImpactEffects active pools are empty and
+## the crash happens after reload_current_scene() removes the outgoing scene but
+## before a replacement scene reaches startup logs. Keep GameManager on the
+## deferred explicit scene-path transition that mirrors the surviving startup
+## SceneLoader path.
+func test_game_manager_defers_restart_and_reloads_by_scene_path() -> void:
+	var source := _read_text_file("res://scripts/autoload/game_manager.gd")
+
+	assert_true(
+		source.contains("call_deferred(\"_reload_current_scene_by_path\", scene_path)"),
+		"GameManager.restart_scene() should defer the actual scene transition out of the armory button signal stack (Issue #1927)"
+	)
+	assert_true(
+		source.contains("get_tree().change_scene_to_file(scene_path)"),
+		"GameManager should reload by explicit scene path instead of the fragile reload_current_scene() path (Issue #1927)"
+	)
+	assert_false(
+		source.contains("get_tree().reload_current_scene()"),
+		"GameManager.restart_scene() must not use reload_current_scene() on the armory apply crash path (Issue #1927)"
+	)
+
+
 ## Session 6: deferred Revolver.SetupCylinderHUD must bail out if this revolver
 ## was already removed from the tree before the deferred call ran, otherwise
 ## touching the parent chain crashes natively.
@@ -158,7 +180,7 @@ func test_build_workflow_records_pr_head_sha() -> void:
 ## starts scene-change cleanup. ASVK and revolver both fire high-caliber rounds
 ## that commonly leave active pooled dust/light effects in the outgoing scene.
 ## Those pooled nodes belong to the autoload pool and must be reparented back
-## before reload_current_scene() frees the old scene.
+## before the scene restart frees the old scene.
 func test_impact_effects_restores_active_pooled_nodes_during_scene_reload() -> void:
 	var source := _read_text_file("res://scripts/autoload/impact_effects_manager.gd")
 

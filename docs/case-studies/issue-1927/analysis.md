@@ -370,6 +370,76 @@ complete, then the crash happens as `ImpactEffectsManager` reacts to scene teard
 The regression test now locks down the active pooled-node restoration contract in
 `tests/unit/test_issue_1927_scene_reload_overlay_cleanup.gd`.
 
+## Session 8 Finding: Active ImpactEffect Pools Are Empty; Direct Reload Still Dies
+
+On the eighth rejection (`11:50 UTC` PR comment), the owner uploaded:
+
+- `game_log_20260503_144811.txt` (ASVK equipped, armory applies revolver)
+- `game_log_20260503_144832.txt` (revolver equipped, armory applies ASVK)
+
+Downloaded to `docs/case-studies/issue-1927/artifacts/pr-comment-4366100711/`.
+
+Both logs include the Session 7 trace lines, so the build contains the latest code even though
+`build_info.cfg` still reports the stale `10ffb3f19765645f1a5e52db6accdc73ccdbf152` SHA. The
+important boundary is now clear:
+
+- The selected weapon is applied successfully during startup:
+  - ASVK log: `Player.ApplySelectedWeaponFromGameManager` finishes at lines 539-548.
+  - Revolver log: `Player.ApplySelectedWeaponFromGameManager` finishes at lines 545-555, then
+    `SetupCylinderHUD` completes at lines 558-560.
+- The player opens armory and presses Apply.
+- `GameManager.restart_scene()` starts at lines 609 / 608.
+- Weapon `_ExitTree()` completes cleanly:
+  - ASVK: lines 610-611.
+  - Revolver: lines 609-611.
+- Every `SoundPropagation` listener unregisters.
+- The final lines are:
+
+```
+[ImpactEffects] [trace] ImpactEffects scene change begin: blood=0 bullet=0 penetration=0 scorch=0 active_dust=0 active_lights=0
+[ImpactEffects] [trace] ImpactEffects scene change end
+```
+
+That rules out Session 7's active pooled-node hypothesis for this reproducer: both `active_dust` and
+`active_lights` are zero in both crash logs. The process dies after the outgoing scene is removed and
+autoloads observe `current_scene == null`, but before the replacement scene reaches any startup logs.
+
+The surviving current-build transition is startup navigation into `RevolverLevel`, which uses
+`SceneLoader` and ultimately `change_scene_to_packed()` in the synchronous fallback. Godot 4.3
+documents that `change_scene_to_packed()` immediately removes the outgoing current scene, then frees
+it and instantiates the replacement at the end of the frame; `change_scene_to_file()` follows that
+same order. The direct armory path was the outlier because `GameManager.restart_scene()` called
+`reload_current_scene()` immediately from the Apply button signal.
+
+### PR #1894 / Known-good comparison
+
+The owner also uploaded a known-good old-version log:
+`docs/case-studies/issue-1927/artifacts/pr-comment-4366070727/game_log_20260503_143325.txt`.
+It starts from an old 18.04.2026-style build with no `build_info.cfg`, reaches `RevolverLevel`, and
+detects ASVK normally at lines 1168-1170 before ending cleanly. It does not contain an armory
+Apply/restart sequence, so it cannot prove that direct reload is safe by itself.
+
+Local comparison against PR #1894's merge commit (`c9567dd0`) showed no relevant change in the armory
+menu scripts. The actionable difference is behavioral: current startup scene changes survive through
+`SceneLoader` / `change_scene_to_packed()`, while the armory Apply path dies through immediate
+`reload_current_scene()`.
+
+### Session 8 Fix
+
+`GameManager.restart_scene()` now:
+
+1. Captures the current scene path before teardown begins.
+2. Defers the actual transition with `call_deferred("_reload_current_scene_by_path", scene_path)` so
+   the armory Apply button signal stack unwinds before native/C# scene teardown.
+3. Reloads via `get_tree().change_scene_to_file(scene_path)`, matching the explicit scene-transition
+   path already used elsewhere in the project instead of the fragile immediate `reload_current_scene()`
+   path.
+4. Logs the scheduled path, the `change_scene_to_file()` start, and its result so a future hard crash
+   will distinguish "removed old scene" from "new scene scheduled successfully".
+
+The regression test now locks this down with a source-contract check that `GameManager` defers the
+restart and reloads by explicit scene path.
+
 ## Verification
 
 - `dotnet build`
