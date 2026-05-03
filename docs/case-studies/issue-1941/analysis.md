@@ -47,7 +47,19 @@ Ported from the [godotshaders.com/shader/cracked-glass/](https://godotshaders.co
 - **crack_sharpness / crack_width** replace the old fixed `smoothstep` widths; the defaults are tuned for sub-pixel-thin cracks (`crack_width = 0.0015`).
 - The original godotshaders.com shader uses `hint_screen_texture` for refraction; this project omits that to stay compatible with Godot's GL Compatibility renderer (same reasoning documented in `cinema_film.gdshader`).
 
+### v3 (feedback tuning) — subtle sparse overlay
+Follow-up feedback said the Voronoi version was "слишком явный и как будто добавился несколько раз" ("too obvious and as if it was added several times").  The root cause was additive multi-scale accumulation at high opacity: three Voronoi layers were summed, so even thin lines looked like a repeated full-screen web.
+
+The tuned version keeps the Voronoi + FBM structure but makes it behave like a faint glass defect:
+
+- `crack_depth` drops from `3.0` to `2.0` so fewer scales are visible.
+- Accumulation now uses `max()` instead of additive summing, preventing layered brightness from making the same area look over-applied.
+- `crack_coverage` masks cells deterministically so cracks are sparse instead of uniformly covering every part of the pause overlay.
+- `crack_opacity` drops from `0.8` to `0.22`, and the crack color is less saturated, so the overlay sits behind the menu instead of dominating it.
+- `crack_width` drops to `0.00065` and `crack_sharpness` rises to `70.0`, keeping visible cracks thin rather than soft glowing bands.
+
 ## Verification
 
 - `test_pause_menu_background_uses_cracked_glass_shader` ensures `PauseMenu.tscn` keeps the cracked glass shader attached to its full-screen background.
+- The same test now guards the subtle tuned defaults (`crack_depth`, `crack_opacity`, and `crack_coverage`) so future edits do not accidentally return to an over-layered full-screen crack web.
 - Existing PauseMenu tests continue to verify scene load, instantiation, and button signal wiring.

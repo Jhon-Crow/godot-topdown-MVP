@@ -7,18 +7,19 @@ shader_type canvas_item;
 // Overlay-only approach (no hint_screen_texture) keeps compatibility with
 // Godot's GL Compatibility renderer — same reasoning as cinema_film.gdshader.
 
-uniform float crack_depth    : hint_range(0.0, 10.0) = 3.0;
-uniform float crack_scale    : hint_range(1.0, 10.0) = 3.5;
-uniform float crack_warp     : hint_range(0.0, 10.0) = 1.3;
+uniform float crack_depth    : hint_range(0.0, 10.0) = 2.0;
+uniform float crack_scale    : hint_range(1.0, 10.0) = 2.85;
+uniform float crack_warp     : hint_range(0.0, 10.0) = 0.9;
 uniform float crack_warp_scale : hint_range(0.0, 10.0) = 2.67;
 uniform float crack_profile  : hint_range(0.0, 10.0) = 1.0;
-uniform float crack_sharpness : hint_range(0.0, 100.0) = 55.0;
-uniform float crack_width    : hint_range(0.0, 0.02) = 0.0015;
+uniform float crack_sharpness : hint_range(0.0, 100.0) = 70.0;
+uniform float crack_width    : hint_range(0.0, 0.02) = 0.00065;
+uniform float crack_coverage : hint_range(0.0, 1.0) = 0.38;
 
-uniform vec4  crack_color    : source_color = vec4(0.72, 0.88, 1.0, 1.0);
-uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.80;
-uniform float darkness       : hint_range(0.0, 1.0) = 0.45;
-uniform float vignette_strength : hint_range(0.0, 1.0) = 0.35;
+uniform vec4  crack_color    : source_color = vec4(0.58, 0.70, 0.78, 1.0);
+uniform float crack_opacity  : hint_range(0.0, 1.0) = 0.22;
+uniform float darkness       : hint_range(0.0, 1.0) = 0.36;
+uniform float vignette_strength : hint_range(0.0, 1.0) = 0.28;
 
 // ── Noise helpers ────────────────────────────────────────────────────────────
 
@@ -99,7 +100,8 @@ float generate_cracks(vec2 uv) {
 
 		// Remap: values near the border (small d) become bright.
 		float crack = 1.0 - min(1.0, crack_sharpness * pow(max(0.0, d - crack_width), crack_profile));
-		result += crack / exp2(i);
+		float coverage_mask = step(1.0 - crack_coverage, hash2(floor(U)).x);
+		result = max(result, crack * coverage_mask / exp2(i));
 
 		U *= 1.55;
 	}
