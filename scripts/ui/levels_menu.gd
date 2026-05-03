@@ -8,6 +8,10 @@ extends CanvasLayer
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
+const LASER_CURSOR_PATH: String = "res://assets/sprites/ui/red_dot_cursor.svg"
+const LASER_CURSOR_HOVER_PATH: String = "res://assets/sprites/ui/red_dot_cursor_hover.svg"
+const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(32, 32)
+
 ## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
@@ -574,10 +578,19 @@ func _create_level_card(level_data: Dictionary, is_current: bool, unlocked: bool
 	else:
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.gui_input.connect(_on_card_gui_input.bind(level_data["path"]))
-		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		card.mouse_entered.connect(_set_laser_hover_cursor)
+		card.mouse_exited.connect(_set_laser_default_cursor)
 		card.tooltip_text = tr("LEVEL_LOAD_TOOLTIP") % display_name
 
 	return card
+
+
+func _set_laser_hover_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_HOVER_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
+
+
+func _set_laser_default_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
 
 
 ## Load custom font for grade display.

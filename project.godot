@@ -75,6 +75,8 @@ window/size/viewport_height=720
 window/size/mode=3
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
+mouse_cursor/custom_image="res://assets/sprites/ui/red_dot_cursor.svg"
+mouse_cursor/custom_image_hotspot=Vector2(32, 32)
 
 [input]
 

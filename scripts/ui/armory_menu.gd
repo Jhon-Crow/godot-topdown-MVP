@@ -25,6 +25,10 @@ const GRENADE_CASE_ICON_PATH: String = "res://assets/sprites/weapons/grenade_cas
 ## Path to item case icon used for locked/closed active items.
 const ITEM_CASE_ICON_PATH: String = "res://assets/sprites/weapons/item_case_icon.png"
 
+const LASER_CURSOR_PATH: String = "res://assets/sprites/ui/red_dot_cursor.svg"
+const LASER_CURSOR_HOVER_PATH: String = "res://assets/sprites/ui/red_dot_cursor_hover.svg"
+const LASER_CURSOR_HOTSPOT: Vector2 = Vector2(32, 32)
+
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, description
 ## Note: 'unlocked' field is now read from GameManager.unlocked_weapons
@@ -1080,11 +1084,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool,
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.gui_input.connect(_on_slot_gui_input.bind(slot, item_id, is_grenade, item_data, is_unlocked, condition_met))
-	if is_unlocked:
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	else:
-		# Locked items show pointing hand to indicate they can be unlocked
-		slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_connect_laser_hover_cursor(slot)
 
 	# Apply style: gold if condition is met and item is locked, default otherwise
 	if not is_unlocked and condition_met:
@@ -1184,7 +1184,7 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 	# Make all items clickable (unlocked for selection, locked for unlocking)
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type, is_unlocked, condition_met))
-	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_connect_laser_hover_cursor(slot)
 
 	# Apply style: gold if condition is met and item is locked, default otherwise
 	if not is_unlocked and condition_met:
@@ -1193,6 +1193,19 @@ func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type:
 		_apply_default_style(slot)
 
 	return slot
+
+
+func _connect_laser_hover_cursor(control: Control) -> void:
+	control.mouse_entered.connect(_set_laser_hover_cursor)
+	control.mouse_exited.connect(_set_laser_default_cursor)
+
+
+func _set_laser_hover_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_HOVER_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
+
+
+func _set_laser_default_cursor() -> void:
+	Input.set_custom_mouse_cursor(load(LASER_CURSOR_PATH), Input.CURSOR_ARROW, LASER_CURSOR_HOTSPOT)
 
 
 ## Handle click on an active item slot.
