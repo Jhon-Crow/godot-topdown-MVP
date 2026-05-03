@@ -860,3 +860,23 @@ func test_csharp_breaker_shrapnel_uses_pool_fallback_when_scene_missing() -> voi
 		"C# breaker shrapnel should instantiate from the refreshed fallback scene when the pool misses")
 	assert_eq(body.find("var shrapnelScene = GetShrapnelScene();\n        if (shrapnelScene == null)\n        {\n            return;\n        }"), -1,
 		"C# breaker shrapnel must not skip spawning just because the PackedScene cache is null")
+
+
+func test_csharp_deferred_weapon_selection_keeps_breaker_bullets_active() -> void:
+	# Issue #1949: affected C# fallback maps first initialize breaker bullets on the
+	# default MakarovPM, then ApplySelectedWeaponFromGameManager replaces the weapon.
+	# The replacement path must reapply passive item flags to the new weapon.
+	var player_source := _read_text_file("res://Scripts/Characters/Player.cs")
+	var active_items_source := _read_text_file("res://Scripts/Characters/Player.ActiveItems.cs")
+	var equip_body := _extract_csharp_method(player_source, "public void EquipWeapon(BaseWeapon weapon)")
+	var deferred_body := _extract_csharp_method(player_source, "private void ApplySelectedWeaponFromGameManager()")
+	var sync_body := _extract_csharp_method(active_items_source, "private void SyncBreakerBulletsToCurrentWeapon()")
+
+	assert_true(active_items_source.contains("SyncBreakerBulletsToCurrentWeapon();"),
+		"InitBreakerBullets should use the shared sync helper")
+	assert_true(equip_body.contains("SyncBreakerBulletsToCurrentWeapon();"),
+		"EquipWeapon should propagate breaker bullets to every newly equipped weapon")
+	assert_true(deferred_body.contains("CurrentWeapon = weapon;\n            // Apply passive item flags after deferred fallback weapon replacement (Issue #1949).\n            SyncBreakerBulletsToCurrentWeapon();"),
+		"Deferred GameManager weapon replacement should sync breaker bullets after assigning CurrentWeapon")
+	assert_true(sync_body.contains("CurrentWeapon.IsBreakerBulletActive = _breakerBulletsActive;"),
+		"The sync helper should copy the passive item flag to the current C# weapon")

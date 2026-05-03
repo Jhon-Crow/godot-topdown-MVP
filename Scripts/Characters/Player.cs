@@ -2973,11 +2973,8 @@ public partial class Player : BaseCharacter
 
         CurrentWeapon = weapon;
 
-        // Propagate breaker bullets flag to new weapon (Issue #678)
-        if (_breakerBulletsActive)
-        {
-            CurrentWeapon.IsBreakerBulletActive = true;
-        }
+        // Propagate breaker bullets flag to new weapon (Issue #678, #1949)
+        SyncBreakerBulletsToCurrentWeapon();
 
         // Propagate Combat Disposition bonuses to new weapon (Issue #1047)
         // This ensures the penalty persists when the weapon is swapped during a run.
@@ -3120,6 +3117,8 @@ public partial class Player : BaseCharacter
             AddChild(weapon);
             LogToFile($"[Player.Weapon] [trace] AddChild({weaponNodeName}) returned (entered tree)");
             CurrentWeapon = weapon;
+            // Apply passive item flags after deferred fallback weapon replacement (Issue #1949).
+            SyncBreakerBulletsToCurrentWeapon();
             // Issue #1774: WeaponData may be null here on first load (C# GlobalClass resource
             // registration race). BaseWeapon._Ready() will have scheduled DeferredReadyInit().
             // LabyrinthLevel._configure_labyrinth_weapon_ammo() handles ammo setup with explicit
