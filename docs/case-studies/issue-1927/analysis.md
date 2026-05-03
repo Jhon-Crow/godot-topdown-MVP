@@ -153,7 +153,7 @@ Path B (duplicate weapon race):
 - One level (`labyrinth_level.gd`) had already been hardened against the race in an earlier round (see comment at `labyrinth_level.gd:1745`), masking how broadly other levels were unprotected
 - Owner-uploaded follow-up logs (`game_log_20260503_101617.txt`, `_101640.txt`, `_105042.txt`, `_105107.txt`) returned HTTP 416 from GitHub user-attachments storage, so direct log evidence of the new crash was unavailable; root-cause had to come from code inspection
 
-## Session 4 Finding: Owner Tested Wrong Build
+## Session 4 Finding: Build Metadata Mismatch
 
 On the fourth rejection ("не исправлено", `08:56 UTC`), the owner uploaded logs:
 - `game_log_20260503_115518.txt` (revolver)
@@ -185,9 +185,45 @@ artifact from the main-branch CI run whose `github.ref_name` is `main`, not our 
 The game logs showing "issue-1927" in the branch field may have been generated from an older
 session; the commit hash `10ffb3f1` is the authoritative identifier and unambiguously points to main.
 
-**Conclusion**: all three of our fixes are present in build `40595c36`. The owner's rejection used
-a build from `main` that was created before our fixes were committed. A comment was posted on PR #1928
-pointing to the correct CI artifact download link.
+## Session 5 Finding: Latest Logs Reach RevolverLevel Before Crash
+
+On the fifth rejection (`09:37 UTC`), the owner uploaded:
+- `game_log_20260503_123622.txt` (revolver)
+- `game_log_20260503_123644.txt` (ASVK)
+
+These artifacts were downloaded into:
+`docs/case-studies/issue-1927/artifacts/pr-comment-4365867777/`.
+
+Both logs still embed commit `10ffb3f19765645f1a5e52db6accdc73ccdbf152`, but the log content
+includes messages from the current PR fixes:
+
+- Labyrinth emits "already equipped by C# Player" for both `revolver` and `sniper`, proving the
+  duplicate-instantiation guard is present and firing.
+- The session proceeds past the original Apply/reload boundary.
+- `PersistManager` then performs startup navigation into `res://scenes/levels/RevolverLevel.tscn`.
+- `RevolverLevel` initializes a new `Player`, replaces the scene-placed `MakarovPM` with the selected
+  revolver or ASVK from `Player._Ready()`, starts replay recording, and continues for several frames.
+
+The remaining hard crash is therefore no longer the original duplicate-instantiation failure. The
+remaining timing-sensitive path is `Player._Ready()` replacing and queue-freeing the scene-placed
+weapon while the player node, weapon child nodes, and level script are all still in startup `_Ready()`
+interleaving. That is especially risky for revolver/ASVK because both have additional startup/deferred
+state (revolver cylinder HUD, ASVK scope/weapon-specific helpers).
+
+### Session 5 Fix
+
+`Player._Ready()` now defers `ApplySelectedWeaponFromGameManager()` with:
+
+```
+CallDeferred(MethodName.ApplySelectedWeaponFromGameManager);
+```
+
+This preserves the C# fallback for exported builds where GDScript level setup is unreliable, but waits
+until the current scene startup pass is stable before removing/freeing the scene-placed default weapon
+and adding the selected weapon.
+
+The regression test now also locks down that `Player._Ready()` must not synchronously call
+`ApplySelectedWeaponFromGameManager()` before base sprite initialization.
 
 ## Verification
 

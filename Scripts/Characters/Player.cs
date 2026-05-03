@@ -1125,9 +1125,10 @@ public partial class Player : BaseCharacter
         }
 
         // Apply weapon selection from GameManager (C# fallback for GDScript level scripts)
-        // This ensures weapon selection works even when GDScript level scripts fail to execute
-        // due to Godot 4.3 binary tokenization issues (godotengine/godot#94150, #96065)
-        ApplySelectedWeaponFromGameManager();
+        // after this node and scene-owned child weapons finish their _Ready() work.
+        // Replacing/freeing the scene-placed MakarovPM inside Player._Ready() can race
+        // weapon deferred initialization during exported scene startup (Issue #1927).
+        CallDeferred(MethodName.ApplySelectedWeaponFromGameManager);
 
         // Store base positions for walking animation
         if (_bodySprite != null)

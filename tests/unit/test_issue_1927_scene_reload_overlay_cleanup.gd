@@ -46,6 +46,15 @@ func test_revolver_hud_is_not_queue_freed_from_revolver_exit_tree() -> void:
 		"Revolver must not queue-free the level-owned cylinder HUD during scene reload")
 
 
+func test_player_defers_game_manager_weapon_replacement_from_ready() -> void:
+	var source := _read_text_file("res://Scripts/Characters/Player.cs")
+
+	assert_true(source.contains("CallDeferred(MethodName.ApplySelectedWeaponFromGameManager);"),
+		"Player._Ready should defer selected-weapon replacement until scene startup is stable (Issue #1927)")
+	assert_false(source.contains("\n        ApplySelectedWeaponFromGameManager();\n\n        // Store base positions"),
+		"Player._Ready must not synchronously remove/free the scene-placed weapon during startup (Issue #1927)")
+
+
 ## Verifies that level scripts which load Revolver/SniperRifle scenes also
 ## include the duplicate-weapon protection check. Without it, C# Player._Ready()
 ## already instantiates the selected weapon via ApplySelectedWeaponFromGameManager;
