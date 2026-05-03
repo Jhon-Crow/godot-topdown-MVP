@@ -15,12 +15,17 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_pause_glass"]
 shader = ExtResource("13_pause_glass")
-shader_parameter/glass_tint = Vector3(0.78, 0.95, 1)
-shader_parameter/tint_strength = 0.18
-shader_parameter/darkness = 0.42
-shader_parameter/crack_intensity = 0.82
-shader_parameter/scratch_intensity = 0.38
-shader_parameter/vignette_strength = 0.36
+shader_parameter/crack_depth = 3.0
+shader_parameter/crack_scale = 3.5
+shader_parameter/crack_warp = 1.3
+shader_parameter/crack_warp_scale = 2.67
+shader_parameter/crack_profile = 1.0
+shader_parameter/crack_sharpness = 55.0
+shader_parameter/crack_width = 0.0015
+shader_parameter/crack_color = Color(0.72, 0.88, 1.0, 1.0)
+shader_parameter/crack_opacity = 0.8
+shader_parameter/darkness = 0.45
+shader_parameter/vignette_strength = 0.35
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 100

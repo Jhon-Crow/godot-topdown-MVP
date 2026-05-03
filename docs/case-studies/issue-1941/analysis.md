@@ -33,11 +33,21 @@ Issue #1941 asks to add a shader so the pause background looks like slightly scr
 
 ## Implemented Approach
 
-The implementation uses option 3: a procedural CanvasItem overlay shader attached to the existing pause background `ColorRect`. It draws radial cracks, small branch cracks, scratches, haze, tint, darkening, and vignette directly into the overlay.
+The implementation uses option 3: a procedural CanvasItem overlay shader attached to the existing pause background `ColorRect`.
 
-This keeps the pause menu simple, avoids renderer-specific screen texture issues, and gives the requested cracked/scratched glass impression without adding image assets.
+### v1 (initial) — line-segment approach
+Cracks were drawn with an explicit loop over 12 `line_segment()` calls radiating from a fixed centre. This produced visually thick, artificial-looking neon lines (feedback: "очень жирные линии" — "very thick lines").
+
+### v2 (revised) — Voronoi + FBM approach
+Ported from the [godotshaders.com/shader/cracked-glass/](https://godotshaders.com/shader/cracked-glass/) reference implementation.  Key differences:
+
+- **Voronoi cell-edge distance** replaces explicit line segments. The `voronoi_edge()` function computes the signed distance to the nearest Voronoi cell border, naturally generating a spider-web of thin cracks across the whole screen.
+- **FBM warp** (`fbm()`) displaces the Voronoi lookup coordinates before sampling, making crack paths irregular and organic rather than perfectly straight.
+- **Multi-scale accumulation** (controlled by `crack_depth`) layers several successively-zoomed Voronoi grids so large primary cracks have fine secondary cracks branching from them.
+- **crack_sharpness / crack_width** replace the old fixed `smoothstep` widths; the defaults are tuned for sub-pixel-thin cracks (`crack_width = 0.0015`).
+- The original godotshaders.com shader uses `hint_screen_texture` for refraction; this project omits that to stay compatible with Godot's GL Compatibility renderer (same reasoning documented in `cinema_film.gdshader`).
 
 ## Verification
 
-- Added `test_pause_menu_background_uses_cracked_glass_shader` to ensure `PauseMenu.tscn` keeps the cracked glass shader attached to its full-screen background.
+- `test_pause_menu_background_uses_cracked_glass_shader` ensures `PauseMenu.tscn` keeps the cracked glass shader attached to its full-screen background.
 - Existing PauseMenu tests continue to verify scene load, instantiation, and button signal wiring.
