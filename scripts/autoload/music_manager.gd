@@ -54,6 +54,10 @@ var _credit_label: Label = null
 ## Path of the scene whose music is currently playing (or queued).
 var _current_scene_path: String = ""
 
+## Set to true once we've connected to at least one ExitZone in the current
+## scene, so we stop walking the scene tree every frame.
+var _exit_zones_connected: bool = false
+
 
 func _ready() -> void:
 	_ensure_music_bus()
@@ -139,11 +143,15 @@ func _sync_to_current_scene() -> void:
 		return
 	var path: String = scene.scene_file_path
 	if path == _current_scene_path:
-		_connect_exit_zones(scene)
+		# Levels add their ExitZone via `call_deferred` during _ready, so the
+		# zone may not exist yet on the first sync. Keep retrying until we
+		# successfully connect to one.
+		if not _exit_zones_connected:
+			_exit_zones_connected = _connect_exit_zones(scene)
 		return
 
 	_current_scene_path = path
-	_connect_exit_zones(scene)
+	_exit_zones_connected = _connect_exit_zones(scene)
 	_play_track_for_path(path)
 
 
@@ -185,15 +193,20 @@ func _on_player_finished() -> void:
 
 
 ## Connects to the `activated` signal on every ExitZone in the current scene
-## so the music can stop the moment the level is cleared.
-func _connect_exit_zones(scene: Node) -> void:
+## so the music can stop the moment the level is cleared. Returns true when
+## at least one ExitZone was found (so the caller can stop walking the tree
+## every frame).
+func _connect_exit_zones(scene: Node) -> bool:
+	var any_found := false
 	for node in _find_exit_zones(scene):
+		any_found = true
 		if node.has_signal("activated") and not node.activated.is_connected(_on_exit_zone_activated):
 			node.activated.connect(_on_exit_zone_activated)
 		# If the exit was already active before we connected (e.g. a level
 		# starts cleared), stop immediately.
 		if "_is_active" in node and node._is_active:
 			_on_exit_zone_activated()
+	return any_found
 
 
 ## Recursively collect ExitZone nodes (Area2D with the `activate` method).
