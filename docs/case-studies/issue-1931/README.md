@@ -19,6 +19,7 @@
 Downloaded owner feedback log:
 
 - `docs/case-studies/issue-1931/artifacts/game_log_20260503_154901.txt`
+- `docs/case-studies/issue-1931/artifacts/game_log_20260503_160550.txt`
 
 The log was produced from branch `issue-1931-00bcd7d31ef5` at build commit `10ffb3f19765645f1a5e52db6accdc73ccdbf152`. It shows several level transitions through `SceneLoader`, including:
 
@@ -27,6 +28,14 @@ The log was produced from branch `issue-1931-00bcd7d31ef5` at build commit `10ff
 - 15:49:27: `SceneLoader` loads `RailwayStationLevel.tscn`
 
 Owner feedback: "сейчас при переключении уровня эффект не исчезает" ("now when switching levels the effect does not disappear").
+
+The second log was produced from the same branch at build commit `40bfff67adf4e9627c0eb5d92ec3cc689eaded28`. It confirms the level-switch fix and shows a remaining pause-menu armory path:
+
+- 16:06:11: `PauseMenu` opens `ArmoryMenu`.
+- 16:06:13: `ArmoryMenu` changes weapon selection to `ak_gl`.
+- 16:06:14: `GameManager.restart_scene()` starts a scene reload.
+
+Owner feedback: "проблема с выбором уровня решена! но обнаружена проблема - эффект не исчезает после выбора оружия в армори. во всех ситуациях, приводящих к перезапуску уровня должен отключаться эффект." ("the level selection problem is solved, but the effect does not disappear after selecting a weapon in the armory; in all situations that restart the level, the effect should be disabled").
 
 ## Root Cause
 
@@ -40,6 +49,8 @@ The first implementation enabled the low-pass filter from `PauseMenu.pause_game(
 6. The global `AudioServer` bus effect remains enabled because the scene transition bypassed `PauseMenu.resume_game()`.
 
 Because the effect lives on the global `Music` bus, it survives scene changes unless explicitly disabled.
+
+The first follow-up fix only cleared the effect when the active scene path changed. The armory restart path exposed a second case: `GameManager.restart_scene()` reloads the current level, so `MusicManager` sees the same `scene_file_path` and intentionally avoids replaying the music. The level scene object is still replaced, though, and that replacement is enough to identify a gameplay restart that must clear pause-only audio effects.
 
 ## External Research
 
@@ -70,7 +81,7 @@ Sources:
 
 `MusicManager` installs a disabled `AudioEffectLowPassFilter` named `PauseMuffleLowPass` on the `Music` bus. `PauseMenu` calls `MusicManager.set_pause_muffle_enabled(true)` when opening and disables it when resuming, leaving for another level, or quitting.
 
-After owner feedback, `MusicManager._sync_to_current_scene()` also disables the pause muffle whenever the active scene path changes. This makes scene transition cleanup independent of the initiating UI path (`PauseMenu`, `LevelsMenu`, `SceneLoader`, startup navigation, or a direct `change_scene_to_file` fallback).
+After owner feedback, `MusicManager._sync_to_current_scene()` also disables the pause muffle whenever the active scene path changes or when the same scene path is represented by a replacement scene instance. This makes cleanup independent of the initiating UI path (`PauseMenu`, `LevelsMenu`, `SceneLoader`, startup navigation, direct `change_scene_to_file` fallback, armory apply, death restart, score-screen restart, or quick restart) while preserving the existing requirement that music does not restart on same-level reloads.
 
 Chosen filter parameters:
 
@@ -88,3 +99,4 @@ Added regression coverage in `tests/unit/test_music_manager.gd`:
 - The filter starts disabled during gameplay.
 - `set_pause_muffle_enabled(true/false)` toggles the bus effect.
 - `_sync_to_current_scene()` disables the muffle effect when the current scene changes, reproducing the paused Levels menu transition failure mode.
+- `_sync_to_current_scene()` disables the muffle effect when the same scene path is reloaded as a new scene instance, reproducing the pause-menu armory restart failure mode, without replaying the track.

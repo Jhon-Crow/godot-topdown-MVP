@@ -75,6 +75,10 @@ var _connected_exit_zones: Array = []
 ## Index of the low-pass effect installed on the Music bus for pause muffling.
 var _pause_muffle_effect_index: int = -1
 
+## Current scene instance tracked separately from its path. Reloading or
+## restarting a level keeps the same path but replaces the scene object.
+var _current_scene_instance: Node = null
+
 
 func _ready() -> void:
 	_ensure_music_bus()
@@ -186,6 +190,9 @@ func _sync_to_current_scene() -> void:
 		return
 	var path: String = scene.scene_file_path
 	if path == _current_scene_path:
+		if scene != _current_scene_instance:
+			_current_scene_instance = scene
+			set_pause_muffle_enabled(false)
 		# When the same level is restarted (e.g. after player death), the scene
 		# path does not change but all nodes are freed and recreated. Detect
 		# this by checking whether the previously connected exit zone nodes are
@@ -208,6 +215,7 @@ func _sync_to_current_scene() -> void:
 		return
 
 	_current_scene_path = path
+	_current_scene_instance = scene
 	_connected_exit_zones.clear()
 	_exit_zones_connected = _connect_exit_zones(scene)
 	set_pause_muffle_enabled(false)
