@@ -213,6 +213,20 @@ func test_get_music_path_for_unknown_scene_returns_empty() -> void:
 		"Unknown scenes should return an empty music path")
 
 
+func test_railway_station_music_is_twenty_percent_quieter() -> void:
+	var multiplier: float = manager.get_volume_multiplier_for_scene(
+		"res://scenes/levels/RailwayStationLevel.tscn")
+	assert_almost_eq(multiplier, 0.8, 0.001,
+		"Railway Station music should play at 80% of normal level volume")
+
+
+func test_levels_without_volume_override_use_normal_music_volume() -> void:
+	var multiplier: float = manager.get_volume_multiplier_for_scene(
+		"res://scenes/levels/LabyrinthLevel.tscn")
+	assert_almost_eq(multiplier, 1.0, 0.001,
+		"Levels without explicit overrides should keep normal music volume")
+
+
 func test_exit_zone_activation_stops_music() -> void:
 	# Verify the handler stops the player. Set up a stream and assert that
 	# after calling the handler the player.stream is unchanged (we only
@@ -231,12 +245,15 @@ func test_exit_zone_activation_stops_music() -> void:
 func test_play_track_for_unknown_path_clears_stream() -> void:
 	var player: AudioStreamPlayer = manager.get_node("MusicStreamPlayer")
 	player.stream = _make_dummy_stream()
+	player.volume_linear = 0.8
 
 	manager._play_track_for_path("res://scenes/levels/Nonexistent.tscn")
 	assert_null(player.stream,
 		"Player stream should be cleared when scene has no music mapping")
 	assert_false(player.playing,
 		"Player should be stopped when scene has no music mapping")
+	assert_almost_eq(player.volume_linear, 1.0, 0.001,
+		"Player volume should reset to normal when scene has no music mapping")
 
 
 func test_source_skips_replay_when_scene_path_unchanged() -> void:
