@@ -33,6 +33,12 @@ const LEVEL_MUSIC: Dictionary = {
 	"res://scenes/levels/RailwayStationLevel.tscn": "res://assets/audio/music/railway-station(fixed).mp3",
 }
 
+## Per-level music volume multipliers. Values are linear gain applied on top
+## of the global Music bus slider. Unlisted levels use normal volume.
+const LEVEL_VOLUME_MULTIPLIERS: Dictionary = {
+	"res://scenes/levels/RailwayStationLevel.tscn": 0.8,
+}
+
 ## Name of the audio bus that the music slider in sound settings drives.
 const MUSIC_BUS: String = "Music"
 
@@ -230,6 +236,7 @@ func _play_track_for_path(scene_path: String) -> void:
 	if not LEVEL_MUSIC.has(scene_path):
 		_player.stop()
 		_player.stream = null
+		_player.volume_linear = 1.0
 		return
 
 	var music_path: String = LEVEL_MUSIC[scene_path]
@@ -238,6 +245,7 @@ func _play_track_for_path(scene_path: String) -> void:
 		push_warning("[MusicManager] Failed to load music: %s" % music_path)
 		_player.stop()
 		_player.stream = null
+		_player.volume_linear = 1.0
 		return
 
 	# Looping is enforced in `_on_player_finished` so it works for both
@@ -249,6 +257,7 @@ func _play_track_for_path(scene_path: String) -> void:
 		stream.loop = true
 
 	_player.stream = stream
+	_player.volume_linear = get_volume_multiplier_for_scene(scene_path)
 	_player.play()
 
 
@@ -339,6 +348,12 @@ func get_pause_muffle_effect() -> AudioEffect:
 ## an empty string if none. Used by tests and external integrations.
 func get_music_path_for_scene(scene_path: String) -> String:
 	return LEVEL_MUSIC.get(scene_path, "")
+
+
+## Public API: returns the per-scene linear volume multiplier, or normal
+## volume when the scene has no override.
+func get_volume_multiplier_for_scene(scene_path: String) -> float:
+	return LEVEL_VOLUME_MULTIPLIERS.get(scene_path, 1.0)
 
 
 ## Public API: returns true when the music player is currently playing.
