@@ -60,13 +60,13 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "Experimental Features"
+text = "Dev Features"
 label_settings = ExtResource("2_neon_label")
 horizontal_alignment = 1
 
 [node name="DescriptionLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "These features are experimental and may change."
+text = "These features are for development and testing."
 horizontal_alignment = 1
 autowrap_mode = 2
 

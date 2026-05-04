@@ -18,7 +18,7 @@ class MockMenuExperimentalSettings:
 	var invincibility_enabled: bool = false
 	var realistic_visibility_enabled: bool = false
 	var replay_enabled: bool = false
-	var logging_enabled: bool = true
+	var logging_enabled: bool = false
 	var enemy_flashlight_blinding_enabled: bool = false
 	var fps_counter_enabled: bool = false
 	var fps_drop_logging_enabled: bool = false
@@ -221,9 +221,9 @@ func test_default_replay_disabled() -> void:
 	assert_false(settings.is_replay_enabled(), "Replay should be disabled by default")
 
 
-func test_default_logging_enabled() -> void:
+func test_default_logging_disabled() -> void:
 	var settings := MockMenuExperimentalSettings.new()
-	assert_true(settings.is_logging_enabled(), "Logging should be enabled by default")
+	assert_false(settings.is_logging_enabled(), "Logging should be disabled by default")
 
 
 func test_default_flashlight_blinding_disabled() -> void:
@@ -327,8 +327,8 @@ func test_toggle_replay() -> void:
 
 func test_toggle_logging() -> void:
 	var settings := MockMenuExperimentalSettings.new()
-	settings.set_logging_enabled(false)
-	assert_false(settings.is_logging_enabled(), "Logging should be disabled after toggle")
+	settings.set_logging_enabled(true)
+	assert_true(settings.is_logging_enabled(), "Logging should be enabled after toggle")
 
 
 func test_toggle_flashlight_blinding() -> void:

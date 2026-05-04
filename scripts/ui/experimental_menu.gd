@@ -1,8 +1,8 @@
 extends CanvasLayer
-## Experimental features menu.
+## Dev features menu.
 ##
-## Allows the player to enable/disable experimental game features.
-## All experimental features are disabled by default.
+## Allows the player to enable/disable dev/test game features.
+## All dev features are disabled by default unless documented otherwise.
 ## Note: Night Mode (realistic visibility) has been moved to the Difficulty menu.
 
 ## Signal emitted when the back button is pressed.
