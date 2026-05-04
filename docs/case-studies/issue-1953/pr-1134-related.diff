@@ -1,0 +1,260 @@
+diff --git a/docs/case-studies/issue-1133/README.md b/docs/case-studies/issue-1133/README.md
+new file mode 100644
+index 000000000..648da2a66
+--- /dev/null
++++ b/docs/case-studies/issue-1133/README.md
+@@ -0,0 +1,77 @@
++# Case Study: Issue #1133 — Shoot Down RPG Rocket
++
++## Problem Statement
++
++Issue #1133 requests the ability to **shoot down an RPG rocket** by dealing any damage to it
++(with a bullet, grenade fragment, or explosion). The RPG rocket was implemented in Issue #583.
++
++## Analysis
++
++### Existing Implementation (Issue #583)
++
++The RPG rocket is implemented as an `Area2D` node using `bullet.gd` with `is_rpg_rocket = true`.
++The scene is `res://scenes/projectiles/RpgRocket.tscn`.
++
++Key properties of the rocket:
++- `collision_layer = 16` (layer 5: projectiles)
++- `collision_mask = 39` (layers 1+2+4+32: player, enemies, obstacles, targets)
++- No health — it explodes on any solid contact (walls, enemies, player)
++- No `on_hit` method — cannot receive incoming damage
++
++### Root Cause of Missing Feature
++
++The rocket was missing two things:
++
++1. **No health system**: The rocket had no HP variable, so it couldn't take damage before exploding.
++2. **Collision mask excludes projectiles**: `collision_mask = 39` does not include layer 5 (projectiles, value 16), so bullets (on layer 16) pass through the rocket's `Area2D` without triggering any interaction.
++
++### How Bullet-to-Bullet Collision Works in Godot
++
++In Godot 4, `Area2D.area_entered` fires when one Area2D overlaps another, **provided**:
++- Both areas have overlapping `collision_layer` / `collision_mask` bits.
++- Specifically: Area A's `collision_layer` must match Area B's `collision_mask`, AND vice versa.
++
++Bullets are on `collision_layer = 16` (layer 5).
++The rocket's `collision_mask = 39` did not include 16, so the bullet's `area_entered` signal never
++fired when crossing the rocket.
++
++### Fix
++
++1. **Add `rpg_health` export variable** to `bullet.gd` (default 1 HP — one hit to shoot down).
++2. **Add `on_hit` / `on_hit_with_info` / `on_hit_with_bullet_info_and_damage` methods** so the rocket
++   can receive incoming damage from bullets, shrapnel, and explosions.
++3. **Update `RpgRocket.tscn` collision_mask** from `39` to `55` (adds layer 5 = projectiles = 16)
++   so that bullets' `area_entered` fires when overlapping the rocket.
++4. **Set `rpg_health = 1`** in `RpgRocket.tscn` — one hit destroys the rocket (no explosion).
++
++### Collision Layer Reference
++
++| Layer | Name       | Bit value |
++|-------|------------|-----------|
++| 1     | player     | 1         |
++| 2     | enemies    | 2         |
++| 3     | obstacles  | 4         |
++| 4     | pickups    | 8         |
++| 5     | projectiles| 16        |
++| 6     | targets    | 32        |
++
++Old rocket mask: `39` = 1+2+4+32 = player + enemies + obstacles + targets
++New rocket mask: `55` = 1+2+4+16+32 = player + enemies + obstacles + projectiles + targets
++
++## Solution
++
++See changes in `scripts/projectiles/bullet.gd` and `scenes/projectiles/RpgRocket.tscn`.
++
++### Behavior After Fix
++
++- Any bullet, shrapnel, or explosion `on_hit` call reaching the rocket reduces its health.
++- When health reaches 0, the rocket is **destroyed without exploding** (no AOE damage).
++- A small visual flash indicates the intercept.
++- Log message: `[RpgRocket] Intercepted at pos=... remaining_health=0`
++
++## References
++
++- Issue #583: RPG enemy implementation (original rocket system)
++- `scripts/projectiles/bullet.gd` — main projectile script (handles both bullets and RPG rockets)
++- `scenes/projectiles/RpgRocket.tscn` — RPG rocket scene
++- Godot 4 docs: [Area2D collision detection](https://docs.godotengine.org/en/stable/classes/class_area2d.html)
+diff --git a/scenes/projectiles/RpgRocket.tscn b/scenes/projectiles/RpgRocket.tscn
+index 234081103..5554b3bc2 100644
+--- a/scenes/projectiles/RpgRocket.tscn
++++ b/scenes/projectiles/RpgRocket.tscn
+@@ -39,7 +39,7 @@ color = Color(1, 0.7, 0.1, 1)
+ 
+ [node name="RpgRocket" type="Area2D"]
+ collision_layer = 16
+-collision_mask = 39
++collision_mask = 55
+ script = ExtResource("1_bullet")
+ is_rpg_rocket = true
+ speed = 600.0
+@@ -51,6 +51,7 @@ rpg_accel_distance = 800.0
+ rpg_explosion_radius = 150.0
+ rpg_explosion_damage = 3
+ rpg_spawn_immunity = 0.15
++rpg_health = 1
+ 
+ [node name="Sprite2D" type="Sprite2D" parent="."]
+ scale = Vector2(2.0, 2.0)
+diff --git a/scripts/projectiles/bullet.gd b/scripts/projectiles/bullet.gd
+index 48bb3f3a7..dc0717c11 100644
+--- a/scripts/projectiles/bullet.gd
++++ b/scripts/projectiles/bullet.gd
+@@ -185,6 +185,15 @@ var is_drilling_bullet: bool = false
+ ## RPG rocket: seconds of spawn immunity (ignores all collisions, avoids immediate explosion).
+ @export var rpg_spawn_immunity: float = 0.15
+ 
++## RPG rocket: hit points before the rocket is shot down (Issue #1133).
++## Any damage source (bullet, shrapnel, explosion) reduces this.
++## When it reaches 0 the rocket is destroyed without exploding.
++## Set to 0 to disable interception (rocket cannot be shot down).
++@export var rpg_health: int = 1
++
++## RPG rocket internal state: current hit points remaining.
++var _rpg_current_health: int = 0
++
+ ## RPG rocket internal state: distance traveled so far.
+ var _rpg_distance_traveled: float = 0.0
+ 
+@@ -280,12 +289,14 @@ func _ready() -> void:
+ 			FileLogger.info("[Bullet.Breaker] Breaker bullet initialized, shrapnel scene: %s" % (
+ 				"loaded" if _breaker_shrapnel_scene else "MISSING"))
+ 
+-	# Initialize RPG rocket speed and raycast tracking position
++	# Initialize RPG rocket speed, health, and raycast tracking position
+ 	if is_rpg_rocket:
+ 		_rpg_current_speed = rpg_speed_initial
++		_rpg_current_health = rpg_health
+ 		_rpg_prev_position = global_position
+-		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f" % [
+-			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max])
++		add_to_group("rpg_rockets")  # Used by grenades to check blast interception (Issue #1133)
++		FileLogger.info("[RpgRocket] Spawned: pos=%s dir=%s initial_speed=%.0f max_speed=%.0f health=%d" % [
++			str(global_position), str(direction), rpg_speed_initial, rpg_speed_max, rpg_health])
+ 
+ 
+ ## Calculates the viewport diagonal distance for post-ricochet lifetime.
+@@ -552,6 +563,11 @@ func _on_area_entered(area: Area2D) -> void:
+ 	if is_rpg_rocket:
+ 		if _rpg_has_exploded or _rpg_time_alive < rpg_spawn_immunity:
+ 			return
++		# Skip other projectiles on the projectiles collision layer (Issue #1133).
++		# Bullets/shrapnel are on layer 5 (bit 16). They interact with the rocket via their own
++		# _on_area_entered which calls rocket.on_hit() directly.
++		if area.collision_layer & 16:
++			return
+ 		if area.has_method("on_hit"):
+ 			var parent: Node = area.get_parent()
+ 			if parent and shooter_id == parent.get_instance_id():
+@@ -1922,6 +1938,12 @@ func _rpg_damage_in_radius() -> void:
+ 	for player in players:
+ 		if player is Node2D and _rpg_in_radius(player.global_position) and _rpg_has_los(space_state, player.global_position):
+ 			_rpg_apply_damage(player)
++	# Intercept other RPG rockets in the blast radius (Issue #1133)
++	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
++	for rocket in rockets:
++		if rocket != self and rocket is Node2D and _rpg_in_radius(rocket.global_position):
++			if rocket.has_method("on_hit"):
++				rocket.on_hit()
+ 
+ 
+ func _rpg_in_radius(pos: Vector2) -> bool:
+@@ -1958,3 +1980,59 @@ func _rpg_simple_explosion_flash() -> void:
+ 	var tween := get_tree().create_tween()
+ 	tween.tween_property(flash, "modulate:a", 0.0, 0.3)
+ 	tween.tween_callback(flash.queue_free)
++
++
++## RPG rocket: receive incoming damage from bullets, shrapnel, or explosions (Issue #1133).
++## When health drops to 0 the rocket is shot down (destroyed without exploding).
++## Ignored if rpg_health == 0 (interception disabled) or rocket already destroyed.
++func on_hit() -> void:
++	if not is_rpg_rocket or _rpg_has_exploded:
++		return
++	if rpg_health <= 0:
++		return  # Interception disabled for this rocket
++	_rpg_current_health -= 1
++	FileLogger.info("[RpgRocket] Hit! remaining_health=%d pos=%s" % [_rpg_current_health, str(global_position)])
++	if _rpg_current_health <= 0:
++		_rpg_intercept()
++
++
++## RPG rocket: variant accepting hit direction and caliber data (Issue #1133).
++func on_hit_with_info(_hit_direction: Vector2, _caliber: Resource) -> void:
++	on_hit()
++
++
++## RPG rocket: variant accepting full bullet info including damage amount (Issue #1133).
++func on_hit_with_bullet_info_and_damage(_hit_direction: Vector2, _caliber: Resource,
++		_ricocheted: bool, _penetrated: bool, _dmg: float) -> void:
++	on_hit()
++
++
++## RPG rocket: destroy the rocket after being shot down — no explosion (Issue #1133).
++## A small flash indicates the intercept point.
++func _rpg_intercept() -> void:
++	if _rpg_has_exploded:
++		return
++	_rpg_has_exploded = true  # Prevent double-processing
++
++	FileLogger.info("[RpgRocket] Shot down at pos=%s after %.2fs dist=%.0fpx" % [
++		str(global_position), _rpg_time_alive, _rpg_distance_traveled])
++
++	# Stop exhaust particles
++	var exhaust: Node = get_node_or_null("ExhaustParticles")
++	if exhaust:
++		exhaust.set("emitting", false)
++
++	# Small white flash to indicate intercept (no explosion AOE)
++	if is_inside_tree():
++		var flash := ColorRect.new()
++		var flash_size := 30.0
++		flash.size = Vector2(flash_size * 2, flash_size * 2)
++		flash.position = global_position - Vector2(flash_size, flash_size)
++		flash.color = Color(1.0, 1.0, 1.0, 0.8)
++		flash.z_index = 100
++		get_tree().current_scene.add_child(flash)
++		var tween := get_tree().create_tween()
++		tween.tween_property(flash, "modulate:a", 0.0, 0.2)
++		tween.tween_callback(flash.queue_free)
++
++	_destroy()
+diff --git a/scripts/projectiles/grenade_base.gd b/scripts/projectiles/grenade_base.gd
+index 59f3918d6..b08368f9e 100644
+--- a/scripts/projectiles/grenade_base.gd
++++ b/scripts/projectiles/grenade_base.gd
+@@ -368,6 +368,18 @@ func _on_explode() -> void:
+ 	pass
+ 
+ 
++## Damage RPG rockets within the explosion radius (Issue #1133).
++## Allows grenades and other explosions to intercept enemy rockets.
++func _damage_rpg_rockets_in_radius() -> void:
++	var radius := _get_effect_radius()
++	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
++	for rocket in rockets:
++		if rocket is Node2D and global_position.distance_to(rocket.global_position) <= radius:
++			if rocket.has_method("on_hit"):
++				FileLogger.info("[GrenadeBase] Blast hit RPG rocket at %s" % str(rocket.global_position))
++				rocket.on_hit()
++
++
+ ## Internal explosion handling.
+ func _explode() -> void:
+ 	if _has_exploded:
+@@ -387,6 +399,9 @@ func _explode() -> void:
+ 	# Call subclass explosion effect
+ 	_on_explode()
+ 
++	# Intercept RPG rockets in blast radius (Issue #1133)
++	_damage_rpg_rockets_in_radius()
++
+ 	# Emit signal
+ 	exploded.emit(global_position, self)
+ 

@@ -36,6 +36,9 @@ class MockRpgRocket:
 	## Collision layer (layer 5 = bit 16).
 	var collision_layer: int = 16
 
+	## Radius used by the swept projectile interception check.
+	var sweep_radius: float = 10.0
+
 
 	func _init(health: int = 1) -> void:
 		rpg_health = health
@@ -79,6 +82,18 @@ class MockRpgRocket:
 			return
 		_rpg_has_exploded = true
 		intercepted = true
+
+
+	## Mirrors the geometry of bullet.gd _rpg_check_projectile_sweep without PhysicsServer.
+	func simulate_projectile_sweep(from_pos: Vector2, to_pos: Vector2, projectile_pos: Vector2,
+			projectile_is_rpg: bool = false) -> bool:
+		if projectile_is_rpg:
+			return false
+		var closest := Geometry2D.get_closest_point_to_segment(projectile_pos, from_pos, to_pos)
+		if closest.distance_to(projectile_pos) <= sweep_radius:
+			on_hit()
+			return true
+		return false
 
 
 class MockBullet:
@@ -206,3 +221,29 @@ func test_area_entered_already_exploded_skipped() -> void:
 	rocket._rpg_has_exploded = true
 	var result := _simulate_area_entered(rocket, 16, false)
 	assert_eq(result, "skip", "Already-exploded rocket should skip all area_entered")
+
+
+# ============================================================================
+# Tests: swept projectile interception for fast bullets/pellets (Issue #1953)
+# ============================================================================
+
+
+func test_projectile_sweep_catches_fast_bullet_crossing_rocket_path() -> void:
+	var rocket := MockRpgRocket.new(1)
+	var hit := rocket.simulate_projectile_sweep(Vector2(0, 0), Vector2(100, 0), Vector2(50, 6))
+	assert_true(hit, "Swept check should catch a projectile near the rocket path")
+	assert_true(rocket.exploded, "Rocket should explode when swept projectile check hits")
+
+
+func test_projectile_sweep_ignores_far_bullet() -> void:
+	var rocket := MockRpgRocket.new(1)
+	var hit := rocket.simulate_projectile_sweep(Vector2(0, 0), Vector2(100, 0), Vector2(50, 30))
+	assert_false(hit, "Swept check should ignore projectiles outside the rocket radius")
+	assert_false(rocket.exploded, "Rocket should not explode for a far projectile")
+
+
+func test_projectile_sweep_ignores_other_rpg_rockets() -> void:
+	var rocket := MockRpgRocket.new(1)
+	var hit := rocket.simulate_projectile_sweep(Vector2(0, 0), Vector2(100, 0), Vector2(50, 0), true)
+	assert_false(hit, "Swept check should skip other RPG rockets")
+	assert_false(rocket.exploded, "Rocket should not explode from another RPG rocket")

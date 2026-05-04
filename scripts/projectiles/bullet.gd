@@ -407,9 +407,11 @@ func _physics_process(delta: float) -> void:
 		# Raycast-based collision: detect wall/body hits that body_entered may miss (Issue #583).
 		# Cast a ray from previous position to current position each frame as a reliable fallback.
 		if _rpg_time_alive >= rpg_spawn_immunity and not _rpg_has_exploded and _rpg_prev_position != Vector2.ZERO:
+			if _rpg_check_projectile_sweep(_rpg_prev_position, global_position):
+				return
 			var space_state := get_world_2d().direct_space_state
 			var ray := PhysicsRayQueryParameters2D.create(_rpg_prev_position, global_position)
-			ray.collision_mask = 39  # same as rocket collision_mask: walls (4), enemies (2), player (1)
+			ray.collision_mask = 39  # walls (4), enemies (2), player (1), targets (32)
 			ray.exclude = [self]
 			var result := space_state.intersect_ray(ray)
 			if not result.is_empty():
@@ -2220,6 +2222,43 @@ func _rpg_apply_damage(entity: Node2D) -> void:
 	elif entity.has_method("on_hit"):
 		for i in range(rpg_explosion_damage):
 			entity.on_hit()
+
+
+## RPG rocket: swept projectile detection for fast bullets and shotgun pellets (Issue #1953).
+## Area2D overlap signals can miss tiny fast projectiles between physics frames, so the rocket
+## checks the swept segment from its previous to current position against projectile Area2Ds.
+func _rpg_check_projectile_sweep(from_pos: Vector2, to_pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var segment := to_pos - from_pos
+	var distance := segment.length()
+	if distance <= 0.0:
+		return false
+
+	var capsule := CapsuleShape2D.new()
+	capsule.radius = 10.0
+	capsule.height = distance + capsule.radius * 2.0
+
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = capsule
+	query.transform = Transform2D(segment.angle() + PI * 0.5, (from_pos + to_pos) * 0.5)
+	query.collision_mask = 16  # projectile layer
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	query.exclude = [self]
+
+	var hits := space_state.intersect_shape(query, 16)
+	for hit in hits:
+		var area := hit.get("collider") as Area2D
+		if area == null or not is_instance_valid(area):
+			continue
+		if area == self:
+			continue
+		if area.get("is_rpg_rocket"):
+			continue
+		FileLogger.info("[RpgRocket] Swept projectile hit by %s at pos=%s" % [area.name, str(global_position)])
+		on_hit()
+		return true
+	return false
 
 
 ## RPG rocket: breach (destroy) all StaticBody2D obstacles within explosion radius (Issue #1144).
