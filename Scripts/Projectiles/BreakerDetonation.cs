@@ -7,7 +7,7 @@ namespace GodotTopDownTemplate.Projectiles;
 /// Static helper for breaker bullet detonation logic (Issue #678).
 /// Shared by Bullet.cs and ShotgunPellet.cs to avoid code duplication.
 ///
-/// Breaker bullets detonate 95px before hitting a wall or alive enemy,
+/// Breaker bullets detonate 95px before hitting a wall, alive enemy, or RPG rocket,
 /// dealing 1 damage in a 15px radius and spawning shrapnel in a forward cone.
 /// </summary>
 public static class BreakerDetonation
@@ -90,8 +90,8 @@ public static class BreakerDetonation
 
     /// <summary>
     /// Checks if a wall is within detonation distance ahead (straight raycast), or if an alive
-    /// enemy is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
-    /// when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
+    /// enemy/RPG rocket is within the shrapnel cone sector (Issue #1634: proximity fuse should
+    /// detonate early when a target enters the sector of future shrapnel).
     /// </summary>
     /// <param name="projectile">The bullet/pellet Area2D node.</param>
     /// <param name="direction">Normalized direction of travel.</param>
@@ -142,12 +142,16 @@ public static class BreakerDetonation
             }
         }
 
-        // 2. Cone sector check for enemies (Issue #1634).
-        // Gated by arming distance: the enemy-cone fuse only activates after ArmingDistance pixels,
-        // preventing immediate detonation when enemies are close to the player at fire time.
+        // 2. Cone sector check for enemies and RPG rockets (Issues #1634, #1955).
+        // Gated by arming distance: the cone fuse only activates after ArmingDistance pixels,
+        // preventing immediate detonation when targets are close to the player at fire time.
         if (distanceTraveled >= ArmingDistance)
         {
             if (CheckEnemyInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
+            {
+                return true;
+            }
+            if (CheckRpgRocketInShrapnelCone(projectile, direction, damage, damageMultiplier, shooterId))
             {
                 return true;
             }
@@ -173,7 +177,6 @@ public static class BreakerDetonation
         var tree = projectile.GetTree();
         if (tree == null) return false;
 
-        float cosHalfAngle = Mathf.Cos(Mathf.DegToRad(ShrapnelHalfAngle));
         var enemies = tree.GetNodesInGroup("enemies");
 
         foreach (var enemy in enemies)
@@ -181,25 +184,62 @@ public static class BreakerDetonation
             if (enemy is not Node2D enemyNode) continue;
             if (!enemyNode.HasMethod("is_alive") || !enemyNode.Call("is_alive").AsBool()) continue;
 
-            var toEnemy = enemyNode.GlobalPosition - projectile.GlobalPosition;
-            float dist = toEnemy.Length();
-            if (dist > DetonationDistance) continue;
-
-            // Dot product of normalized vectors equals cos(angle_between).
-            // Enemy is in cone if cos(angle) >= cos(half_angle).
-            if (dist > 0f && (toEnemy / dist).Dot(direction) >= cosHalfAngle)
+            if (TargetInShrapnelCone(projectile, direction, enemyNode.GlobalPosition))
             {
-                // Only detonate if there is no wall between the bullet and the enemy.
-                // Without this check, bullets detonate against enemies through walls.
-                if (!HasLineOfSight(projectile, projectile.GlobalPosition, enemyNode.GlobalPosition))
-                    continue;
-
                 Detonate(projectile, direction, damage, damageMultiplier, shooterId);
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Returns true (and triggers detonation) if any RPG rocket is within the shrapnel cone sector.
+    /// Issue #1955: proximity-fuse bullets should detonate before RPG rockets too.
+    /// </summary>
+    private static bool CheckRpgRocketInShrapnelCone(
+        Area2D projectile,
+        Vector2 direction,
+        float damage,
+        float damageMultiplier,
+        ulong shooterId)
+    {
+        var tree = projectile.GetTree();
+        if (tree == null) return false;
+
+        var rockets = tree.GetNodesInGroup("rpg_rockets");
+
+        foreach (var rocket in rockets)
+        {
+            if (rocket is not Node2D rocketNode) continue;
+            if (rocketNode == projectile) continue;
+
+            if (TargetInShrapnelCone(projectile, direction, rocketNode.GlobalPosition))
+            {
+                Detonate(projectile, direction, damage, damageMultiplier, shooterId);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true when a target point is in the breaker cone with clear line of sight.
+    /// </summary>
+    private static bool TargetInShrapnelCone(Area2D projectile, Vector2 direction, Vector2 targetPosition)
+    {
+        var toTarget = targetPosition - projectile.GlobalPosition;
+        float dist = toTarget.Length();
+        if (dist > DetonationDistance || dist <= 0f) return false;
+
+        float cosHalfAngle = Mathf.Cos(Mathf.DegToRad(ShrapnelHalfAngle));
+        if ((toTarget / dist).Dot(direction) < cosHalfAngle) return false;
+
+        // Only detonate if there is no wall between the bullet and target.
+        // Without this check, bullets detonate against targets through walls.
+        return HasLineOfSight(projectile, projectile.GlobalPosition, targetPosition);
     }
 
     /// <summary>

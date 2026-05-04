@@ -72,19 +72,35 @@ class MockBreakerBullet:
 		# Arming distance guard: cone fuse only triggers after bullet travels BREAKER_ARMING_DISTANCE
 		if distance_traveled < BREAKER_ARMING_DISTANCE:
 			return false
+		if _is_target_in_shrapnel_cone(enemy_pos, has_line_of_sight):
+			_breaker_detonate()
+			return true
+		return false
+
+	## Simulate the RPG rocket cone fuse check added in Issue #1955.
+	func check_rpg_rocket_in_shrapnel_cone(rocket_pos: Vector2, has_line_of_sight: bool = true, distance_traveled: float = BREAKER_ARMING_DISTANCE) -> bool:
+		if not is_breaker_bullet:
+			return false
+		if distance_traveled < BREAKER_ARMING_DISTANCE:
+			return false
+		if _is_target_in_shrapnel_cone(rocket_pos, has_line_of_sight):
+			_breaker_detonate()
+			return true
+		return false
+
+	func _is_target_in_shrapnel_cone(target_pos: Vector2, has_line_of_sight: bool = true) -> bool:
 		var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
-		var to_enemy := enemy_pos - global_position
-		var dist := to_enemy.length()
+		var to_target := target_pos - global_position
+		var dist := to_target.length()
 		if dist > BREAKER_DETONATION_DISTANCE:
 			return false
 		if dist <= 0.0:
 			return false
-		if (to_enemy / dist).dot(direction) < cos_half_angle:
+		if (to_target / dist).dot(direction) < cos_half_angle:
 			return false
 		# Only detonate if there is no wall blocking line of sight (Issue #1634 fix)
 		if not has_line_of_sight:
 			return false
-		_breaker_detonate()
 		return true
 
 	## Trigger breaker detonation.
@@ -675,6 +691,40 @@ func test_detonates_via_cone_after_arming() -> void:
 
 	assert_true(result, "Should detonate via cone after bullet has traveled the arming distance")
 	assert_true(bullet.has_detonated())
+
+
+func test_detonates_when_rpg_rocket_ahead_in_cone_after_arming() -> void:
+	# Issue #1955: proximity-fuse bullets must react to RPG rockets, not only enemies.
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var rocket_pos := Vector2(70.0, 0.0)
+
+	var result := bullet.check_rpg_rocket_in_shrapnel_cone(rocket_pos, true, MockBreakerBullet.BREAKER_ARMING_DISTANCE)
+
+	assert_true(result, "Should detonate when an RPG rocket is directly ahead within range")
+	assert_true(bullet.has_detonated())
+
+
+func test_does_not_detonate_for_rpg_rocket_before_arming() -> void:
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var rocket_pos := Vector2(70.0, 0.0)
+
+	var result := bullet.check_rpg_rocket_in_shrapnel_cone(rocket_pos, true, 0.0)
+
+	assert_false(result, "Should not detonate on an RPG rocket before the cone fuse arms")
+	assert_false(bullet.has_detonated())
+
+
+func test_does_not_detonate_for_rpg_rocket_when_wall_blocks_los() -> void:
+	bullet.direction = Vector2.RIGHT
+	bullet.global_position = Vector2.ZERO
+	var rocket_pos := Vector2(70.0, 0.0)
+
+	var result := bullet.check_rpg_rocket_in_shrapnel_cone(rocket_pos, false, MockBreakerBullet.BREAKER_ARMING_DISTANCE)
+
+	assert_false(result, "Should not detonate on an RPG rocket through a wall")
+	assert_false(bullet.has_detonated())
 
 
 func test_wall_check_still_works_before_arming() -> void:

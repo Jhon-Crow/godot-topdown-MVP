@@ -1612,7 +1612,7 @@ func _has_line_of_sight_to_target(target_pos: Vector2) -> bool:
 # ============================================================================
 
 
-## Checks if a wall is within BREAKER_DETONATION_DISTANCE ahead, or if an alive enemy
+## Checks if a wall is within BREAKER_DETONATION_DISTANCE ahead, or if an alive enemy/RPG rocket
 ## is within the shrapnel cone sector (Issue #1634: proximity fuse should detonate early
 ## when an enemy enters the sector of future shrapnel to maximise shrapnel hit chance).
 ## @return: True if detonation occurred, false otherwise.
@@ -1649,6 +1649,8 @@ func _check_breaker_detonation() -> bool:
 	if _breaker_distance_traveled >= BREAKER_ARMING_DISTANCE:
 		if _check_enemy_in_shrapnel_cone():
 			return true
+		if _check_rpg_rocket_in_shrapnel_cone():
+			return true
 
 	return false  # Nothing triggering detonation
 
@@ -1660,7 +1662,6 @@ func _check_breaker_detonation() -> bool:
 ## Optimization: uses dot product comparison instead of acos for the angle check.
 ## LOS check prevents premature detonation against enemies through walls (Issue #1634).
 func _check_enemy_in_shrapnel_cone() -> bool:
-	var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	for enemy in enemies:
 		if not (enemy is Node2D):
@@ -1668,23 +1669,48 @@ func _check_enemy_in_shrapnel_cone() -> bool:
 		var enemy_node := enemy as Node2D
 		if not (enemy_node.has_method("is_alive") and enemy_node.is_alive()):
 			continue
-		var to_enemy: Vector2 = enemy_node.global_position - global_position
-		var dist: float = to_enemy.length()
-		if dist > BREAKER_DETONATION_DISTANCE:
-			continue
-		# Dot product of normalized vectors: equals cos(angle_between).
-		# If cos(angle) >= cos(half_angle), the angle is within the cone.
-		if dist > 0.0 and (to_enemy / dist).dot(direction) >= cos_half_angle:
-			# Only detonate if there is no wall between the bullet and the enemy.
-			# Without this check, bullets detonate against enemies through walls.
-			if not _breaker_has_line_of_sight(global_position, enemy_node.global_position):
-				continue
+		var dist: float = global_position.distance_to(enemy_node.global_position)
+		if _breaker_target_in_shrapnel_cone(enemy_node.global_position):
 			if _debug_breaker:
 				FileLogger.info("[Bullet.Breaker] Enemy %s in shrapnel cone at distance %.1f, detonating" % [
 					enemy_node.name, dist])
 			_breaker_detonate(global_position)
 			return true
 	return false
+
+
+## Returns true if any RPG rocket is within the armed shrapnel cone sector.
+## Issue #1955: proximity-fuse bullets should detonate before RPG rockets too.
+func _check_rpg_rocket_in_shrapnel_cone() -> bool:
+	var rockets := get_tree().get_nodes_in_group("rpg_rockets")
+	for rocket in rockets:
+		if not (rocket is Node2D):
+			continue
+		if rocket == self or not is_instance_valid(rocket):
+			continue
+		var rocket_node := rocket as Node2D
+		var dist: float = global_position.distance_to(rocket_node.global_position)
+		if _breaker_target_in_shrapnel_cone(rocket_node.global_position):
+			if _debug_breaker:
+				FileLogger.info("[Bullet.Breaker] RPG rocket %s in shrapnel cone at distance %.1f, detonating" % [
+					rocket_node.name, dist])
+			_breaker_detonate(global_position)
+			return true
+	return false
+
+
+## Returns true when a target point is in the breaker cone with clear line of sight.
+func _breaker_target_in_shrapnel_cone(target_pos: Vector2) -> bool:
+	var to_target: Vector2 = target_pos - global_position
+	var dist: float = to_target.length()
+	if dist > BREAKER_DETONATION_DISTANCE or dist <= 0.0:
+		return false
+	var cos_half_angle := cos(deg_to_rad(BREAKER_SHRAPNEL_HALF_ANGLE))
+	if (to_target / dist).dot(direction) < cos_half_angle:
+		return false
+	# Only detonate if there is no wall between the bullet and target.
+	# Without this check, bullets detonate against targets through walls.
+	return _breaker_has_line_of_sight(global_position, target_pos)
 
 
 ## Triggers the breaker bullet detonation: explosion damage + shrapnel cone.
