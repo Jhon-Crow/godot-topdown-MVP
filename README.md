@@ -621,5 +621,6 @@ Or in Godot:
 ## Links
 Game on itch.io: 
 https://jhon-crow.itch.io/tactic-line
+
 OST on itch.io: 
 https://jhon-crow.itch.io/tactic-line-ost
