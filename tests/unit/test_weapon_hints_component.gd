@@ -27,6 +27,7 @@ class MockPlayer:
 	signal ReloadSequenceProgress(step: int, total: int)
 	signal grenade_thrown
 
+	var CurrentWeapon: Node = null
 	var grenade_count: int = 0
 	var grenade_state: int = 0
 	var use_method_for_grenades: bool = false
@@ -383,6 +384,19 @@ func test_grenade_hint_uses_reviewed_six_step_text_source() -> void:
 		"Weapon hints grenade training should include the final aim/release action")
 
 
+func test_weapon_hint_action_strings_use_translation_keys_not_hardcoded_russian() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/components/weapon_hints_component.gd")
+
+	assert_false(source.contains("ПКМ"),
+		"Regular-map weapon hints must not hardcode Russian RMB text in English locale")
+	assert_true(source.contains("tr(\"HINT_KEY_RMB_UP_OPEN\")"),
+		"Shotgun pump/reload hints should use translated RMB-up/open text")
+	assert_true(source.contains("tr(\"HINT_KEY_RMB_DOWN_CLOSE\")"),
+		"Shotgun pump/reload hints should use translated RMB-down/close text")
+	assert_true(source.contains("tr(\"HINT_KEY_MMB_RMB_DOWN\")"),
+		"Shotgun reload hints should use translated MMB+RMB text")
+
+
 func test_grenade_hint_progresses_through_reviewed_sequence() -> void:
 	_ensure_action("grenade_prepare", KEY_G)
 	_ensure_action("grenade_throw", KEY_H)
@@ -450,6 +464,24 @@ func test_find_weapon_node_maps_silenced_pistol_for_training_hints() -> void:
 
 	assert_eq(comp._find_weapon_node("silenced_pistol"), weapon,
 		"Silenced pistol should map to the C# SilencedPistol node so training can connect")
+
+
+func test_find_weapon_node_prefers_equipped_current_weapon_over_stale_children() -> void:
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+	var stale_weapon := MockWeapon.new()
+	stale_weapon.name = "Shotgun"
+	player.add_child(stale_weapon)
+	var equipped_weapon := MockWeapon.new()
+	equipped_weapon.name = "Shotgun"
+	player.CurrentWeapon = equipped_weapon
+
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+	comp._player = player
+
+	assert_eq(comp._find_weapon_node("shotgun"), equipped_weapon,
+		"Building weapon hints must connect to Player.CurrentWeapon instead of stale scene children")
 
 
 func test_revolver_open_close_without_loading_rolls_reload_hint_back() -> void:

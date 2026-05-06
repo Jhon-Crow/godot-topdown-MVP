@@ -326,6 +326,10 @@ func _find_weapon_node(weapon_id: String) -> Node:
 	if _player == null:
 		return null
 
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon is Node and _weapon_node_matches_id(current_weapon, weapon_id):
+		return current_weapon
+
 	# Map weapon IDs to the node names used in the player scene (C# PascalCase)
 	var node_name_map: Dictionary = {
 		"makarov_pm": "MakarovPM",
@@ -350,6 +354,25 @@ func _find_weapon_node(weapon_id: String) -> Node:
 			return child
 
 	return null
+
+
+func _weapon_node_matches_id(weapon: Node, weapon_id: String) -> bool:
+	if weapon == null:
+		return false
+
+	var node_name_map: Dictionary = {
+		"makarov_pm": "MakarovPM",
+		"m16": "AssaultRifle",
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"revolver": "Revolver",
+		"ak_gl": "AKGL",
+	}
+
+	var expected_name: String = node_name_map.get(weapon_id, "")
+	return not expected_name.is_empty() and weapon.name == expected_name
 
 
 ## Connect player-level action signals used by hints regardless of weapon-node lookup.
@@ -435,10 +458,10 @@ func _show_initial_hints(weapon_id: String) -> void:
 	match weapon_id:
 		"revolver":
 			_add_hint(HINT_KEY_HAMMER_COCK,
-				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"))
+				"[color=#ff4444][RMB][/color] " + tr("HINT_COCK_HAMMER"))
 		"sniper":
 			_add_hint(HINT_KEY_SCOPE,
-				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"))
+				"[color=#ff4444][RMB][/color] " + tr("HINT_SCOPE"))
 
 	# All other weapons: bolt-cycle/pump hint appears after 1st shot,
 	# reload hint appears after 2nd shot (see _on_weapon_fired).
@@ -465,7 +488,7 @@ func _on_weapon_fired() -> void:
 				_bolt_cycle_hint_revealed = true
 				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 					_add_hint(HINT_KEY_BOLT_CYCLE,
-						"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + tr("HINT_BOLT_ACTION_WORD"))
+						_build_shotgun_pump_hint_bbcode(1))
 
 	# After 2nd shot: reveal reload hint for all weapons
 	if _shots_fired >= 2 and not _reload_hint_revealed:
@@ -643,7 +666,7 @@ func _on_reload_completed() -> void:
 			_ak_gl_launcher_hint_shown = true
 			if not _hint_labels.has(HINT_KEY_LAUNCHER):
 				_add_hint(HINT_KEY_LAUNCHER,
-					"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"))
+					"[color=#ff4444][RMB][/color] " + tr("HINT_LAUNCHER_FIRE"))
 
 	_log_to_file("Reload completed — reload hint dismissed for: %s" % _current_weapon_id)
 
@@ -759,15 +782,17 @@ func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 ## ShotgunActionState: 1=NeedsPumpUp, 2=NeedsPumpDown
 func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 	var bolt_word: String = tr("HINT_BOLT_ACTION_WORD")
+	var k_open: String = tr("HINT_KEY_RMB_UP_OPEN")
+	var k_close: String = tr("HINT_KEY_RMB_DOWN_CLOSE")
 	match state:
 		1:
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
+			return "[color=#ff4444][%s][/color] [color=#888888][%s][/color] %s" % [k_open, k_close, bolt_word]
 		2:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] %s" % [k_open, k_close, bolt_word]
 		_:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
+			return "[color=#888888][%s] [%s][/color] %s" % [k_open, k_close, bolt_word]
 	return ""
 
 

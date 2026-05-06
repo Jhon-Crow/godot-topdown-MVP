@@ -622,6 +622,10 @@ func test_labyrinth_tutorial_strings_have_translation_keys_for_english_locale() 
 		"Labyrinth hammer-cock tutorial text should use a translation key for English locale support")
 	assert_string_contains(source, "tr(\"HINT_SCOPE\")",
 		"Labyrinth scope tutorial text should use a translation key for English locale support")
+	assert_string_contains(source, "tr(\"HINT_KEY_RMB_UP_OPEN\")",
+		"Labyrinth shotgun tutorial text should use translated RMB-up/open text")
+	assert_string_contains(source, "tr(\"HINT_KEY_RMB_DOWN_CLOSE\")",
+		"Labyrinth shotgun tutorial text should use translated RMB-down/close text")
 	assert_false(source.contains("[color=#ff4444][ПКМ][/color] Взведи курок"),
 		"Labyrinth hammer-cock tutorial text should not be hardcoded in Russian")
 	assert_false(source.contains("[color=#ff4444][ПКМ][/color] Прицелься через оптику"),
@@ -1625,4 +1629,3 @@ func test_lab_hint_stacking_uses_cumulative_content_heights() -> void:
 		"label.size.x must be set explicitly so RichTextLabel word-wrap computes content height correctly (Issue #1881)")
 	assert_true(content.contains("known_bbcode"),
 		"_estimate_tutorial_hint_height must use a BBCode-aware regex (known_bbcode) to leave non-BBCode brackets intact (Issue #1881)")
-
