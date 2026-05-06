@@ -618,6 +618,8 @@ Or in Godot:
 1. Go to Project > Tools > C# > Create C# Solution (if not exists)
 2. Build with Ctrl+Shift+B or via the Build menu
 
-## License
-
-See [LICENSE](LICENSE) for details.
+## Links
+Game on itch.io: 
+https://jhon-crow.itch.io/tactic-line
+OST on itch.io: 
+https://jhon-crow.itch.io/tactic-line-ost
