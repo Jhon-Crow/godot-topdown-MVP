@@ -49,6 +49,11 @@ var _pending_unlock: String = ""
 ## Reference to the current weapon node attached to the player.
 var _current_weapon_node: Node = null
 
+## Weapon setup in regular maps can finish after GameManager emits weapon_selected.
+## Keep retrying briefly so hints bind to the active weapon once Player.CurrentWeapon is assigned.
+var _weapon_bind_retry_timer: float = 0.0
+var _weapon_bind_retry_logged: bool = false
+
 ## Dictionary of active hint labels: hint_key -> RichTextLabel node.
 var _hint_labels: Dictionary = {}
 
@@ -111,6 +116,9 @@ var _hint_timers: Dictionary = {}
 
 ## Duration to auto-dismiss individual hints (seconds).
 const HINT_AUTO_DISMISS: float = 8.0
+
+## Max seconds to retry weapon-node binding after a weapon_selected event.
+const WEAPON_BIND_RETRY_DURATION: float = 2.0
 
 ## Vertical spacing between stacked hints (matches Labyrinth TUTORIAL_HINT_SPACING).
 const HINT_SPACING: float = 60.0
@@ -250,6 +258,9 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 
 ## Called every frame to update hint positions above the player.
 func _process(_delta: float) -> void:
+	if _hints_active and _current_weapon_node == null and _weapon_bind_retry_timer > 0.0:
+		_weapon_bind_retry_timer = maxf(0.0, _weapon_bind_retry_timer - _delta)
+		_try_bind_current_weapon_node()
 	if _hints_showing:
 		_update_hint_positions()
 	if _hints_active:
@@ -307,7 +318,9 @@ func _start_hint_sequence(weapon_id: String) -> void:
 	# Locate the weapon node on the player (same detection logic as labyrinth_level.gd)
 	_current_weapon_node = _find_weapon_node(weapon_id)
 	if _current_weapon_node == null:
-		_log_to_file("Weapon node not found on player for: %s — hints not connected to actions" % weapon_id)
+		_weapon_bind_retry_timer = WEAPON_BIND_RETRY_DURATION
+		_weapon_bind_retry_logged = false
+		_log_to_file("Weapon node not found on player for: %s — will retry binding" % weapon_id)
 	else:
 		_connect_weapon_signals(_current_weapon_node, weapon_id)
 
@@ -320,11 +333,32 @@ func _start_hint_sequence(weapon_id: String) -> void:
 	_log_to_file("Hint sequence started for weapon: %s" % weapon_id)
 
 
+func _try_bind_current_weapon_node() -> void:
+	if _current_weapon_id.is_empty():
+		return
+
+	var weapon := _find_weapon_node(_current_weapon_id)
+	if weapon == null:
+		if _weapon_bind_retry_timer <= 0.0 and not _weapon_bind_retry_logged:
+			_weapon_bind_retry_logged = true
+			_log_to_file("Weapon node not found on player for: %s — hints not connected to weapon actions" % _current_weapon_id)
+		return
+
+	_current_weapon_node = weapon
+	_weapon_bind_retry_timer = 0.0
+	_weapon_bind_retry_logged = true
+	_connect_weapon_signals(_current_weapon_node, _current_weapon_id)
+
+
 ## Find the weapon node on the player by weapon ID.
 ## Mirrors the weapon detection in labyrinth_level.gd.
 func _find_weapon_node(weapon_id: String) -> Node:
 	if _player == null:
 		return null
+
+	var current_weapon = _player.get("CurrentWeapon")
+	if current_weapon is Node and _weapon_node_matches_id(current_weapon, weapon_id):
+		return current_weapon
 
 	# Map weapon IDs to the node names used in the player scene (C# PascalCase)
 	var node_name_map: Dictionary = {
@@ -350,6 +384,25 @@ func _find_weapon_node(weapon_id: String) -> Node:
 			return child
 
 	return null
+
+
+func _weapon_node_matches_id(weapon: Node, weapon_id: String) -> bool:
+	if weapon == null:
+		return false
+
+	var node_name_map: Dictionary = {
+		"makarov_pm": "MakarovPM",
+		"m16": "AssaultRifle",
+		"shotgun": "Shotgun",
+		"mini_uzi": "MiniUzi",
+		"silenced_pistol": "SilencedPistol",
+		"sniper": "SniperRifle",
+		"revolver": "Revolver",
+		"ak_gl": "AKGL",
+	}
+
+	var expected_name: String = node_name_map.get(weapon_id, "")
+	return not expected_name.is_empty() and weapon.name == expected_name
 
 
 ## Connect player-level action signals used by hints regardless of weapon-node lookup.
@@ -435,10 +488,10 @@ func _show_initial_hints(weapon_id: String) -> void:
 	match weapon_id:
 		"revolver":
 			_add_hint(HINT_KEY_HAMMER_COCK,
-				"[color=#ff4444][ПКМ][/color] " + tr("HINT_COCK_HAMMER"))
+				"[color=#ff4444][RMB][/color] " + tr("HINT_COCK_HAMMER"))
 		"sniper":
 			_add_hint(HINT_KEY_SCOPE,
-				"[color=#ff4444][ПКМ][/color] " + tr("HINT_SCOPE"))
+				"[color=#ff4444][RMB][/color] " + tr("HINT_SCOPE"))
 
 	# All other weapons: bolt-cycle/pump hint appears after 1st shot,
 	# reload hint appears after 2nd shot (see _on_weapon_fired).
@@ -465,7 +518,7 @@ func _on_weapon_fired() -> void:
 				_bolt_cycle_hint_revealed = true
 				if not _hint_labels.has(HINT_KEY_BOLT_CYCLE):
 					_add_hint(HINT_KEY_BOLT_CYCLE,
-						"[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + tr("HINT_BOLT_ACTION_WORD"))
+						_build_shotgun_pump_hint_bbcode(1))
 
 	# After 2nd shot: reveal reload hint for all weapons
 	if _shots_fired >= 2 and not _reload_hint_revealed:
@@ -643,7 +696,7 @@ func _on_reload_completed() -> void:
 			_ak_gl_launcher_hint_shown = true
 			if not _hint_labels.has(HINT_KEY_LAUNCHER):
 				_add_hint(HINT_KEY_LAUNCHER,
-					"[color=#ff4444][ПКМ][/color] " + tr("HINT_LAUNCHER_FIRE"))
+					"[color=#ff4444][RMB][/color] " + tr("HINT_LAUNCHER_FIRE"))
 
 	_log_to_file("Reload completed — reload hint dismissed for: %s" % _current_weapon_id)
 
@@ -759,15 +812,17 @@ func _build_shotgun_full_reload_hint_bbcode(state: int) -> String:
 ## ShotgunActionState: 1=NeedsPumpUp, 2=NeedsPumpDown
 func _build_shotgun_pump_hint_bbcode(state: int) -> String:
 	var bolt_word: String = tr("HINT_BOLT_ACTION_WORD")
+	var k_open: String = tr("HINT_KEY_RMB_UP_OPEN")
+	var k_close: String = tr("HINT_KEY_RMB_DOWN_CLOSE")
 	match state:
 		1:
-			return "[color=#ff4444][ПКМ↑][/color] [color=#888888][ПКМ↓][/color] " + bolt_word
+			return "[color=#ff4444][%s][/color] [color=#888888][%s][/color] %s" % [k_open, k_close, bolt_word]
 		2:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.2)
-			return "[color=#888888][ПКМ↑][/color] [color=#ff4444][ПКМ↓][/color] " + bolt_word
+			return "[color=#888888][%s][/color] [color=#ff4444][%s][/color] %s" % [k_open, k_close, bolt_word]
 		_:
 			_extend_hint_strikethrough(HINT_KEY_BOLT_CYCLE, 0.4)
-			return "[color=#888888][ПКМ↑] [ПКМ↓][/color] " + bolt_word
+			return "[color=#888888][%s] [%s][/color] %s" % [k_open, k_close, bolt_word]
 	return ""
 
 
@@ -1297,6 +1352,8 @@ func _reset_hint_state() -> void:
 	_fire_mode_hint_pending = false
 	_shotgun_full_reload_active = false
 	_shotgun_node = null
+	_weapon_bind_retry_timer = 0.0
+	_weapon_bind_retry_logged = false
 	_shotgun_reload_loaded_shell = false
 	_revolver_reload_loaded_cartridge = false
 	_ak_gl_launcher_hint_shown = false

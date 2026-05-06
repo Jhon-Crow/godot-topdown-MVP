@@ -1,0 +1,1136 @@
+20:[14:26:18] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+41:[14:26:18] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+59:[14:26:18] [INFO] [PersistManager] Restored unlocked weapon: m16
+62:[14:26:18] [INFO] [PersistManager] Restored unlocked weapon: silenced_pistol
+65:[14:26:18] [INFO] [PersistManager] Restored unlocked weapon: ak_gl
+73:[14:26:18] [INFO] [PersistManager] Restored levels_completed_with_silenced_pistol: 1
+74:[14:26:18] [INFO] [GameManager] Weapon selected: ak_gl
+75:[14:26:18] [INFO] [PersistManager] Restored selected weapon: ak_gl
+103:[14:26:18] [INFO] [WeaponHintsSettings] WeaponHintsSettings initialized - mode: ALWAYS, weapons seen: ["makarov_pm", "mini_uzi", "shotgun", "sniper", "revolver", "m16", "silenced_pistol", "ak_gl"]
+105:[14:26:18] [INFO] [LocalizationSettings] Loaded 2 translation(s)
+106:[14:26:18] [INFO] [LocalizationSettings] LocalizationSettings initialized — locale: en
+176:[14:26:19] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+177:[14:26:19] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+178:[14:26:19] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+179:[14:26:19] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+180:[14:26:19] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+181:[14:26:19] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+182:[14:26:19] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+183:[14:26:19] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+185:[14:26:19] [INFO] [LabyrinthLevel] HUD ammo refreshed (labyrinth ammo config): AKGL 30/150
+186:[14:26:19] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for ak_gl
+187:[14:26:19] [INFO] [LabyrinthLevel] HUD ammo refreshed (post level ammo config): AKGL 30/150
+193:[14:26:19] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+196:[14:26:20] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+197:[14:26:20] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+199:[14:26:20] [INFO] [LabyrinthLevel] Previous replay data cleared
+202:[14:26:20] [INFO] [ReplayManager] Level: LabyrinthLevel
+205:[14:26:20] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+211:[14:26:20] [INFO] [LabyrinthLevel] Replay recording started successfully
+215:[14:26:20] [INFO] [PersistManager] Already at last played level: res://scenes/levels/LabyrinthLevel.tscn
+219:[14:26:20] [INFO] [UnlockManager] Restored saved unlock for weapon: silenced_pistol
+222:[14:26:20] [INFO] [UnlockManager] Restored saved unlock for weapon: m16
+223:[14:26:20] [INFO] [UnlockManager] Restored saved unlock for weapon: ak_gl
+241:[14:26:20] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+270:[14:26:20] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+310:[14:26:39] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+320:[14:26:44] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+323:[14:26:46] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+327:[14:26:49] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+329:[14:26:50] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+331:[14:26:51] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+333:[14:26:51] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+335:[14:26:53] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+340:[14:26:57] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+344:[14:26:59] [INFO] [GameManager] Weapon selected: m16
+358:[14:26:59] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+359:[14:26:59] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+380:[14:26:59] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+382:[14:26:59] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+385:[14:26:59] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+453:[14:26:59] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+454:[14:26:59] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+455:[14:26:59] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+456:[14:26:59] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+457:[14:26:59] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+458:[14:26:59] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+459:[14:26:59] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+460:[14:26:59] [INFO] [LabyrinthLevel] Setting up weapon: m16
+466:[14:26:59] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+469:[14:27:00] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+470:[14:27:00] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+472:[14:27:00] [INFO] [LabyrinthLevel] Previous replay data cleared
+475:[14:27:00] [INFO] [ReplayManager] Level: LabyrinthLevel
+478:[14:27:00] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+484:[14:27:00] [INFO] [LabyrinthLevel] Replay recording started successfully
+515:[14:27:00] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+586:[14:27:02] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+712:[14:27:08] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+714:[14:27:08] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+742:[14:27:08] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+744:[14:27:08] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+747:[14:27:08] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+815:[14:27:08] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+816:[14:27:08] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+817:[14:27:08] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+818:[14:27:08] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+819:[14:27:08] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+820:[14:27:08] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+821:[14:27:08] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+822:[14:27:08] [INFO] [LabyrinthLevel] Setting up weapon: m16
+828:[14:27:08] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+831:[14:27:08] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+832:[14:27:08] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+834:[14:27:08] [INFO] [LabyrinthLevel] Previous replay data cleared
+837:[14:27:08] [INFO] [ReplayManager] Level: LabyrinthLevel
+840:[14:27:08] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+846:[14:27:08] [INFO] [LabyrinthLevel] Replay recording started successfully
+877:[14:27:08] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+952:[14:27:11] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+1600:[14:28:14] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+1601:[14:28:14] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+1629:[14:28:14] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+1631:[14:28:14] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+1634:[14:28:14] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+1702:[14:28:14] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+1703:[14:28:14] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+1704:[14:28:14] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+1705:[14:28:14] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+1706:[14:28:14] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+1707:[14:28:14] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+1708:[14:28:14] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+1709:[14:28:14] [INFO] [LabyrinthLevel] Setting up weapon: m16
+1715:[14:28:14] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+1718:[14:28:14] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+1719:[14:28:14] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+1721:[14:28:14] [INFO] [LabyrinthLevel] Previous replay data cleared
+1724:[14:28:14] [INFO] [ReplayManager] Level: LabyrinthLevel
+1727:[14:28:14] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+1733:[14:28:14] [INFO] [LabyrinthLevel] Replay recording started successfully
+1764:[14:28:14] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+1859:[14:28:17] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+2177:[14:28:28] [INFO] [PersistManager] Last level saved: res://scenes/levels/BuildingLevel.tscn
+2178:[14:28:28] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+2181:[14:28:29] [INFO] [SceneLoader] Background load complete: res://scenes/levels/BuildingLevel.tscn
+2199:[14:28:29] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+2201:[14:28:29] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+2204:[14:28:29] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+2297:[14:28:29] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+2298:[14:28:29] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+2299:[14:28:29] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+2355:[14:28:29] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+2386:[14:28:29] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+2397:[14:28:29] [INFO] [ReplayManager] Level: BuildingLevel
+2400:[14:28:29] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+2558:[14:28:32] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'BuildingLevel' — blood-in-water check unavailable (Issue #1578)
+2962:[14:28:39] [INFO] [WeaponHintsComponent] Hint added 'grenade': [color=#ff4444][hold G+RMB][/color] [color=#888888][flick mouse right][/color] [color=#888888][release RMB][/color] [color=#888888][hold RMB][/color] [color=#888888][release G][/color] [color=#888888][aim and release RMB][/color]
+2963:[14:28:39] [INFO] [WeaponHintsComponent] Grenade hint shown after grenade_prepare
+2964:[14:28:39] [INFO] [WeaponHintsComponent] Strikethrough setup 'grenade': 4 lines
+3035:[14:28:41] [INFO] [WeaponHintsComponent] Auto-dismiss timer: clearing all remaining hints for m16
+3036:[14:28:41] [INFO] [WeaponHintsComponent] Auto-dismiss timer: grenade hint kept active (waiting for throw)
+3054:[14:28:42] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+3055:[14:28:42] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+3093:[14:28:42] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+3096:[14:28:42] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+3099:[14:28:42] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+3192:[14:28:42] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+3193:[14:28:42] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+3194:[14:28:42] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+3195:[14:28:42] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'BuildingLevel' — blood-in-water check unavailable (Issue #1578)
+3254:[14:28:42] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+3285:[14:28:42] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+3296:[14:28:42] [INFO] [ReplayManager] Level: BuildingLevel
+3299:[14:28:42] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+3339:[14:28:42] [INFO] [WeaponHintsComponent] Hint added 'grenade': [color=#ff4444][hold G+RMB][/color] [color=#888888][flick mouse right][/color] [color=#888888][release RMB][/color] [color=#888888][hold RMB][/color] [color=#888888][release G][/color] [color=#888888][aim and release RMB][/color]
+3340:[14:28:42] [INFO] [WeaponHintsComponent] Grenade hint shown after grenade_prepare
+3341:[14:28:42] [INFO] [WeaponHintsComponent] Strikethrough setup 'grenade': 4 lines
+3401:[14:28:44] [INFO] [WeaponHintsComponent] Dismissing hint 'grenade'
+3402:[14:28:44] [INFO] [WeaponHintsComponent] Grenade thrown — grenade hint dismissed
+3410:[14:28:45] [INFO] [WeaponHintsComponent] Hint 'grenade' dismissed
+3801:[14:28:55] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+3802:[14:28:55] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+3871:[14:28:55] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+3873:[14:28:55] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+3876:[14:28:55] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+3969:[14:28:55] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+3970:[14:28:55] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+3971:[14:28:55] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+4027:[14:28:55] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+4058:[14:28:55] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+4069:[14:28:55] [INFO] [ReplayManager] Level: BuildingLevel
+4072:[14:28:55] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+4272:[14:28:58] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'BuildingLevel' — blood-in-water check unavailable (Issue #1578)
+4490:[14:29:04] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+4502:[14:29:04] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+4527:[14:29:05] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+4529:[14:29:05] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+4532:[14:29:05] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+4625:[14:29:05] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+4626:[14:29:05] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+4627:[14:29:05] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+4683:[14:29:05] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+4714:[14:29:05] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+4725:[14:29:05] [INFO] [ReplayManager] Level: BuildingLevel
+4728:[14:29:05] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+4847:[14:29:07] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+4860:[14:29:13] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+4861:[14:29:13] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+4890:[14:29:13] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+4892:[14:29:13] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+4895:[14:29:13] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+4988:[14:29:13] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+4989:[14:29:13] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+4990:[14:29:13] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+5046:[14:29:13] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+5077:[14:29:13] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+5088:[14:29:13] [INFO] [ReplayManager] Level: BuildingLevel
+5091:[14:29:13] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+5270:[14:29:15] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+5271:[14:29:15] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+5272:[14:29:15] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+5286:[14:29:15] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+5364:[14:29:15] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+5521:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy1] Footprint scene loaded
+5522:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy1] Found EnemyModel for facing direction
+5523:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy1] BloodyFeetComponent ready on ShotgunEnemy1
+5536:[14:29:21] [ENEMY] [ShotgunEnemy1] Death animation component initialized
+5538:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy2] Footprint scene loaded
+5539:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy2] Found EnemyModel for facing direction
+5540:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy2] BloodyFeetComponent ready on ShotgunEnemy2
+5541:[14:29:21] [ENEMY] [ShotgunEnemy2] Death animation component initialized
+5563:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemyRight1] Footprint scene loaded
+5564:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemyRight1] Found EnemyModel for facing direction
+5565:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemyRight1] BloodyFeetComponent ready on ShotgunEnemyRight1
+5566:[14:29:21] [ENEMY] [ShotgunEnemyRight1] Death animation component initialized
+5644:[14:29:21] [INFO] [CastleLevel] Child 'ShotgunEnemy1': script=true, has_died_signal=true
+5645:[14:29:21] [INFO] [CastleLevel] Child 'ShotgunEnemy2': script=true, has_died_signal=true
+5650:[14:29:21] [INFO] [CastleLevel] Child 'ShotgunEnemyRight1': script=true, has_died_signal=true
+5665:[14:29:21] [INFO] [WeaponHintsComponent] Connected weapon signals for: m16 (node: AssaultRifle)
+5666:[14:29:21] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+5667:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy1] Blood detector created and attached to ShotgunEnemy1
+5668:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy1] Snow surface detector created on ShotgunEnemy1
+5671:[14:29:21] [INFO] [SoundPropagation] Registered listener: ShotgunEnemy1 (total: 1)
+5672:[14:29:21] [ENEMY] [ShotgunEnemy1] Registered as sound listener
+5673:[14:29:21] [ENEMY] [ShotgunEnemy1] Spawned at (1000, 500), hp: 1, behavior: GUARD
+5674:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy2] Blood detector created and attached to ShotgunEnemy2
+5675:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemy2] Snow surface detector created on ShotgunEnemy2
+5676:[14:29:21] [INFO] [SoundPropagation] Registered listener: ShotgunEnemy2 (total: 2)
+5677:[14:29:21] [ENEMY] [ShotgunEnemy2] Registered as sound listener
+5678:[14:29:21] [ENEMY] [ShotgunEnemy2] Spawned at (1400, 500), hp: 1, behavior: GUARD
+5699:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemyRight1] Blood detector created and attached to ShotgunEnemyRight1
+5700:[14:29:21] [INFO] [BloodyFeet:ShotgunEnemyRight1] Snow surface detector created on ShotgunEnemyRight1
+5701:[14:29:21] [INFO] [SoundPropagation] Registered listener: ShotgunEnemyRight1 (total: 7)
+5702:[14:29:21] [ENEMY] [ShotgunEnemyRight1] Registered as sound listener
+5703:[14:29:21] [ENEMY] [ShotgunEnemyRight1] Spawned at (5000, 500), hp: 1, behavior: GUARD
+5737:[14:29:21] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+5741:[14:29:21] [ENEMY] [ShotgunEnemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=157.5°, current=0.0°, player=(3000,2100), corner_timer=0.00
+5742:[14:29:21] [ENEMY] [ShotgunEnemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(3000,2100), corner_timer=0.00
+5746:[14:29:21] [ENEMY] [ShotgunEnemyRight1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(3000,2100), corner_timer=0.00
+5763:[14:29:21] [INFO] [WeaponHintsComponent] Shot fired with m16 (1 total)
+5766:[14:29:21] [INFO] [WeaponHintsComponent] Shot fired with m16 (2 total)
+5767:[14:29:21] [INFO] [WeaponHintsComponent] Hint added 'reload': [color=#ff4444][R][/color] [color=#888888][F] [R][/color] Reload
+5768:[14:29:21] [INFO] [WeaponHintsComponent] Reload hint revealed for: m16
+5771:[14:29:21] [INFO] [WeaponHintsComponent] Strikethrough setup 'reload': 1 lines
+5772:[14:29:21] [INFO] [WeaponHintsComponent] Shot fired with m16 (3 total)
+5776:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (4 total)
+5779:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (5 total)
+5782:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (6 total)
+5785:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (7 total)
+5788:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (8 total)
+5791:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (9 total)
+5794:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (10 total)
+5801:[14:29:22] [INFO] [WeaponHintsComponent] Shot fired with m16 (11 total)
+5804:[14:29:23] [INFO] [WeaponHintsComponent] Shot fired with m16 (12 total)
+5828:[14:29:24] [INFO] [WeaponHintsComponent] Reload sequence step 1/3 — hint updated
+5829:[14:29:24] [ENEMY] [ShotgunEnemy1] Player reloading: false -> true
+5830:[14:29:24] [ENEMY] [ShotgunEnemy2] Player reloading: false -> true
+5835:[14:29:24] [ENEMY] [ShotgunEnemyRight1] Player reloading: false -> true
+5844:[14:29:24] [ENEMY] [ShotgunEnemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=2561), can_see=false
+5845:[14:29:24] [ENEMY] [ShotgunEnemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=2263), can_see=false
+5850:[14:29:24] [ENEMY] [ShotgunEnemyRight1] Player vulnerable (reloading) but cannot attack: close=false (dist=2561), can_see=false
+5860:[14:29:24] [INFO] [WeaponHintsComponent] Reload sequence step 2/3 — hint updated
+5862:[14:29:24] [INFO] [WeaponHintsComponent] Reload sequence step 3/3 — hint updated
+5863:[14:29:24] [ENEMY] [ShotgunEnemy1] Player reloading: true -> false
+5864:[14:29:24] [ENEMY] [ShotgunEnemy2] Player reloading: true -> false
+5869:[14:29:24] [ENEMY] [ShotgunEnemyRight1] Player reloading: true -> false
+5876:[14:29:24] [INFO] [WeaponHintsComponent] Dismissing hint 'reload'
+5877:[14:29:24] [INFO] [WeaponHintsComponent] Hint added 'fire_mode': [color=#ff4444][B][/color] Switch fire mode
+5878:[14:29:24] [INFO] [WeaponHintsComponent] Reload completed — reload hint dismissed for: m16
+5880:[14:29:24] [INFO] [WeaponHintsComponent] Strikethrough setup 'fire_mode': 1 lines
+5885:[14:29:25] [INFO] [WeaponHintsComponent] Hint 'reload' dismissed
+5888:[14:29:26] [INFO] [PersistManager] Last level saved: res://scenes/levels/LabyrinthLevel.tscn
+5889:[14:29:26] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/LabyrinthLevel.tscn
+5891:[14:29:27] [INFO] [SceneLoader] Background load complete: res://scenes/levels/LabyrinthLevel.tscn
+5898:[14:29:27] [INFO] [SoundPropagation] Unregistered listener: ShotgunEnemyRight1 (remaining: 6)
+5903:[14:29:27] [INFO] [SoundPropagation] Unregistered listener: ShotgunEnemy2 (remaining: 1)
+5904:[14:29:27] [INFO] [SoundPropagation] Unregistered listener: ShotgunEnemy1 (remaining: 0)
+5938:[14:29:27] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+5940:[14:29:27] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+5943:[14:29:27] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+6011:[14:29:27] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+6012:[14:29:27] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+6013:[14:29:27] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+6014:[14:29:27] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+6015:[14:29:27] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+6016:[14:29:27] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+6017:[14:29:27] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+6018:[14:29:27] [INFO] [LabyrinthLevel] Setting up weapon: m16
+6024:[14:29:27] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+6027:[14:29:27] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+6028:[14:29:27] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+6030:[14:29:27] [INFO] [LabyrinthLevel] Previous replay data cleared
+6033:[14:29:27] [INFO] [ReplayManager] Level: LabyrinthLevel
+6036:[14:29:27] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+6042:[14:29:27] [INFO] [LabyrinthLevel] Replay recording started successfully
+6073:[14:29:27] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+6094:[14:29:29] [INFO] [PersistManager] Last level saved: res://scenes/levels/BuildingLevel.tscn
+6095:[14:29:29] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+6098:[14:29:29] [INFO] [SceneLoader] Background load complete: res://scenes/levels/BuildingLevel.tscn
+6119:[14:29:29] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+6121:[14:29:29] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+6124:[14:29:29] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+6217:[14:29:29] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+6218:[14:29:29] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+6219:[14:29:29] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+6275:[14:29:29] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+6306:[14:29:29] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+6317:[14:29:29] [INFO] [ReplayManager] Level: BuildingLevel
+6320:[14:29:29] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+6461:[14:31:04] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+6467:[14:31:06] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+6468:[14:31:06] [INFO] [WeaponHintsComponent] Weapon node not found on player for: makarov_pm — hints not connected to actions
+6469:[14:31:06] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: makarov_pm
+6470:[14:31:06] [INFO] [GameManager] Weapon selected: makarov_pm
+6472:[14:31:06] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+6473:[14:31:06] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+6499:[14:31:06] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+6501:[14:31:06] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+6504:[14:31:06] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+6597:[14:31:06] [INFO] [WeaponHintsComponent] Connected weapon signals for: makarov_pm (node: MakarovPM)
+6598:[14:31:06] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: makarov_pm
+6599:[14:31:06] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+6690:[14:31:06] [INFO] [ReplayManager] Level: BuildingLevel
+6732:[14:31:07] [INFO] [WeaponHintsComponent] Shot fired with makarov_pm (1 total)
+6744:[14:31:07] [INFO] [WeaponHintsComponent] Shot fired with makarov_pm (2 total)
+6745:[14:31:07] [INFO] [WeaponHintsComponent] Hint added 'reload': [color=#ff4444][R][/color] [color=#888888][R][/color] Reload
+6746:[14:31:07] [INFO] [WeaponHintsComponent] Reload hint revealed for: makarov_pm
+6752:[14:31:07] [INFO] [WeaponHintsComponent] Strikethrough setup 'reload': 1 lines
+6753:[14:31:07] [INFO] [WeaponHintsComponent] Shot fired with makarov_pm (3 total)
+6760:[14:31:07] [INFO] [WeaponHintsComponent] Shot fired with makarov_pm (4 total)
+6766:[14:31:07] [INFO] [WeaponHintsComponent] Shot fired with makarov_pm (5 total)
+6783:[14:31:09] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+6786:[14:31:09] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+6787:[14:31:09] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+6788:[14:31:09] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+6789:[14:31:09] [INFO] [GameManager] Weapon selected: m16
+6791:[14:31:09] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+6792:[14:31:09] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+6821:[14:31:10] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+6823:[14:31:10] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+6826:[14:31:10] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+6919:[14:31:10] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+6920:[14:31:10] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+6921:[14:31:10] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+6977:[14:31:10] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+7008:[14:31:10] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+7019:[14:31:10] [INFO] [ReplayManager] Level: BuildingLevel
+7022:[14:31:10] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+7139:[14:31:12] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+7145:[14:31:13] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+7146:[14:31:13] [INFO] [WeaponHintsComponent] Weapon node not found on player for: shotgun — hints not connected to actions
+7147:[14:31:13] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: shotgun
+7148:[14:31:13] [INFO] [GameManager] Weapon selected: shotgun
+7150:[14:31:13] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+7151:[14:31:13] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+7186:[14:31:13] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+7188:[14:31:13] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+7191:[14:31:13] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+7284:[14:31:13] [INFO] [WeaponHintsComponent] Weapon node not found on player for: shotgun — hints not connected to actions
+7285:[14:31:13] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: shotgun
+7286:[14:31:13] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+7342:[14:31:13] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+7346:[14:31:13] [INFO] [Player.Weapon] [trace] Loading scene: res://scenes/weapons/csharp/Shotgun.tscn
+7347:[14:31:13] [INFO] [Player.Weapon] [trace] Instantiating Shotgun
+7348:[14:31:13] [INFO] [Player.Weapon] [trace] AddChild(Shotgun) — about to enter tree
+7349:[14:31:13] [INFO] [Player.Weapon] [trace] AddChild(Shotgun) returned (entered tree)
+7350:[14:31:13] [INFO] [Player.Weapon] Equipped Shotgun (ammo: 8/8)
+7372:[14:31:13] [INFO] [LevelInitFallback] HUD ammo refreshed (fallback initial weapon setup): Shotgun 8/28
+7373:[14:31:13] [INFO] [LevelInitFallback] Re-applied auto-reload magazine reduction after fallback ammo config for Shotgun
+7374:[14:31:13] [INFO] [LevelInitFallback] HUD ammo refreshed (post fallback level ammo config): Shotgun 8/28
+7375:[14:31:13] [INFO] [LevelInitFallback] HUD ammo refreshed (post fallback debug UI setup): Shotgun 8/28
+7380:[14:31:13] [INFO] [ReplayManager] Detected player weapon: Shotgun
+7382:[14:31:13] [INFO] [ReplayManager] Level: BuildingLevel
+7413:[14:31:13] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+7414:[14:31:13] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+7440:[14:31:13] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 15° spread at pos=(450, 1250)
+7441:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=8,5, distance=60,5px, pos=(509.41867, 1238.4487)
+7442:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=-7,6, distance=44,4px, pos=(493.6671, 1241.9714)
+7443:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=-1,8, distance=50,2px, pos=(499.77878, 1243.3922)
+7444:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=-2,0, distance=50,0px, pos=(499.7392, 1244.4525)
+7445:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=-11,5, distance=40,5px, pos=(490.2937, 1245.9299)
+7446:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=-1,9, distance=50,1px, pos=(499.9481, 1246.0829)
+7447:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=-6,9, distance=45,1px, pos=(494.9907, 1246.8972)
+7448:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=15,0, distance=67,0px, pos=(516.9022, 1246.7456)
+7449:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=3,8, distance=55,8px, pos=(505.80206, 1250.0065)
+7450:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=-6,2, distance=45,8px, pos=(495.76688, 1250.6531)
+7451:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=7,9, distance=59,9px, pos=(509.84464, 1252.28)
+7452:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=-12,9, distance=39,1px, pos=(489.1003, 1250.8676)
+7453:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=-4,5, distance=47,5px, pos=(497.47736, 1252.1229)
+7454:[14:31:13] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=1,9, distance=53,9px, pos=(503.8195, 1253.7042)
+7455:[14:31:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (Shotgun), range=800, listeners=10
+7478:[14:31:14] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+7479:[14:31:14] [INFO] [Shotgun.FIX#445] dragStartPos=(927, 1227), aimDir=(1,00, -0,05)
+7480:[14:31:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7481:[14:31:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7484:[14:31:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+7485:[14:31:14] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+7496:[14:31:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7497:[14:31:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7498:[14:31:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+7501:[14:31:14] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(51,1, -189,7), length=196,5, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+7502:[14:31:14] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+7503:[14:31:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7504:[14:31:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7505:[14:31:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+7506:[14:31:14] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+7507:[14:31:14] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(7,7, 40,1), length=40,8, ActionState=Ready
+7508:[14:31:14] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+7527:[14:31:15] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(450, 1250)
+7528:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=-10,1, distance=41,9px, pos=(491.65588, 1245.4304)
+7529:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=2,8, distance=54,8px, pos=(504.59253, 1245.6725)
+7530:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-0,1, distance=51,9px, pos=(501.77658, 1246.7609)
+7531:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=3,6, distance=55,6px, pos=(505.5694, 1249.8732)
+7532:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=12,1, distance=64,1px, pos=(514.06274, 1248.9824)
+7533:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=1,2, distance=53,2px, pos=(503.16742, 1252.0272)
+7534:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=12,5, distance=64,5px, pos=(514.4448, 1252.9375)
+7535:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=12,7, distance=64,7px, pos=(514.309, 1257.0288)
+7536:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=7,7, distance=59,7px, pos=(509.34412, 1256.6835)
+7537:[14:31:15] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=11,7, distance=63,7px, pos=(513.1005, 1258.4354)
+7538:[14:31:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (Shotgun), range=800, listeners=10
+7551:[14:31:15] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+7552:[14:31:15] [INFO] [Shotgun.FIX#445] dragStartPos=(1008, 1263), aimDir=(1,00, 0,02)
+7553:[14:31:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7554:[14:31:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7555:[14:31:15] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+7566:[14:31:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7568:[14:31:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7569:[14:31:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+7579:[14:31:15] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+7595:[14:31:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+7597:[14:31:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+7598:[14:31:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+7599:[14:31:15] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(33,4, 177,0), length=180,1, isDragUp=False, isDragDown=True, ActionState=Ready
+7600:[14:31:15] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+7601:[14:31:15] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(34,7, 177,0), length=180,4, ActionState=Ready
+7602:[14:31:15] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+7612:[14:31:15] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'BuildingLevel' — blood-in-water check unavailable (Issue #1578)
+7649:[14:31:31] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+7650:[14:31:31] [INFO] [WeaponHintsComponent] Weapon node not found on player for: mini_uzi — hints not connected to actions
+7651:[14:31:31] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: mini_uzi
+7652:[14:31:31] [INFO] [GameManager] Weapon selected: mini_uzi
+7654:[14:31:31] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+7665:[14:31:31] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+7690:[14:31:31] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+7692:[14:31:31] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+7695:[14:31:31] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+7788:[14:31:31] [INFO] [WeaponHintsComponent] Weapon node not found on player for: mini_uzi — hints not connected to actions
+7789:[14:31:31] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: mini_uzi
+7790:[14:31:31] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+7877:[14:31:31] [INFO] [LevelInitFallback] BuildingLevel: MiniUzi magazines reinitialized to 2 (C# fallback)
+7888:[14:31:31] [INFO] [ReplayManager] Level: BuildingLevel
+8123:[14:31:43] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+8126:[14:31:44] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+8127:[14:31:44] [INFO] [WeaponHintsComponent] Weapon node not found on player for: silenced_pistol — hints not connected to actions
+8128:[14:31:44] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: silenced_pistol
+8129:[14:31:44] [INFO] [GameManager] Weapon selected: silenced_pistol
+8131:[14:31:44] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+8132:[14:31:44] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+8158:[14:31:44] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+8160:[14:31:44] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+8163:[14:31:44] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+8256:[14:31:44] [INFO] [WeaponHintsComponent] Weapon node not found on player for: silenced_pistol — hints not connected to actions
+8257:[14:31:44] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: silenced_pistol
+8258:[14:31:44] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+8314:[14:31:44] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+8345:[14:31:44] [INFO] [LevelInitFallback] Configured silenced pistol ammo for 10 enemies
+8346:[14:31:44] [INFO] [LevelInitFallback] HUD ammo refreshed (silenced pistol config): SilencedPistol 10/0
+8356:[14:31:44] [INFO] [ReplayManager] Level: BuildingLevel
+8359:[14:31:44] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+8422:[14:31:50] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+8429:[14:31:53] [INFO] [PersistManager] Last level saved: res://scenes/levels/LabyrinthLevel.tscn
+8430:[14:31:53] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/LabyrinthLevel.tscn
+8432:[14:31:53] [INFO] [SceneLoader] Background load complete: res://scenes/levels/LabyrinthLevel.tscn
+8458:[14:31:53] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+8460:[14:31:53] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+8463:[14:31:53] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+8531:[14:31:53] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+8532:[14:31:53] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+8533:[14:31:53] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+8534:[14:31:53] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+8535:[14:31:53] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+8536:[14:31:53] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+8537:[14:31:53] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+8538:[14:31:53] [INFO] [LabyrinthLevel] Setting up weapon: silenced_pistol
+8544:[14:31:53] [INFO] [LabyrinthLevel] HUD ammo refreshed (silenced pistol config): SilencedPistol 5/0
+8545:[14:31:53] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+8548:[14:31:54] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+8549:[14:31:54] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+8551:[14:31:54] [INFO] [LabyrinthLevel] Previous replay data cleared
+8554:[14:31:54] [INFO] [ReplayManager] Level: LabyrinthLevel
+8557:[14:31:54] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+8563:[14:31:54] [INFO] [LabyrinthLevel] Replay recording started successfully
+8594:[14:31:54] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+8620:[14:31:58] [INFO] [PersistManager] Last level saved: res://scenes/levels/BuildingLevel.tscn
+8621:[14:31:58] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+8624:[14:31:58] [INFO] [SceneLoader] Background load complete: res://scenes/levels/BuildingLevel.tscn
+8657:[14:31:58] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+8659:[14:31:58] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+8662:[14:31:58] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+8755:[14:31:58] [INFO] [WeaponHintsComponent] Weapon node not found on player for: silenced_pistol — hints not connected to actions
+8756:[14:31:58] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: silenced_pistol
+8757:[14:31:58] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+8813:[14:31:58] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+8844:[14:31:58] [INFO] [LevelInitFallback] Configured silenced pistol ammo for 10 enemies
+8845:[14:31:58] [INFO] [LevelInitFallback] HUD ammo refreshed (silenced pistol config): SilencedPistol 10/0
+8855:[14:31:58] [INFO] [ReplayManager] Level: BuildingLevel
+8858:[14:31:58] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+8916:[14:32:11] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+8923:[14:32:12] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+8924:[14:32:12] [INFO] [WeaponHintsComponent] Weapon node not found on player for: sniper — hints not connected to actions
+8925:[14:32:12] [INFO] [WeaponHintsComponent] Hint added 'scope': [color=#ff4444][ПКМ][/color] Scope in
+8926:[14:32:12] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: sniper
+8927:[14:32:12] [INFO] [GameManager] Weapon selected: sniper
+8929:[14:32:12] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+8930:[14:32:12] [INFO] [WeaponHintsComponent] Strikethrough setup 'scope': 1 lines
+8931:[14:32:12] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+8957:[14:32:12] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+8959:[14:32:12] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+8962:[14:32:12] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+9055:[14:32:13] [INFO] [WeaponHintsComponent] Weapon node not found on player for: sniper — hints not connected to actions
+9056:[14:32:13] [INFO] [WeaponHintsComponent] Hint added 'scope': [color=#ff4444][ПКМ][/color] Scope in
+9057:[14:32:13] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: sniper
+9058:[14:32:13] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+9123:[14:32:13] [INFO] [WeaponHintsComponent] Strikethrough setup 'scope': 1 lines
+9153:[14:32:13] [INFO] [ReplayManager] Detected player weapon: Sniper Rifle (ASVK)
+9155:[14:32:13] [INFO] [ReplayManager] Level: BuildingLevel
+9184:[14:32:13] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+9253:[14:32:20] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+9254:[14:32:20] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+9288:[14:32:20] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+9290:[14:32:20] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+9293:[14:32:20] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+9386:[14:32:20] [INFO] [WeaponHintsComponent] Weapon node not found on player for: sniper — hints not connected to actions
+9387:[14:32:20] [INFO] [WeaponHintsComponent] Hint added 'scope': [color=#ff4444][ПКМ][/color] Scope in
+9388:[14:32:20] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: sniper
+9389:[14:32:20] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+9454:[14:32:20] [INFO] [WeaponHintsComponent] Strikethrough setup 'scope': 1 lines
+9484:[14:32:20] [INFO] [ReplayManager] Detected player weapon: Sniper Rifle (ASVK)
+9486:[14:32:20] [INFO] [ReplayManager] Level: BuildingLevel
+9516:[14:32:20] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+9567:[14:33:00] [INFO] [PersistManager] Last level saved: res://scenes/levels/LabyrinthLevel.tscn
+9568:[14:33:00] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/LabyrinthLevel.tscn
+9570:[14:33:00] [INFO] [SceneLoader] Background load complete: res://scenes/levels/LabyrinthLevel.tscn
+9598:[14:33:00] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+9600:[14:33:00] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+9603:[14:33:00] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+9671:[14:33:00] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+9672:[14:33:00] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+9673:[14:33:00] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+9674:[14:33:00] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+9675:[14:33:00] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+9676:[14:33:00] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+9677:[14:33:00] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+9678:[14:33:00] [INFO] [LabyrinthLevel] Setting up weapon: sniper
+9684:[14:33:00] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+9687:[14:33:00] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+9688:[14:33:00] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+9690:[14:33:00] [INFO] [LabyrinthLevel] Previous replay data cleared
+9691:[14:33:00] [INFO] [ReplayManager] Detected player weapon: Sniper Rifle (ASVK)
+9693:[14:33:00] [INFO] [ReplayManager] Level: LabyrinthLevel
+9702:[14:33:00] [INFO] [LabyrinthLevel] Replay recording started successfully
+9744:[14:33:01] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+9775:[14:33:07] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+9778:[14:33:08] [INFO] [GameManager] Weapon selected: m16
+9780:[14:33:08] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+9781:[14:33:08] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+9804:[14:33:08] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+9806:[14:33:08] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+9809:[14:33:08] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+9877:[14:33:08] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+9878:[14:33:08] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+9879:[14:33:08] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+9880:[14:33:08] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+9881:[14:33:08] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+9882:[14:33:08] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+9883:[14:33:08] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+9884:[14:33:08] [INFO] [LabyrinthLevel] Setting up weapon: m16
+9890:[14:33:08] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+9893:[14:33:08] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+9894:[14:33:08] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+9896:[14:33:08] [INFO] [LabyrinthLevel] Previous replay data cleared
+9899:[14:33:08] [INFO] [ReplayManager] Level: LabyrinthLevel
+9902:[14:33:08] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+9908:[14:33:08] [INFO] [LabyrinthLevel] Replay recording started successfully
+9939:[14:33:08] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+10035:[14:33:10] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+10253:[14:33:13] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+10254:[14:33:13] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+10321:[14:33:13] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+10324:[14:33:13] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+10327:[14:33:13] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+10395:[14:33:13] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+10396:[14:33:13] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+10397:[14:33:13] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+10398:[14:33:13] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+10399:[14:33:13] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+10400:[14:33:13] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+10401:[14:33:13] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+10402:[14:33:13] [INFO] [LabyrinthLevel] Setting up weapon: m16
+10408:[14:33:13] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+10411:[14:33:14] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+10412:[14:33:14] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+10414:[14:33:14] [INFO] [LabyrinthLevel] Previous replay data cleared
+10417:[14:33:14] [INFO] [ReplayManager] Level: LabyrinthLevel
+10420:[14:33:14] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+10426:[14:33:14] [INFO] [LabyrinthLevel] Replay recording started successfully
+10427:[14:33:14] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+10459:[14:33:14] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+10480:[14:33:16] [INFO] [PersistManager] Last level saved: res://scenes/levels/BuildingLevel.tscn
+10481:[14:33:16] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/BuildingLevel.tscn
+10483:[14:33:16] [INFO] [SceneLoader] Background load complete: res://scenes/levels/BuildingLevel.tscn
+10504:[14:33:16] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+10506:[14:33:16] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+10509:[14:33:16] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+10602:[14:33:16] [INFO] [WeaponHintsComponent] Weapon node not found on player for: m16 — hints not connected to actions
+10603:[14:33:16] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: m16
+10604:[14:33:16] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+10660:[14:33:16] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+10691:[14:33:16] [INFO] [LevelInitFallback] BuildingLevel: AssaultRifle magazines reinitialized to 2 (C# fallback)
+10702:[14:33:16] [INFO] [ReplayManager] Level: BuildingLevel
+10705:[14:33:16] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+10752:[14:33:18] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+10755:[14:33:18] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+10760:[14:33:20] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+10761:[14:33:20] [INFO] [WeaponHintsComponent] Weapon node not found on player for: sniper — hints not connected to actions
+10762:[14:33:20] [INFO] [WeaponHintsComponent] Hint added 'scope': [color=#ff4444][ПКМ][/color] Scope in
+10763:[14:33:20] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: sniper
+10764:[14:33:20] [INFO] [GameManager] Weapon selected: sniper
+10766:[14:33:20] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+10767:[14:33:20] [INFO] [WeaponHintsComponent] Strikethrough setup 'scope': 1 lines
+10768:[14:33:20] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+10794:[14:33:20] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+10796:[14:33:20] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+10799:[14:33:20] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+10892:[14:33:20] [INFO] [WeaponHintsComponent] Weapon node not found on player for: sniper — hints not connected to actions
+10893:[14:33:20] [INFO] [WeaponHintsComponent] Hint added 'scope': [color=#ff4444][ПКМ][/color] Scope in
+10894:[14:33:20] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: sniper
+10895:[14:33:20] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+10960:[14:33:20] [INFO] [WeaponHintsComponent] Strikethrough setup 'scope': 1 lines
+10990:[14:33:20] [INFO] [ReplayManager] Detected player weapon: Sniper Rifle (ASVK)
+10992:[14:33:20] [INFO] [ReplayManager] Level: BuildingLevel
+11023:[14:33:20] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+11063:[14:33:37] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+11064:[14:33:37] [INFO] [WeaponHintsComponent] Weapon node not found on player for: revolver — hints not connected to actions
+11065:[14:33:37] [INFO] [WeaponHintsComponent] Hint added 'hammer_cock': [color=#ff4444][ПКМ][/color] Cock the hammer
+11066:[14:33:37] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: revolver
+11067:[14:33:37] [INFO] [GameManager] Weapon selected: revolver
+11069:[14:33:37] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+11070:[14:33:37] [INFO] [WeaponHintsComponent] Strikethrough setup 'hammer_cock': 1 lines
+11071:[14:33:37] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+11099:[14:33:37] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+11101:[14:33:37] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+11104:[14:33:37] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+11197:[14:33:37] [INFO] [WeaponHintsComponent] Weapon node not found on player for: revolver — hints not connected to actions
+11198:[14:33:37] [INFO] [WeaponHintsComponent] Hint added 'hammer_cock': [color=#ff4444][ПКМ][/color] Cock the hammer
+11199:[14:33:37] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: revolver
+11200:[14:33:37] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+11256:[14:33:37] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+11260:[14:33:37] [INFO] [Player.Weapon] [trace] Loading scene: res://scenes/weapons/csharp/Revolver.tscn
+11261:[14:33:37] [INFO] [Player.Weapon] [trace] Instantiating Revolver
+11262:[14:33:37] [INFO] [Player.Weapon] [trace] AddChild(Revolver) — about to enter tree
+11263:[14:33:37] [INFO] [Revolver] [trace] Revolver._Ready scheduling SetupCylinderHUD (deferred)
+11264:[14:33:37] [INFO] [Player.Weapon] [trace] AddChild(Revolver) returned (entered tree)
+11265:[14:33:37] [INFO] [Player.Weapon] Equipped Revolver (ammo: 5/5)
+11266:[14:33:37] [INFO] [WeaponHintsComponent] Strikethrough setup 'hammer_cock': 1 lines
+11288:[14:33:37] [INFO] [LevelInitFallback] HUD ammo refreshed (fallback initial weapon setup): Revolver 5/55
+11289:[14:33:37] [INFO] [LevelInitFallback] [LevelInitFallback] Revolver cylinder HUD created in dedicated layer 110 above visual filters (Issue #1765)
+11290:[14:33:37] [INFO] [LevelInitFallback] Re-applied auto-reload magazine reduction after fallback ammo config for Revolver
+11291:[14:33:37] [INFO] [LevelInitFallback] HUD ammo refreshed (post fallback level ammo config): Revolver 5/55
+11292:[14:33:37] [INFO] [LevelInitFallback] HUD ammo refreshed (post fallback debug UI setup): Revolver 5/55
+11297:[14:33:37] [INFO] [ReplayManager] Detected player weapon: Revolver
+11299:[14:33:37] [INFO] [ReplayManager] Level: BuildingLevel
+11317:[14:33:37] [INFO] [Revolver] [trace] SetupCylinderHUD begin
+11318:[14:33:37] [INFO] [Revolver] [trace] SetupCylinderHUD found level root with CanvasLayer/UI in: BuildingLevel
+11319:[14:33:37] [INFO] [Revolver] [trace] SetupCylinderHUD reusing existing HUD layer
+11320:[14:33:37] [INFO] [Revolver] [trace] SetupCylinderHUD end (reused)
+11333:[14:33:37] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+11360:[14:33:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (Revolver), range=681, listeners=10
+11381:[14:33:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (Revolver), range=681, listeners=10
+11429:[14:34:14] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+11432:[14:34:14] [INFO] [WeaponHintsComponent] All hints dismissed immediately
+11433:[14:34:14] [INFO] [WeaponHintsComponent] Weapon node not found on player for: ak_gl — hints not connected to actions
+11434:[14:34:14] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+11435:[14:34:14] [INFO] [GameManager] Weapon selected: ak_gl
+11437:[14:34:14] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/BuildingLevel.tscn
+11438:[14:34:14] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/BuildingLevel.tscn
+11439:[14:34:14] [INFO] [Revolver] [trace] Revolver._ExitTree begin
+11440:[14:34:14] [INFO] [Revolver] [trace] Revolver._ExitTree disconnecting cylinder UI
+11441:[14:34:14] [INFO] [Revolver] [trace] Revolver._ExitTree end
+11467:[14:34:14] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+11469:[14:34:14] [INFO] [BlackMetalEffectsManager] Scene changed to: BuildingLevel
+11472:[14:34:14] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/BuildingLevel.tscn
+11565:[14:34:15] [INFO] [WeaponHintsComponent] Weapon node not found on player for: ak_gl — hints not connected to actions
+11566:[14:34:15] [INFO] [WeaponHintsComponent] Hint sequence started for weapon: ak_gl
+11567:[14:34:15] [INFO] [WeaponHintsComponent] Auto-setup from exported NodePaths
+11623:[14:34:15] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+11654:[14:34:15] [INFO] [LevelInitFallback] BuildingLevel: AKGL magazines reinitialized to 2 (C# fallback)
+11665:[14:34:15] [INFO] [ReplayManager] Level: BuildingLevel
+11668:[14:34:15] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+11794:[14:34:16] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'BuildingLevel' — blood-in-water check unavailable (Issue #1578)
+11902:[14:34:30] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+11909:[14:34:32] [INFO] [PersistManager] Last level saved: res://scenes/levels/LabyrinthLevel.tscn
+11910:[14:34:32] [INFO] [SceneLoader] Starting background load for: res://scenes/levels/LabyrinthLevel.tscn
+11912:[14:34:32] [INFO] [SceneLoader] Background load complete: res://scenes/levels/LabyrinthLevel.tscn
+11937:[14:34:32] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+11939:[14:34:32] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+11942:[14:34:32] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+12010:[14:34:32] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+12011:[14:34:32] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+12012:[14:34:32] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+12013:[14:34:32] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+12014:[14:34:32] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+12015:[14:34:32] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+12016:[14:34:32] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+12017:[14:34:32] [INFO] [LabyrinthLevel] Setting up weapon: ak_gl
+12018:[14:34:32] [INFO] [LabyrinthLevel] HUD ammo refreshed (labyrinth ammo config): AKGL 30/30
+12019:[14:34:32] [INFO] [LabyrinthLevel] Re-applied auto-reload magazine reduction after ammo config for ak_gl
+12020:[14:34:32] [INFO] [LabyrinthLevel] HUD ammo refreshed (post level ammo config): AKGL 30/30
+12026:[14:34:32] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+12029:[14:34:33] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+12030:[14:34:33] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+12032:[14:34:33] [INFO] [LabyrinthLevel] Previous replay data cleared
+12035:[14:34:33] [INFO] [ReplayManager] Level: LabyrinthLevel
+12038:[14:34:33] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/ak_gl_topdown.png
+12044:[14:34:33] [INFO] [LabyrinthLevel] Replay recording started successfully
+12075:[14:34:33] [INFO] [Player.Weapon] GameManager weapon selection: ak_gl (AKGL)
+12173:[14:34:42] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+12312:[14:34:45] [INFO] [ArmoryMenu] weapon=ak_gl caliber_name=7.62x39mm
+12318:[14:34:47] [INFO] [GameManager] Weapon selected: revolver
+12320:[14:34:47] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+12321:[14:34:47] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+12342:[14:34:47] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+12344:[14:34:47] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+12347:[14:34:47] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+12415:[14:34:47] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+12416:[14:34:47] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+12417:[14:34:47] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+12418:[14:34:47] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+12419:[14:34:47] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+12420:[14:34:47] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+12421:[14:34:47] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+12422:[14:34:47] [INFO] [LabyrinthLevel] Setting up weapon: revolver
+12423:[14:34:47] [INFO] [Revolver] [trace] Revolver._Ready scheduling SetupCylinderHUD (deferred)
+12429:[14:34:47] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+12432:[14:34:47] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+12433:[14:34:47] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+12435:[14:34:47] [INFO] [LabyrinthLevel] Previous replay data cleared
+12436:[14:34:47] [INFO] [ReplayManager] Detected player weapon: Revolver
+12438:[14:34:47] [INFO] [ReplayManager] Level: LabyrinthLevel
+12447:[14:34:47] [INFO] [LabyrinthLevel] Replay recording started successfully
+12478:[14:34:47] [INFO] [Player.Weapon] GameManager weapon selection: revolver (Revolver)
+12479:[14:34:47] [INFO] [Player.Weapon] Already equipped Revolver, no change needed
+12480:[14:34:47] [INFO] [Revolver] [trace] SetupCylinderHUD begin
+12481:[14:34:47] [INFO] [Revolver] [trace] SetupCylinderHUD found level root with CanvasLayer/UI in: LabyrinthLevel
+12482:[14:34:47] [INFO] [Revolver] [trace] SetupCylinderHUD end (created new HUD)
+12485:[14:34:48] [INFO] [Player] Detected weapon: RSh-12 Revolver (Pistol pose)
+12504:[14:34:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(343.1588, 1111.925), source=PLAYER (Revolver), range=681, listeners=5
+12524:[14:34:52] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+12557:[14:34:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(552.0057, 880.8312), source=PLAYER (Revolver), range=681, listeners=4
+12601:[14:35:16] [INFO] [GameManager] Weapon selected: sniper
+12603:[14:35:16] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+12604:[14:35:16] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+12605:[14:35:16] [INFO] [Revolver] [trace] Revolver._ExitTree begin
+12606:[14:35:16] [INFO] [Revolver] [trace] Revolver._ExitTree disconnecting cylinder UI
+12607:[14:35:16] [INFO] [Revolver] [trace] Revolver._ExitTree end
+12627:[14:35:16] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+12629:[14:35:16] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+12632:[14:35:16] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+12700:[14:35:16] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+12701:[14:35:16] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+12702:[14:35:16] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+12703:[14:35:16] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+12704:[14:35:16] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+12705:[14:35:16] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+12706:[14:35:16] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+12707:[14:35:16] [INFO] [LabyrinthLevel] Setting up weapon: sniper
+12713:[14:35:16] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+12716:[14:35:16] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+12717:[14:35:16] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+12719:[14:35:16] [INFO] [LabyrinthLevel] Previous replay data cleared
+12720:[14:35:16] [INFO] [ReplayManager] Detected player weapon: Sniper Rifle (ASVK)
+12722:[14:35:16] [INFO] [ReplayManager] Level: LabyrinthLevel
+12731:[14:35:16] [INFO] [LabyrinthLevel] Replay recording started successfully
+12766:[14:35:16] [INFO] [Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)
+12834:[14:35:28] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+12837:[14:35:29] [INFO] [GameManager] Weapon selected: silenced_pistol
+12839:[14:35:29] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+12840:[14:35:29] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+12863:[14:35:29] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+12865:[14:35:29] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+12868:[14:35:29] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+12936:[14:35:29] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+12937:[14:35:29] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+12938:[14:35:29] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+12939:[14:35:29] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+12940:[14:35:29] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+12941:[14:35:29] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+12942:[14:35:29] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+12943:[14:35:29] [INFO] [LabyrinthLevel] Setting up weapon: silenced_pistol
+12949:[14:35:29] [INFO] [LabyrinthLevel] HUD ammo refreshed (silenced pistol config): SilencedPistol 5/0
+12950:[14:35:29] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+12953:[14:35:29] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+12954:[14:35:29] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+12956:[14:35:29] [INFO] [LabyrinthLevel] Previous replay data cleared
+12959:[14:35:29] [INFO] [ReplayManager] Level: LabyrinthLevel
+12962:[14:35:29] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/silenced_pistol_topdown.png
+12968:[14:35:29] [INFO] [LabyrinthLevel] Replay recording started successfully
+12999:[14:35:29] [INFO] [Player.Weapon] GameManager weapon selection: silenced_pistol (SilencedPistol)
+13031:[14:35:34] [INFO] [ArmoryMenu] weapon=silenced_pistol caliber_name=9x19mm Parabellum
+13038:[14:35:35] [INFO] [GameManager] Weapon selected: mini_uzi
+13040:[14:35:35] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+13041:[14:35:35] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+13062:[14:35:36] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+13064:[14:35:36] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+13067:[14:35:36] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+13135:[14:35:36] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+13136:[14:35:36] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+13137:[14:35:36] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+13138:[14:35:36] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+13139:[14:35:36] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+13140:[14:35:36] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+13141:[14:35:36] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+13142:[14:35:36] [INFO] [LabyrinthLevel] Setting up weapon: mini_uzi
+13148:[14:35:36] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+13151:[14:35:36] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+13152:[14:35:36] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+13154:[14:35:36] [INFO] [LabyrinthLevel] Previous replay data cleared
+13157:[14:35:36] [INFO] [ReplayManager] Level: LabyrinthLevel
+13166:[14:35:36] [INFO] [LabyrinthLevel] Replay recording started successfully
+13285:[14:35:41] [INFO] [GameManager] Weapon selected: shotgun
+13287:[14:35:41] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+13288:[14:35:41] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+13312:[14:35:41] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+13314:[14:35:41] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+13317:[14:35:41] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+13385:[14:35:41] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+13386:[14:35:41] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+13387:[14:35:41] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+13388:[14:35:41] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+13389:[14:35:41] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+13390:[14:35:41] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+13391:[14:35:41] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+13392:[14:35:41] [INFO] [LabyrinthLevel] Setting up weapon: shotgun
+13398:[14:35:41] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+13401:[14:35:41] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+13402:[14:35:41] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+13404:[14:35:41] [INFO] [LabyrinthLevel] Previous replay data cleared
+13405:[14:35:41] [INFO] [ReplayManager] Detected player weapon: Shotgun
+13407:[14:35:41] [INFO] [ReplayManager] Level: LabyrinthLevel
+13416:[14:35:41] [INFO] [LabyrinthLevel] Replay recording started successfully
+13447:[14:35:41] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+13448:[14:35:41] [INFO] [Player.Weapon] Already equipped Shotgun, no change needed
+13451:[14:35:41] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+13452:[14:35:41] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+13466:[14:35:42] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 0° spread at pos=(342.92123, 1111.893)
+13467:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-3,1, distance=48,9px, pos=(388.69598, 1094.6084)
+13468:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=7,0, distance=59,0px, pos=(398.14935, 1091.0388)
+13469:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=4,5, distance=56,5px, pos=(395.8179, 1091.9192)
+13470:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=12,4, distance=64,4px, pos=(403.12314, 1089.1608)
+13471:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-8,3, distance=43,7px, pos=(383.78748, 1096.4619)
+13472:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=3,0, distance=55,0px, pos=(394.38516, 1092.4602)
+13473:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=5,6, distance=57,6px, pos=(396.83386, 1091.5355)
+13474:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-10,9, distance=41,1px, pos=(381.41733, 1097.3568)
+13475:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-2,8, distance=49,2px, pos=(388.9749, 1094.503)
+13476:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-14,1, distance=37,9px, pos=(378.36328, 1098.51)
+13477:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=4,1, distance=56,1px, pos=(395.38782, 1092.0815)
+13478:[14:35:42] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-6,3, distance=45,7px, pos=(385.65445, 1095.7568)
+13479:[14:35:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(342.9212, 1111.893), source=PLAYER (Shotgun), range=800, listeners=5
+13512:[14:35:43] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+13613:[14:36:05] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+13614:[14:36:05] [INFO] [Shotgun.FIX#445] dragStartPos=(846, 892), aimDir=(0,99, -0,13)
+13615:[14:36:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13616:[14:36:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13617:[14:36:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13618:[14:36:05] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+13619:[14:36:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13620:[14:36:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13621:[14:36:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13622:[14:36:05] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-17,4, -225,8), length=226,4, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+13623:[14:36:05] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+13624:[14:36:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13625:[14:36:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13626:[14:36:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13627:[14:36:05] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+13628:[14:36:05] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(31,4, 66,8), length=73,8, ActionState=Ready
+13629:[14:36:05] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+13632:[14:36:05] [INFO] [Shotgun.FIX#212] Firing 15 pellets with 0° spread at pos=(511.7356, 935.58203)
+13633:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 1/15: extraOffset=3,3, distance=55,3px, pos=(565.572, 922.7306)
+13634:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 2/15: extraOffset=-10,2, distance=41,8px, pos=(552.3789, 925.87994)
+13635:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 3/15: extraOffset=-6,2, distance=45,8px, pos=(556.3107, 924.9414)
+13636:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 4/15: extraOffset=14,7, distance=66,7px, pos=(576.6579, 920.0842)
+13637:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 5/15: extraOffset=13,3, distance=65,3px, pos=(575.23975, 920.4228)
+13638:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 6/15: extraOffset=-12,0, distance=40,0px, pos=(550.65314, 926.29193)
+13639:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 7/15: extraOffset=-0,0, distance=52,0px, pos=(562.2997, 923.5117)
+13640:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 8/15: extraOffset=11,3, distance=63,3px, pos=(573.2632, 920.8946)
+13641:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 9/15: extraOffset=-3,6, distance=48,4px, pos=(558.8435, 924.3368)
+13642:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 10/15: extraOffset=13,2, distance=65,2px, pos=(575.10583, 920.4547)
+13643:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 11/15: extraOffset=-4,5, distance=47,5px, pos=(557.9242, 924.5562)
+13644:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 12/15: extraOffset=-7,7, distance=44,3px, pos=(554.85034, 925.29)
+13645:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 13/15: extraOffset=-8,6, distance=43,4px, pos=(553.99084, 925.4952)
+13646:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 14/15: extraOffset=-0,3, distance=51,7px, pos=(562.03394, 923.5752)
+13647:[14:36:05] [INFO] [Shotgun.FIX#212] Normal pellet 15/15: extraOffset=9,5, distance=61,5px, pos=(571.6023, 921.2911)
+13648:[14:36:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(511.7356, 935.582), source=PLAYER (Shotgun), range=800, listeners=3
+13655:[14:36:06] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+13656:[14:36:06] [INFO] [Shotgun.FIX#445] dragStartPos=(974, 862), aimDir=(0,99, -0,16)
+13657:[14:36:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13658:[14:36:06] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13659:[14:36:06] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+13660:[14:36:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13661:[14:36:06] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13662:[14:36:06] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13663:[14:36:06] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-84,2, -380,2), length=389,4, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+13664:[14:36:06] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(2,0, -46,2), length=46,3, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+13665:[14:36:06] [INFO] [Shotgun.FIX#243] RMB released after 23 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+13666:[14:36:06] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(7,3, -62,3), length=62,7, ActionState=NeedsPumpDown
+13667:[14:36:06] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+13670:[14:36:06] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+13671:[14:36:06] [INFO] [Shotgun.FIX#445] dragStartPos=(985, 717), aimDir=(0,91, -0,42)
+13672:[14:36:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13673:[14:36:06] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13674:[14:36:06] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+13675:[14:36:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13676:[14:36:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13677:[14:36:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13678:[14:36:07] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(67,5, 336,6), length=343,3, isDragUp=False, isDragDown=True, ActionState=Ready
+13679:[14:36:07] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+13680:[14:36:07] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(69,5, 334,6), length=341,8, ActionState=Ready
+13681:[14:36:07] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+13685:[14:36:07] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 0° spread at pos=(511.7356, 935.58203)
+13686:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=-4,9, distance=47,1px, pos=(557.18756, 947.87634)
+13687:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=-1,3, distance=50,7px, pos=(560.6498, 948.81287)
+13688:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=2,2, distance=54,2px, pos=(564.05853, 949.7349)
+13689:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=7,5, distance=59,5px, pos=(569.1342, 951.10785)
+13690:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=13,6, distance=65,6px, pos=(575.08374, 952.7171)
+13691:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=-2,9, distance=49,1px, pos=(559.17584, 948.4142)
+13692:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=3,7, distance=55,7px, pos=(565.5484, 950.1379)
+13693:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=2,6, distance=54,6px, pos=(564.47473, 949.8475)
+13694:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=4,7, distance=56,7px, pos=(566.47797, 950.38934)
+13695:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=-9,3, distance=42,7px, pos=(552.986, 946.73987)
+13696:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=-11,0, distance=41,0px, pos=(551.3351, 946.29333)
+13697:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=6,6, distance=58,6px, pos=(568.32605, 950.8892)
+13698:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=-1,8, distance=50,2px, pos=(560.1667, 948.6822)
+13699:[14:36:07] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=-8,0, distance=44,0px, pos=(554.21545, 947.07245)
+13700:[14:36:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(511.7356, 935.582), source=PLAYER (Shotgun), range=800, listeners=3
+13707:[14:36:07] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+13708:[14:36:07] [INFO] [Shotgun.FIX#445] dragStartPos=(1083, 1098), aimDir=(0,96, 0,27)
+13709:[14:36:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13710:[14:36:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13711:[14:36:07] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+13712:[14:36:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13713:[14:36:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13714:[14:36:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13715:[14:36:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-44,0, -346,9), length=349,7, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+13716:[14:36:08] [INFO] [Shotgun.FIX#445v7] Mouse at bottom edge (Y=719), need PumpDown - recentering cursor
+13717:[14:36:08] [INFO] [Shotgun.FIX#445v7] Cursor recentered to (640, 360)
+13718:[14:36:08] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+13719:[14:36:08] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13720:[14:36:08] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13721:[14:36:08] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13722:[14:36:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(0,0, 185,7), length=185,7, isDragUp=False, isDragDown=True, ActionState=Ready
+13723:[14:36:08] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+13724:[14:36:08] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(1,3, 186,3), length=186,3, ActionState=Ready
+13725:[14:36:08] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+13728:[14:36:08] [INFO] [Shotgun.FIX#212] Firing 14 pellets with 0° spread at pos=(511.7356, 935.58203)
+13729:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 1/14: extraOffset=-8,4, distance=43,6px, pos=(551.67, 918.18115)
+13730:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 2/14: extraOffset=-4,7, distance=47,3px, pos=(555.1394, 916.6694)
+13731:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 3/14: extraOffset=-0,7, distance=51,3px, pos=(558.80835, 915.07074)
+13732:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 4/14: extraOffset=-11,2, distance=40,8px, pos=(549.1773, 919.2673)
+13733:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 5/14: extraOffset=-7,3, distance=44,7px, pos=(552.6757, 917.7429)
+13734:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 6/14: extraOffset=5,9, distance=57,9px, pos=(564.8018, 912.4591)
+13735:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 7/14: extraOffset=6,0, distance=58,0px, pos=(564.8829, 912.4238)
+13736:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 8/14: extraOffset=-9,5, distance=42,5px, pos=(550.6667, 918.6183)
+13737:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 9/14: extraOffset=-9,9, distance=42,1px, pos=(550.32446, 918.76746)
+13738:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 10/14: extraOffset=-14,0, distance=38,0px, pos=(546.60004, 920.3903)
+13739:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 11/14: extraOffset=12,0, distance=64,0px, pos=(570.41693, 910.0124)
+13740:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 12/14: extraOffset=-12,3, distance=39,7px, pos=(548.1034, 919.7352)
+13741:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 13/14: extraOffset=8,4, distance=60,4px, pos=(567.13196, 911.4438)
+13742:[14:36:08] [INFO] [Shotgun.FIX#212] Normal pellet 14/14: extraOffset=14,3, distance=66,3px, pos=(572.53406, 909.0899)
+13743:[14:36:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(511.7356, 935.582), source=PLAYER (Shotgun), range=800, listeners=3
+13750:[14:36:09] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+13751:[14:36:09] [INFO] [Shotgun.FIX#445] dragStartPos=(798, 821), aimDir=(0,93, -0,37)
+13752:[14:36:09] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13753:[14:36:09] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13754:[14:36:09] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13755:[14:36:09] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+13756:[14:36:09] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13757:[14:36:09] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13758:[14:36:09] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13759:[14:36:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(17,5, -114,8), length=116,2, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+13760:[14:36:09] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+13761:[14:36:09] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+13762:[14:36:09] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+13763:[14:36:09] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+13764:[14:36:09] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+13765:[14:36:09] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(52,1, 169,6), length=177,5, ActionState=Ready
+13766:[14:36:09] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+13770:[14:36:11] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+13771:[14:36:11] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+13838:[14:36:11] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+13840:[14:36:11] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+13843:[14:36:11] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+13911:[14:36:11] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+13912:[14:36:11] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+13913:[14:36:11] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+13914:[14:36:11] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+13915:[14:36:11] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+13916:[14:36:11] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+13917:[14:36:11] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+13918:[14:36:11] [INFO] [LabyrinthLevel] Setting up weapon: shotgun
+13924:[14:36:11] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+13927:[14:36:11] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+13928:[14:36:11] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+13930:[14:36:11] [INFO] [LabyrinthLevel] Previous replay data cleared
+13931:[14:36:11] [INFO] [ReplayManager] Detected player weapon: Shotgun
+13933:[14:36:11] [INFO] [ReplayManager] Level: LabyrinthLevel
+13942:[14:36:11] [INFO] [LabyrinthLevel] Replay recording started successfully
+13973:[14:36:11] [INFO] [Player.Weapon] GameManager weapon selection: shotgun (Shotgun)
+13974:[14:36:11] [INFO] [Player.Weapon] Already equipped Shotgun, no change needed
+13977:[14:36:11] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+13978:[14:36:11] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+13990:[14:36:12] [INFO] [Shotgun.FIX#212] Firing 15 pellets with 0° spread at pos=(150, 1000)
+13991:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 1/15: extraOffset=6,5, distance=58,5px, pos=(208.33727, 995.1075)
+13992:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 2/15: extraOffset=-12,9, distance=39,1px, pos=(188.96503, 996.7322)
+13993:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 3/15: extraOffset=-7,4, distance=44,6px, pos=(194.39722, 996.2766)
+13994:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 4/15: extraOffset=6,7, distance=58,7px, pos=(208.4884, 995.0948)
+13995:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 5/15: extraOffset=0,2, distance=52,2px, pos=(202.00623, 995.6384)
+13996:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 6/15: extraOffset=-11,2, distance=40,8px, pos=(190.66458, 996.5896)
+13997:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 7/15: extraOffset=6,9, distance=58,9px, pos=(208.65494, 995.0809)
+13998:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 8/15: extraOffset=-0,7, distance=51,3px, pos=(201.13156, 995.7118)
+13999:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 9/15: extraOffset=8,1, distance=60,1px, pos=(209.8538, 994.9803)
+14000:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 10/15: extraOffset=-4,3, distance=47,7px, pos=(197.51682, 996.01495)
+14001:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 11/15: extraOffset=-3,8, distance=48,2px, pos=(197.98215, 995.97595)
+14002:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 12/15: extraOffset=0,8, distance=52,8px, pos=(202.65596, 995.584)
+14003:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 13/15: extraOffset=9,7, distance=61,7px, pos=(211.46738, 994.845)
+14004:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 14/15: extraOffset=12,7, distance=64,7px, pos=(214.47896, 994.5924)
+14005:[14:36:12] [INFO] [Shotgun.FIX#212] Normal pellet 15/15: extraOffset=0,6, distance=52,6px, pos=(202.40305, 995.60516)
+14006:[14:36:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 1000), source=PLAYER (Shotgun), range=800, listeners=5
+14013:[14:36:12] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+14014:[14:36:12] [INFO] [Shotgun.FIX#445] dragStartPos=(919, 925), aimDir=(1,00, -0,10)
+14015:[14:36:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14016:[14:36:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14017:[14:36:12] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+14018:[14:36:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14019:[14:36:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14020:[14:36:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14022:[14:36:12] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+14023:[14:36:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14024:[14:36:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14025:[14:36:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14026:[14:36:12] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(50,1, 234,5), length=239,8, isDragUp=False, isDragDown=True, ActionState=Ready
+14027:[14:36:12] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+14028:[14:36:12] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(51,7, 229,7), length=235,5, ActionState=Ready
+14029:[14:36:12] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+14032:[14:36:13] [INFO] [Shotgun.FIX#212] Firing 13 pellets with 0° spread at pos=(207.22223, 1000)
+14033:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 1/13: extraOffset=-3,5, distance=48,5px, pos=(255.71252, 999.65735)
+14034:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 2/13: extraOffset=9,2, distance=61,2px, pos=(268.3765, 999.5678)
+14035:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 3/13: extraOffset=-11,9, distance=40,1px, pos=(247.32242, 999.7166)
+14036:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 4/13: extraOffset=-7,4, distance=44,6px, pos=(251.86542, 999.6845)
+14037:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 5/13: extraOffset=-7,5, distance=44,5px, pos=(251.6907, 999.6857)
+14038:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 6/13: extraOffset=12,7, distance=64,7px, pos=(271.94427, 999.5426)
+14039:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 7/13: extraOffset=11,9, distance=63,9px, pos=(271.1486, 999.5482)
+14040:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 8/13: extraOffset=-2,0, distance=50,0px, pos=(257.19708, 999.64685)
+14041:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 9/13: extraOffset=-15,0, distance=37,0px, pos=(244.24225, 999.7384)
+14042:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 10/13: extraOffset=-3,6, distance=48,4px, pos=(255.66585, 999.65765)
+14043:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 11/13: extraOffset=-5,0, distance=47,0px, pos=(254.2274, 999.66785)
+14044:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 12/13: extraOffset=-10,4, distance=41,6px, pos=(248.84398, 999.7059)
+14045:[14:36:13] [INFO] [Shotgun.FIX#212] Normal pellet 13/13: extraOffset=3,5, distance=55,5px, pos=(262.75385, 999.60754)
+14046:[14:36:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(207.2222, 1000), source=PLAYER (Shotgun), range=800, listeners=5
+14054:[14:36:13] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+14055:[14:36:13] [INFO] [Shotgun.FIX#445] dragStartPos=(989, 994), aimDir=(1,00, -0,01)
+14056:[14:36:13] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14057:[14:36:13] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14058:[14:36:13] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+14059:[14:36:13] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14060:[14:36:13] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14061:[14:36:13] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14062:[14:36:14] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+14063:[14:36:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14064:[14:36:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14065:[14:36:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14066:[14:36:14] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+14067:[14:36:14] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(44,8, 96,2), length=106,1, ActionState=Ready
+14068:[14:36:14] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+14071:[14:36:15] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+14072:[14:36:15] [INFO] [Shotgun.FIX#445] dragStartPos=(1071, 1097), aimDir=(0,99, 0,12)
+14073:[14:36:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14074:[14:36:15] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+14075:[14:36:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14076:[14:36:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14077:[14:36:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14078:[14:36:15] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-25,4, -262,5), length=263,7, isDragUp=True, isDragDown=False, ActionState=Ready
+14079:[14:36:15] [INFO] [Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad=False
+14080:[14:36:15] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+14081:[14:36:15] [INFO] [Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)
+14082:[14:36:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+14083:[14:36:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+14084:[14:36:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+14085:[14:36:15] [INFO] [Shotgun.FIX#243] RMB released after 3 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+14086:[14:36:15] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(17,4, 58,1), length=60,6, ActionState=Ready
+14087:[14:36:15] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+14117:[14:36:34] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+14120:[14:36:35] [INFO] [GameManager] Weapon selected: m16
+14122:[14:36:35] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+14123:[14:36:35] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+14144:[14:36:35] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+14146:[14:36:35] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+14149:[14:36:35] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+14217:[14:36:35] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+14218:[14:36:35] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+14219:[14:36:35] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+14220:[14:36:35] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+14221:[14:36:35] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+14222:[14:36:35] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+14223:[14:36:35] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+14224:[14:36:35] [INFO] [LabyrinthLevel] Setting up weapon: m16
+14230:[14:36:35] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+14233:[14:36:35] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+14234:[14:36:35] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+14236:[14:36:35] [INFO] [LabyrinthLevel] Previous replay data cleared
+14239:[14:36:35] [INFO] [ReplayManager] Level: LabyrinthLevel
+14242:[14:36:35] [INFO] [ReplayManager] Detected weapon texture: res://assets/sprites/weapons/m16_rifle_topdown.png
+14248:[14:36:35] [INFO] [LabyrinthLevel] Replay recording started successfully
+14279:[14:36:35] [INFO] [Player.Weapon] GameManager weapon selection: m16 (AssaultRifle)
+14334:[14:36:37] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
+14493:[14:36:43] [INFO] [ArmoryMenu] weapon=m16 caliber_name=5.45x39mm
+14501:[14:36:44] [INFO] [GameManager] Weapon selected: makarov_pm
+14503:[14:36:44] [INFO] [GameManager] restart_scene() — scheduling deferred scene reload: res://scenes/levels/LabyrinthLevel.tscn
+14504:[14:36:44] [INFO] [GameManager] restart_scene() — deferred change_scene_to_file begin: res://scenes/levels/LabyrinthLevel.tscn
+14523:[14:36:45] [INFO] [CinemaEffects] Scene changed to: LabyrinthLevel
+14525:[14:36:45] [INFO] [BlackMetalEffectsManager] Scene changed to: LabyrinthLevel
+14528:[14:36:45] [INFO] [PersistManager] Auto-saved current level on scene change: res://scenes/levels/LabyrinthLevel.tscn
+14596:[14:36:45] [INFO] [LabyrinthLevel] Found Environment/Enemies node with 5 children
+14597:[14:36:45] [INFO] [LabyrinthLevel] Child 'Enemy1': script=true, has_died_signal=true
+14598:[14:36:45] [INFO] [LabyrinthLevel] Child 'Enemy2': script=true, has_died_signal=true
+14599:[14:36:45] [INFO] [LabyrinthLevel] Child 'Enemy3': script=true, has_died_signal=true
+14600:[14:36:45] [INFO] [LabyrinthLevel] Child 'Enemy4': script=true, has_died_signal=true
+14601:[14:36:45] [INFO] [LabyrinthLevel] Child 'Enemy5': script=true, has_died_signal=true
+14602:[14:36:45] [INFO] [LabyrinthLevel] Enemy tracking complete: 5 enemies registered
+14603:[14:36:45] [INFO] [LabyrinthLevel] Setting up weapon: makarov_pm
+14609:[14:36:45] [INFO] [LabyrinthLevel] HUD ammo refreshed (makarov config): MakarovPM 9/81
+14610:[14:36:45] [INFO] [LabyrinthLevel] Camera2D limits set — top=48 bottom=1128 left=48 right=1968 — Issue #1682
+14613:[14:36:45] [INFO] [LabyrinthLevel] ReplayManager found as C# autoload - verified OK
+14614:[14:36:45] [INFO] [LabyrinthLevel] Starting replay recording - Player: Player, Enemies count: 5
+14616:[14:36:45] [INFO] [LabyrinthLevel] Previous replay data cleared
+14619:[14:36:45] [INFO] [ReplayManager] Level: LabyrinthLevel
+14628:[14:36:45] [INFO] [LabyrinthLevel] Replay recording started successfully
+14752:[14:36:48] [INFO] [ImpactEffects] [ImpactEffects] water_body group empty on scene 'LabyrinthLevel' — blood-in-water check unavailable (Issue #1578)
