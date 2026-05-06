@@ -484,6 +484,38 @@ func test_find_weapon_node_prefers_equipped_current_weapon_over_stale_children()
 		"Building weapon hints must connect to Player.CurrentWeapon instead of stale scene children")
 
 
+func test_retries_weapon_binding_when_weapon_selected_arrives_before_equip() -> void:
+	var comp := WeaponHintsComp.new()
+	add_child_autofree(comp)
+
+	var player := MockPlayer.new()
+	add_child_autofree(player)
+
+	comp._player = player
+	comp._canvas_layer = Node.new()
+	add_child_autofree(comp._canvas_layer)
+
+	comp._start_hint_sequence("shotgun")
+
+	assert_null(comp._current_weapon_node,
+		"Initial bind should fail before the level equips the selected weapon")
+	assert_gt(comp._weapon_bind_retry_timer, 0.0,
+		"Component should keep retrying after selected weapon arrives before equip")
+
+	var shotgun := MockWeapon.new()
+	shotgun.name = "Shotgun"
+	player.CurrentWeapon = shotgun
+
+	comp._try_bind_current_weapon_node()
+
+	assert_eq(comp._current_weapon_node, shotgun,
+		"Retry should bind to Player.CurrentWeapon once level weapon setup completes")
+	assert_true(shotgun.Fired.is_connected(comp._on_weapon_fired),
+		"Retry bind must connect weapon action signals so hints become interactive")
+	assert_eq(comp._weapon_bind_retry_timer, 0.0,
+		"Retry timer should stop after binding succeeds")
+
+
 func test_revolver_open_close_without_loading_rolls_reload_hint_back() -> void:
 	var comp := WeaponHintsComp.new()
 	add_child_autofree(comp)

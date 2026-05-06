@@ -49,6 +49,11 @@ var _pending_unlock: String = ""
 ## Reference to the current weapon node attached to the player.
 var _current_weapon_node: Node = null
 
+## Weapon setup in regular maps can finish after GameManager emits weapon_selected.
+## Keep retrying briefly so hints bind to the active weapon once Player.CurrentWeapon is assigned.
+var _weapon_bind_retry_timer: float = 0.0
+var _weapon_bind_retry_logged: bool = false
+
 ## Dictionary of active hint labels: hint_key -> RichTextLabel node.
 var _hint_labels: Dictionary = {}
 
@@ -111,6 +116,9 @@ var _hint_timers: Dictionary = {}
 
 ## Duration to auto-dismiss individual hints (seconds).
 const HINT_AUTO_DISMISS: float = 8.0
+
+## Max seconds to retry weapon-node binding after a weapon_selected event.
+const WEAPON_BIND_RETRY_DURATION: float = 2.0
 
 ## Vertical spacing between stacked hints (matches Labyrinth TUTORIAL_HINT_SPACING).
 const HINT_SPACING: float = 60.0
@@ -250,6 +258,9 @@ func setup(player: Node2D, canvas_layer: Node) -> void:
 
 ## Called every frame to update hint positions above the player.
 func _process(_delta: float) -> void:
+	if _hints_active and _current_weapon_node == null and _weapon_bind_retry_timer > 0.0:
+		_weapon_bind_retry_timer = maxf(0.0, _weapon_bind_retry_timer - _delta)
+		_try_bind_current_weapon_node()
 	if _hints_showing:
 		_update_hint_positions()
 	if _hints_active:
@@ -307,7 +318,9 @@ func _start_hint_sequence(weapon_id: String) -> void:
 	# Locate the weapon node on the player (same detection logic as labyrinth_level.gd)
 	_current_weapon_node = _find_weapon_node(weapon_id)
 	if _current_weapon_node == null:
-		_log_to_file("Weapon node not found on player for: %s — hints not connected to actions" % weapon_id)
+		_weapon_bind_retry_timer = WEAPON_BIND_RETRY_DURATION
+		_weapon_bind_retry_logged = false
+		_log_to_file("Weapon node not found on player for: %s — will retry binding" % weapon_id)
 	else:
 		_connect_weapon_signals(_current_weapon_node, weapon_id)
 
@@ -318,6 +331,23 @@ func _start_hint_sequence(weapon_id: String) -> void:
 	_dismiss_timer.start(HINT_AUTO_DISMISS)
 
 	_log_to_file("Hint sequence started for weapon: %s" % weapon_id)
+
+
+func _try_bind_current_weapon_node() -> void:
+	if _current_weapon_id.is_empty():
+		return
+
+	var weapon := _find_weapon_node(_current_weapon_id)
+	if weapon == null:
+		if _weapon_bind_retry_timer <= 0.0 and not _weapon_bind_retry_logged:
+			_weapon_bind_retry_logged = true
+			_log_to_file("Weapon node not found on player for: %s — hints not connected to weapon actions" % _current_weapon_id)
+		return
+
+	_current_weapon_node = weapon
+	_weapon_bind_retry_timer = 0.0
+	_weapon_bind_retry_logged = true
+	_connect_weapon_signals(_current_weapon_node, _current_weapon_id)
 
 
 ## Find the weapon node on the player by weapon ID.
@@ -1322,6 +1352,8 @@ func _reset_hint_state() -> void:
 	_fire_mode_hint_pending = false
 	_shotgun_full_reload_active = false
 	_shotgun_node = null
+	_weapon_bind_retry_timer = 0.0
+	_weapon_bind_retry_logged = false
 	_shotgun_reload_loaded_shell = false
 	_revolver_reload_loaded_cartridge = false
 	_ak_gl_launcher_hint_shown = false
