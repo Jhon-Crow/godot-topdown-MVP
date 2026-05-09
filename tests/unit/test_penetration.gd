@@ -362,3 +362,24 @@ func test_bullet_not_inside_penetration_hole_by_default() -> void:
 	# Without any overlapping areas, should return false
 	var is_inside: bool = bullet.call("_is_inside_penetration_hole")
 	assert_false(is_inside, "Bullet should not be inside penetration hole by default")
+
+
+# ============================================================================
+# Premature Exit Signal Guard Tests (Issue #162)
+# ============================================================================
+
+
+func test_bullet_has_min_penetration_frames_constant() -> void:
+	var bullet := _create_test_bullet()
+
+	# Verify MIN_PENETRATION_FRAMES constant exists
+	assert_true("MIN_PENETRATION_FRAMES" in bullet, "Bullet should have MIN_PENETRATION_FRAMES constant")
+	assert_eq(bullet.MIN_PENETRATION_FRAMES, 2, "MIN_PENETRATION_FRAMES should be 2")
+
+
+func test_bullet_penetration_start_frame_tracking() -> void:
+	var bullet := _create_test_bullet()
+
+	# Verify _penetration_start_frame property exists
+	assert_true("_penetration_start_frame" in bullet, "Bullet should track penetration start frame")
+	assert_eq(bullet._penetration_start_frame, 0, "_penetration_start_frame should default to 0")
