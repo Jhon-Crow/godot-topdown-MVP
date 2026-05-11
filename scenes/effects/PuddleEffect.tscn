@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://puddle_effect_scene_1626"]
+
+[ext_resource type="Script" path="res://scripts/effects/puddle_effect.gd" id="1_puddle_effect"]
+[ext_resource type="Texture2D" uid="uid://puddle_sprite_1626" path="res://assets/sprites/effects/puddle.png" id="2_puddle_texture"]
+
+[node name="PuddleEffect" type="Sprite2D"]
+z_index = 0
+scale = Vector2(0, 0)
+modulate = Color(1, 1, 1, 0)
+texture = ExtResource("2_puddle_texture")
+script = ExtResource("1_puddle_effect")

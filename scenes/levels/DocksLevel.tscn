@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://docks_level_753"]
+[gd_scene load_steps=33 format=3 uid="uid://docks_level_753"]
 
 [ext_resource type="Script" path="res://scripts/levels/docks_level.gd" id="1_docks_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="5_fallback"]
 [ext_resource type="PackedScene" uid="uid://rain_effect_scene_1394" path="res://scenes/effects/RainEffect.tscn" id="6_rain_effect"]
+[ext_resource type="Script" path="res://scripts/levels/puddle_manager.gd" id="7_puddle_manager"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_h"]
 size = Vector2(5064, 32)
@@ -191,6 +192,7 @@ color = Color(0.3, 0.25, 0.22, 1)
 shape = SubResource("RectangleShape2D_wall_v")
 
 [node name="Structures" type="Node2D" parent="Environment"]
+z_index = 2
 
 [node name="CranePlatform" type="Node2D" parent="Environment/Structures"]
 position = Vector2(400, 500)
@@ -501,6 +503,7 @@ shape = SubResource("RectangleShape2D_warehouse_b_wall_v")
 occluder = SubResource("OccluderPolygon2D_warehouse_b_wall_v")
 
 [node name="Containers" type="Node2D" parent="Environment"]
+z_index = 2
 
 [node name="ContainerYardA" type="Node2D" parent="Environment/Containers"]
 
@@ -985,6 +988,10 @@ grenade_throw_cooldown = 3.0
 
 [node name="RainEffect" parent="." instance=ExtResource("6_rain_effect")]
 z_index = 100
+
+[node name="PuddleManager" type="Node2D" parent="."]
+z_index = 1
+script = ExtResource("7_puddle_manager")
 
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_docks")
