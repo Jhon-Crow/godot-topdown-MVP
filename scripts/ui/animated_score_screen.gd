@@ -27,9 +27,15 @@ var _score_audio_player: AudioStreamPlayer = null
 ## Gothic bitmap font for score screen labels (loaded on demand).
 var _gothic_font: Font = null
 
+## Alpha-aware shine shader for the rank contour animation (loaded on demand).
+var _rank_shine_shader: Shader = null
+
 ## Path to the Gothic bitmap font file (.fnt).
 ## Loaded via Godot's resource system (editor imports .fnt as FontFile).
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
+
+## Path to the rank letter shader that clips the armory-style shine to glyph alpha.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/rank_letter_shine.gdshader"
 
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 1.5
@@ -42,6 +48,9 @@ const RANK_REVEAL_DURATION: float = 1.5
 
 ## Duration for rank shrink animation (seconds).
 const RANK_SHRINK_DURATION: float = 0.5
+
+## Margin kept around the fullscreen rank during the final pop animation.
+const RANK_REVEAL_SCREEN_MARGIN: float = 24.0
 
 ## Flashing colors for rank reveal background.
 const RANK_FLASH_COLORS: Array[Color] = [
@@ -91,8 +100,8 @@ var _active_timers: Array[Timer] = []
 ## References to rank reveal UI nodes (for cleanup on skip).
 var _rank_flash_bg: ColorRect = null
 var _rank_gradient_bg: ColorRect = null
-var _big_rank_label: Label = null
-var _final_rank_label: Label = null
+var _big_rank_label: Control = null
+var _final_rank_label: Control = null
 
 ## Reference to the UI and container (for skip logic).
 var _ui: Control = null
@@ -108,6 +117,9 @@ var _stat_labels: Array = []  # Array of [Label, target_value, prefix, base_colo
 ## Reference to total score label (for skip finalization).
 var _total_label: Label = null
 var _total_separator: HSeparator = null
+
+## Hidden owner for live SubViewports used to render rank letters as alpha textures.
+var _rank_letter_viewport_owner: Node = null
 
 
 ## Loads and returns the Gothic bitmap font, caching it for reuse.
@@ -133,6 +145,130 @@ func _apply_gothic_font(label: Label) -> void:
 		label.add_theme_font_override("font", font)
 	else:
 		push_warning("[AnimatedScoreScreen] Gothic font not available for label: " + label.name)
+
+
+## Loads and returns the alpha-aware shine shader used for rank labels.
+func _get_rank_shine_shader() -> Shader:
+	if _rank_shine_shader == null:
+		if ResourceLoader.exists(RANK_SHINE_SHADER_PATH):
+			var shader = load(RANK_SHINE_SHADER_PATH)
+			if shader != null and shader is Shader:
+				_rank_shine_shader = shader
+			else:
+				push_warning("[AnimatedScoreScreen] Failed to load rank shine shader from: " + RANK_SHINE_SHADER_PATH)
+		else:
+			push_warning("[AnimatedScoreScreen] Rank shine shader file not found: " + RANK_SHINE_SHADER_PATH)
+	return _rank_shine_shader
+
+
+## Renders a rank character into a transparent TextureRect with the shine clipped to glyph alpha.
+func _create_rank_letter_texture_rect(ch: String, index: int, font_size: int, outline_size: int, rank_color: Color) -> Control:
+	if ch.strip_edges().is_empty():
+		var spacer := Control.new()
+		spacer.name = "RankLetterSpace_%d" % index
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		spacer.custom_minimum_size = Vector2(float(font_size) * 0.28, float(font_size))
+		spacer.set_meta("rank_letter_text", ch)
+		return spacer
+
+	var label := Label.new()
+	label.name = "RankLetterSource_%s_%d" % [ch, index]
+	label.text = ch
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", rank_color)
+	label.add_theme_constant_override("outline_size", outline_size)
+	label.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.2, 1.0))
+	_apply_gothic_font(label)
+
+	var font := label.get_theme_font("font")
+	var glyph_size := Vector2(float(font_size) * 0.60, float(font_size)) if font == null else font.get_string_size(ch, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	var padding := float(outline_size * 2 + maxi(4, font_size / 20))
+	var viewport_size := Vector2i(
+		maxi(8, int(ceil(glyph_size.x + padding * 2.0))),
+		maxi(8, int(ceil(float(font_size) * 1.15 + padding * 2.0)))
+	)
+
+	label.custom_minimum_size = Vector2(viewport_size)
+	label.size = Vector2(viewport_size)
+
+	var viewport := SubViewport.new()
+	viewport.name = "RankLetterViewport_%s_%d" % [ch, index]
+	viewport.size = viewport_size
+	viewport.transparent_bg = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.disable_3d = true
+	viewport.gui_disable_input = true
+	viewport.add_child(label)
+
+	if _rank_letter_viewport_owner == null or not is_instance_valid(_rank_letter_viewport_owner):
+		_rank_letter_viewport_owner = Node.new()
+		_rank_letter_viewport_owner.name = "RankLetterViewportOwner"
+		add_child(_rank_letter_viewport_owner)
+	_rank_letter_viewport_owner.add_child(viewport)
+
+	var letter := TextureRect.new()
+	letter.name = "RankLetterMask_%s_%d" % [ch, index]
+	letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	letter.texture = viewport.get_texture()
+	letter.custom_minimum_size = Vector2(viewport_size)
+	letter.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	letter.stretch_mode = TextureRect.STRETCH_SCALE
+	letter.set_meta("rank_letter_text", ch)
+	letter.set_meta("rank_font_size", font_size)
+	letter.set_meta("rank_outline_size", outline_size)
+	letter.set_meta("rank_uses_alpha_texture", true)
+	letter.set_meta("rank_viewport_path", letter.get_path_to(viewport))
+
+	var shader := _get_rank_shine_shader()
+	if shader != null:
+		var shine_mat := ShaderMaterial.new()
+		shine_mat.shader = shader
+		shine_mat.set_shader_parameter("horizontal_sweep", true)
+		shine_mat.set_shader_parameter("cycle_duration", 2.8)
+		shine_mat.set_shader_parameter("sweep_color", Vector4(0.85, 0.92, 1.0, 1.0))
+		shine_mat.set_shader_parameter("burst_color", Vector4(0.75, 0.88, 1.0, 1.0))
+		shine_mat.set_shader_parameter("texel_size", Vector2(1.0 / float(viewport_size.x), 1.0 / float(viewport_size.y)))
+		letter.material = shine_mat
+
+	return letter
+
+
+## Creates a transparent cutout texture for each character, then assembles them into one rank image.
+## The shader samples each rendered letter texture, so empty background pixels stay transparent.
+func _create_rank_letter_cutout(text: String, font_size: int, outline_size: int, rank_color: Color) -> Control:
+	var holder := HBoxContainer.new()
+	holder.name = "RankLetterCutout"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.alignment = BoxContainer.ALIGNMENT_CENTER
+	holder.add_theme_constant_override("separation", -4)
+
+	for i in range(text.length()):
+		var ch := text.substr(i, 1)
+		holder.add_child(_create_rank_letter_texture_rect(ch, i, font_size, outline_size, rank_color))
+
+	return holder
+
+
+## Returns the largest uniform scale that keeps a centered rank Control inside the UI bounds.
+func _get_viewport_safe_rank_scale(rank_control: Control, ui: Control, requested_scale: float) -> float:
+	var available_size := ui.size
+	if available_size.x <= 0.0 or available_size.y <= 0.0:
+		available_size = get_viewport().get_visible_rect().size
+
+	var base_size := rank_control.size
+	if base_size.x <= 0.0 or base_size.y <= 0.0:
+		base_size = rank_control.get_combined_minimum_size()
+
+	if base_size.x <= 0.0 or base_size.y <= 0.0:
+		return requested_scale
+
+	var usable_width: float = maxf(1.0, available_size.x - RANK_REVEAL_SCREEN_MARGIN * 2.0)
+	var usable_height: float = maxf(1.0, available_size.y - RANK_REVEAL_SCREEN_MARGIN * 2.0)
+	var max_scale: float = minf(usable_width / base_size.x, usable_height / base_size.y)
+	return minf(requested_scale, max_scale)
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -231,9 +367,9 @@ func show_animated_score(ui: Control, score_data: Dictionary) -> void:
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.offset_left = -300
 	container.offset_right = 300
-	container.offset_top = -280
-	container.offset_bottom = 280
-	container.add_theme_constant_override("separation", 8)
+	container.offset_top = -230
+	container.offset_bottom = 230
+	container.add_theme_constant_override("separation", 4)
 	ui.add_child(container)
 	_container = container
 
@@ -332,7 +468,7 @@ func _animate_title(container: VBoxContainer, start_delay: float) -> float:
 ## Animates a separator line.
 func _animate_separator(container: VBoxContainer, start_delay: float) -> float:
 	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 15)
+	separator.add_theme_constant_override("separation", 4)
 	separator.modulate.a = 0.0
 	container.add_child(separator)
 
@@ -478,7 +614,7 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 func _animate_total_score(container: VBoxContainer, score_data: Dictionary, start_delay: float) -> float:
 	# Add separator before total
 	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 15)
+	separator.add_theme_constant_override("separation", 4)
 	separator.modulate.a = 0.0
 	container.add_child(separator)
 	_total_separator = separator
@@ -606,32 +742,21 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	ui.add_child(rank_bg)
 	_rank_gradient_bg = rank_bg
 
-	# Create large centered rank label
-	var big_rank_label := Label.new()
+	# Create large centered rank cutout assembled from transparent letter sprites.
+	var big_rank_label := _create_rank_letter_cutout(rank, 560, 18, rank_color)
 	big_rank_label.name = "BigRankLabel"
-	big_rank_label.text = rank
-	big_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	big_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	big_rank_label.add_theme_font_size_override("font_size", 280)
-	big_rank_label.add_theme_color_override("font_color", rank_color)
-	_apply_gothic_font(big_rank_label)
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
-	big_rank_label.offset_left = -200
-	big_rank_label.offset_right = 200
-	big_rank_label.offset_top = -150
-	big_rank_label.offset_bottom = 150
+	big_rank_label.offset_left = -300
+	big_rank_label.offset_right = 300
+	big_rank_label.offset_top = -300
+	big_rank_label.offset_bottom = 300
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
 	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
-	var final_rank_label := Label.new()
+	var final_rank_label := _create_rank_letter_cutout("RANK:%s" % rank, 80, 5, rank_color)
 	final_rank_label.name = "FinalRankLabel"
-	final_rank_label.text = "RANK: %s" % rank
-	final_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	final_rank_label.add_theme_font_size_override("font_size", 67)
-	final_rank_label.add_theme_color_override("font_color", rank_color)
-	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
 	_final_rank_label = final_rank_label
@@ -671,31 +796,35 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 
 					# Sharply enlarge the rank letter before fading out (issue #539 feedback)
 					var enlarge_tween := create_tween()
-					enlarge_tween.set_parallel(true)
-					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(1.5, 1.5), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+					var pop_scale := _get_viewport_safe_rank_scale(big_rank_label, ui, 1.5)
+					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(pop_scale, pop_scale), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-					# After the sharp enlarge, fade out
-					enlarge_tween.chain().tween_callback(
+					# After the sharp enlarge (0.15 s), fade out the fullscreen rank and show it in the container
+					get_tree().create_timer(0.15).timeout.connect(
 						func():
+							if _skip_requested:
+								return
+
 							# Fade out flash background
 							var fade_tween := create_tween()
 							fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
 
-							# Fade out big rank letter and gradient background
+							# Fade out big rank letter and gradient background, fade in final rank
 							var fade_out_tween := create_tween()
 							fade_out_tween.set_parallel(true)
 							fade_out_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
 							fade_out_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
-
-							# Show final rank in container - it "sticks" in place (issue #539)
 							fade_out_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
 
-							# Clean up after animation
-							fade_out_tween.chain().tween_callback(
+							# Clean up after fade-out (RANK_SHRINK_DURATION = 0.5 s)
+							get_tree().create_timer(RANK_SHRINK_DURATION).timeout.connect(
 								func():
-									flash_bg.queue_free()
-									big_rank_label.queue_free()
-									rank_bg.queue_free()
+									if is_instance_valid(flash_bg):
+										flash_bg.queue_free()
+									if is_instance_valid(big_rank_label):
+										big_rank_label.queue_free()
+									if is_instance_valid(rank_bg):
+										rank_bg.queue_free()
 									_rank_flash_bg = null
 									_rank_gradient_bg = null
 									_big_rank_label = null
@@ -844,7 +973,7 @@ func _show_restart_hint(container: VBoxContainer) -> void:
 	animation_completed.emit(container)
 
 	var hint_label := Label.new()
-	hint_label.text = "\nPress Q to restart"
+	hint_label.text = "Press Q to restart"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))

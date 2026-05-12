@@ -888,12 +888,12 @@ func _show_victory_message() -> void:
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 	var spacer := Control.new()
-	spacer.custom_minimum_size.y = 10
+	spacer.custom_minimum_size.y = 5
 	container.add_child(spacer)
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons_container.add_theme_constant_override("separation", 10)
+	buttons_container.add_theme_constant_override("separation", 6)
 	container.add_child(buttons_container)
 	var next_level_path: String = _get_next_level_path()
 	if next_level_path != "":

@@ -17,6 +17,9 @@ const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 ## Path to the Gothic bitmap font texture.
 const GOTHIC_FONT_TEXTURE: String = "res://assets/fonts/gothic_bitmap.png"
 
+## Path to the alpha-aware shine shader used on score rank letter textures.
+const RANK_SHINE_SHADER_PATH: String = "res://scripts/shaders/rank_letter_shine.gdshader"
+
 
 class MockAnimatedScoreScreen:
 	## Mock class that mirrors AnimatedScoreScreen's testable functionality.
@@ -138,6 +141,19 @@ func test_animated_score_screen_has_gothic_font_path() -> void:
 		"AnimatedScoreScreen should have correct Gothic font path")
 
 
+func test_animated_score_screen_has_rank_shine_shader_path() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_eq(instance.RANK_SHINE_SHADER_PATH, RANK_SHINE_SHADER_PATH,
+		"AnimatedScoreScreen should use the alpha-aware rank shine shader")
+
+
+func test_rank_shine_shader_file_exists() -> void:
+	assert_true(FileAccess.file_exists(RANK_SHINE_SHADER_PATH),
+		"Rank shine shader should exist at %s" % RANK_SHINE_SHADER_PATH)
+
+
 func test_animated_score_screen_get_gothic_font() -> void:
 	var script = load("res://scripts/ui/animated_score_screen.gd")
 	var instance = script.new()
@@ -176,6 +192,124 @@ func test_apply_gothic_font_to_label() -> void:
 		assert_not_null(applied_font, "Label should have a font override after _apply_gothic_font()")
 	else:
 		pass_test("Font not available for label test (requires Godot editor import)")
+
+
+func test_create_rank_letter_cutout_builds_one_shader_letter_per_character() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var cutout := instance._create_rank_letter_cutout("A+", 280, 18, Color.GOLD)
+	add_child_autofree(cutout)
+
+	assert_eq(cutout.name, "RankLetterCutout")
+	assert_eq(cutout.get_child_count(), 2,
+		"Rank cutout should split every rank character into its own letter node")
+	assert_null(cutout.find_child("RankContourShineOverlay", true, false),
+		"Rank cutout must not contain a rectangular shine overlay")
+
+	for child in cutout.get_children():
+		assert_true(child is TextureRect, "Each rank cutout child should be a transparent letter texture")
+		assert_true(child.name.begins_with("RankLetterMask_"),
+			"Each rank cutout child should be named as a letter mask")
+		assert_eq(child.mouse_filter, Control.MOUSE_FILTER_IGNORE,
+			"Rank letter masks must not block score screen input")
+		assert_eq(int(child.get_meta("rank_outline_size")), 18,
+			"Each rank letter texture should be rendered with a visible contour")
+		assert_true(bool(child.get_meta("rank_uses_alpha_texture")),
+			"Rank shine must be clipped by the rendered letter alpha texture")
+		assert_true(child.has_meta("rank_viewport_path"),
+			"Each rank letter mask should reference its live transparent render viewport")
+		var viewport := child.get_node_or_null(NodePath(str(child.get_meta("rank_viewport_path"))))
+		assert_not_null(viewport,
+			"Each rank letter mask should keep its transparent render viewport alive outside the visible UI")
+		assert_true(viewport is SubViewport,
+			"Rank letter render owner should keep SubViewport nodes, not visible rectangle children")
+		assert_null(child.find_child("RankLetterViewport_*", true, false),
+			"Rank letter masks should not parent SubViewports under visible TextureRects")
+		assert_true(child.material is ShaderMaterial,
+			"Each rank letter mask should use the alpha-aware shine shader material")
+		var mat := child.material as ShaderMaterial
+		assert_true(mat.shader is Shader, "Rank letter mask material should contain a shader")
+		assert_true(mat.get_shader_parameter("horizontal_sweep"),
+			"Rank shine should sweep horizontally along each cutout letter")
+		assert_almost_eq(float(mat.get_shader_parameter("cycle_duration")), 2.8, 0.01,
+			"Rank shine should use a snappy armory-style cycle")
+
+
+func test_animate_rank_reveal_uses_assembled_letter_cutouts_without_overlay() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	add_child_autofree(ui)
+	var container := VBoxContainer.new()
+	add_child_autofree(container)
+	var score_data := {"rank": "S"}
+
+	instance._animate_rank_reveal(ui, container, score_data, 1000.0)
+
+	var big_rank_label := ui.find_child("BigRankLabel", true, false)
+	assert_not_null(big_rank_label, "Big rank label should be created")
+	assert_not_null(big_rank_label.find_child("RankLetterMask_S", true, false),
+		"Big rank reveal should assemble rank text from cutout letter masks")
+	assert_null(big_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Big rank reveal label should not use a background shine overlay")
+	assert_null(big_rank_label.find_child("RankContourShineLabel", true, false),
+		"Big rank reveal label should not use whole-label shine children")
+
+	var final_rank_label := container.find_child("FinalRankLabel", true, false)
+	assert_not_null(final_rank_label, "Final rank label should be created")
+	assert_not_null(final_rank_label.find_child("RankLetterMask_R", true, false),
+		"Final score rank should assemble rank text from cutout letter masks")
+	assert_null(final_rank_label.find_child("RankContourShineOverlay", true, false),
+		"Final score rank label should not use a background shine overlay")
+	assert_null(final_rank_label.find_child("RankContourShineLabel", true, false),
+		"Final score rank label should not use whole-label shine children")
+
+
+func test_rank_reveal_pop_scale_is_clamped_to_screen_bounds() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	ui.size = Vector2(800, 600)
+	add_child_autofree(ui)
+
+	var rank_control := Control.new()
+	rank_control.custom_minimum_size = Vector2(600, 600)
+	add_child_autofree(rank_control)
+
+	var safe_scale: float = instance._get_viewport_safe_rank_scale(rank_control, ui, 1.5)
+	var max_width: float = ui.size.x - instance.RANK_REVEAL_SCREEN_MARGIN * 2.0
+	var max_height: float = ui.size.y - instance.RANK_REVEAL_SCREEN_MARGIN * 2.0
+
+	assert_lte(rank_control.custom_minimum_size.x * safe_scale, max_width + 0.01,
+		"Rank pop scale should keep the enlarged rank inside the screen width")
+	assert_lte(rank_control.custom_minimum_size.y * safe_scale, max_height + 0.01,
+		"Rank pop scale should keep the enlarged rank inside the screen height")
+	assert_lt(safe_scale, 1.5,
+		"Oversized rank letters should use a reduced pop scale instead of leaving the screen")
+
+
+func test_rank_reveal_pop_scale_keeps_requested_scale_when_it_fits() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+
+	var ui := Control.new()
+	ui.size = Vector2(1280, 720)
+	add_child_autofree(ui)
+
+	var rank_control := Control.new()
+	rank_control.custom_minimum_size = Vector2(240, 240)
+	add_child_autofree(rank_control)
+
+	var safe_scale: float = instance._get_viewport_safe_rank_scale(rank_control, ui, 1.5)
+	assert_almost_eq(safe_scale, 1.5, 0.01,
+		"Rank pop should keep the requested scale when the enlarged rank fits")
 
 
 # ============================================================================
@@ -341,7 +475,7 @@ func test_score_count_duration_is_slow_enough() -> void:
 	# Score counting should take at least 1 second per item for readability
 	var score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
 	var duration: float = score_screen_script.SCORE_COUNT_DURATION
-	assert_gte(duration, 1.0, "Score count duration should be >= 1.0s for readability")
+	assert_true(duration >= 1.0, "Score count duration should be >= 1.0s for readability")
 
 
 func test_total_score_counting_is_longer_than_items() -> void:
