@@ -2398,11 +2398,13 @@ func _process_searching_state(delta: float) -> void:
 				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
-				var dir := (next_pos - global_position).normalized()
+				var nav_dir := (next_pos - global_position).normalized()
+				var dir := _get_issue_1357_wall_slide_direction(nav_dir)
 				if _tactical_movement and _tactical_movement.check_and_yield(target_waypoint, move_speed * 0.7, get_physics_process_delta_time()):  # #1249: yield in SEARCHING too
 					velocity = Vector2.ZERO; move_and_slide(); _push_casings(); _search_stuck_timer = 0.0; _search_last_progress_position = global_position; return
 				var _sv := dir * move_speed * 0.7; if _nav_agent and _nav_agent.avoidance_enabled: _nav_agent.set_velocity(_sv)  # #1249: ORCA for searching
-				velocity = (_avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else _sv) if (_nav_agent and _nav_agent.avoidance_enabled) else _sv
+				if _nav_agent and _nav_agent.avoidance_enabled and _avoidance_velocity.length_squared() > 0.01 and dir.dot(_avoidance_velocity.normalized()) >= 0.5: velocity = _avoidance_velocity
+				else: velocity = _sv
 				move_and_slide(); _push_casings()  # Issue #341
 				var progress := global_position.distance_to(_search_last_progress_position)  # #354: Stuck detection
 				if progress < SEARCH_PROGRESS_THRESHOLD:
@@ -4677,15 +4679,13 @@ func _get_nav_direction_to(target_pos: Vector2) -> Vector2:
 	_nav_agent.target_position = target_pos
 	if _nav_agent.is_navigation_finished(): return Vector2.ZERO
 	return (_nav_agent.get_next_path_position() - global_position).normalized()
-
-## Move toward target_pos using NavigationAgent2D. Returns true if moving, false if reached or unavailable.
 func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 	# Issue #1249: Tactical yielding — let closest enemy pass first. Skip in FLANKING (#1249 s4).
 	if _tactical_movement and _current_state in [AIState.PURSUING, AIState.COMBAT]:
 		if _tactical_movement.check_and_yield(target_pos, speed, get_physics_process_delta_time()):
 			var _wp: Vector2 = _tactical_movement.get_yield_position()
 			if _wp != Vector2.ZERO and global_position.distance_to(_wp) > 20.0:
-				var _wd := _apply_wall_avoidance((_wp - global_position).normalized())
+				var _wd := _get_issue_1357_wall_slide_direction((_wp - global_position).normalized())
 				velocity = _wd * speed * 0.6; if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 			else: velocity = Vector2.ZERO
 			return true
@@ -4694,24 +4694,31 @@ func _move_to_target_nav(target_pos: Vector2, speed: float) -> bool:
 		target_pos = _tactical_group.get_adjusted_target(target_pos, get_physics_process_delta_time())
 	var direction: Vector2 = _get_nav_direction_to(target_pos)
 	if direction == Vector2.ZERO: velocity = Vector2.ZERO; return false
-	direction = _apply_wall_avoidance(direction)
-	# Issue #1107: Corner escape — use escape-dominant weight (1.5) when wall opposes nav dir
-	var _esc: Vector2 = Vector2.ZERO
-	for _si: int in range(get_slide_collision_count()): _esc += get_slide_collision(_si).get_normal()
-	if _esc.length_squared() > 0.01: var _en := _esc.normalized(); direction = (direction + _en * (1.5 if _en.dot(direction) < -0.5 else 0.6)).normalized()
-	elif velocity.length_squared() < 1.0:
-		var _p := move_and_collide(direction * 2.0, true); if _p: direction = (direction + _p.get_normal() * 0.8).normalized()
-	var intended_vel: Vector2 = direction * speed
-	# Issue #1146: Feed intended velocity to NavigationAgent2D ORCA so it can steer us away from other agents.
+	direction = _get_issue_1357_wall_slide_direction(direction)
+	var intended_vel: Vector2 = direction * speed  # Issue #1146: Feed intended velocity to ORCA.
 	if _nav_agent and _nav_agent.avoidance_enabled:
 		_nav_agent.set_velocity(intended_vel)
-		# _avoidance_velocity is set asynchronously via _on_avoidance_velocity_computed.
-		# Fall back to intended_vel on the first frame before the callback fires.
-		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 else intended_vel
+		velocity = _avoidance_velocity if _avoidance_velocity.length_squared() > 0.01 and direction.dot(_avoidance_velocity.normalized()) >= 0.5 else intended_vel
 	else:
 		velocity = intended_vel
 	if velocity.length_squared() > 0.01: _rotate_body_toward(velocity.angle(), get_physics_process_delta_time())
 	return true
+
+func _get_issue_1357_wall_slide_direction(nav_direction: Vector2) -> Vector2:
+	var direction := nav_direction
+	var avoided_direction := _apply_wall_avoidance(nav_direction)
+	direction = avoided_direction if nav_direction.dot(avoided_direction) >= 0.5 else nav_direction
+	for _si: int in range(get_slide_collision_count()):
+		var _normal := get_slide_collision(_si).get_normal()
+		if direction.dot(_normal) < 0.0:
+			var _slid := direction.slide(_normal)
+			if _slid.length_squared() > 0.01: direction = _slid.normalized()
+	if velocity.length_squared() < 1.0:
+		var _p := move_and_collide(direction * 2.0, true)
+		if _p != null and direction.dot(_p.get_normal()) < 0.0:
+			var _probe_slid := direction.slide(_p.get_normal())
+			if _probe_slid.length_squared() > 0.01: direction = _probe_slid.normalized()
+	return direction
 
 ## Issue #1146: Called by NavigationAgent2D when ORCA computes a safe avoidance velocity.
 func _on_avoidance_velocity_computed(safe_velocity: Vector2) -> void:
