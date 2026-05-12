@@ -124,8 +124,7 @@ func test_check_and_yield_returns_false_with_freed_enemy() -> void:
 	add_child_autofree(mock_enemy)
 	var comp := TacticalMovementComp.new(mock_enemy)
 
-	mock_enemy.queue_free()
-	await wait_frames(2)
+	mock_enemy.free()
 
 	var result := comp.check_and_yield(Vector2(100, 100), 200.0, 0.016)
 	assert_false(result, "Should return false with freed enemy")
@@ -235,3 +234,39 @@ func test_debug_info_shows_yielding_state() -> void:
 	var info := comp.get_debug_info()
 	assert_true(info.begins_with("YIELDING"),
 		"Debug info should show YIELDING state")
+
+
+# =============================================================================
+# Ally Blocking Lane Filter
+# =============================================================================
+
+func test_forward_lane_rejects_side_lane_positions() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var comp := TacticalMovementComp.new(enemy)
+	var side_lane_position: Vector2 = Vector2(40, TacticalMovementComp.NARROW_PASSAGE_HALF_WIDTH)
+	assert_false(comp._is_position_in_forward_lane(side_lane_position, Vector2.RIGHT),
+		"Position far to the side should not count as blocking the same corridor lane")
+
+
+func test_forward_lane_accepts_same_lane_positions() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var comp := TacticalMovementComp.new(enemy)
+	var same_lane_position: Vector2 = Vector2(40, 8)
+	assert_true(comp._is_position_in_forward_lane(same_lane_position, Vector2.RIGHT),
+		"Position ahead in the same lane should count as blocking")
+
+
+func test_forward_lane_rejects_positions_behind_enemy() -> void:
+	var enemy := CharacterBody2D.new()
+	add_child_autofree(enemy)
+	enemy.global_position = Vector2.ZERO
+
+	var comp := TacticalMovementComp.new(enemy)
+	assert_false(comp._is_position_in_forward_lane(Vector2(-20, 0), Vector2.RIGHT),
+		"Position behind the enemy should not count as blocking")

@@ -117,7 +117,9 @@ func test_reset_yield_sets_cooldown() -> void:
 
 func test_yield_expires_after_max_time() -> void:
 	# Simulate the component already yielding and advance time past the limit.
-	var comp := TacticalMovementComponent.new(null)
+	var mock_enemy := Node2D.new()
+	add_child_autofree(mock_enemy)
+	var comp := TacticalMovementComponent.new(mock_enemy)
 	comp.is_yielding = true
 	comp.yield_timer = TacticalMovementComponent.YIELD_MAX_WAIT_TIME - 0.01
 	# One more tick past the threshold
@@ -127,7 +129,9 @@ func test_yield_expires_after_max_time() -> void:
 
 
 func test_yield_continues_before_max_time() -> void:
-	var comp := TacticalMovementComponent.new(null)
+	var mock_enemy := Node2D.new()
+	add_child_autofree(mock_enemy)
+	var comp := TacticalMovementComponent.new(mock_enemy)
 	comp.is_yielding = true
 	comp.yield_timer = 0.5  # well within YIELD_MAX_WAIT_TIME
 	var result := comp.check_and_yield(Vector2(100, 0), 220.0, 0.016)
@@ -156,7 +160,9 @@ func test_cooldown_prevents_immediate_recheck() -> void:
 
 
 func test_cooldown_decrements_with_delta() -> void:
-	var comp := TacticalMovementComponent.new(null)
+	var mock_enemy := Node2D.new()
+	add_child_autofree(mock_enemy)
+	var comp := TacticalMovementComponent.new(mock_enemy)
 	comp.yield_cooldown_timer = 0.3
 	comp.check_and_yield(Vector2(100, 0), 220.0, 0.1)
 	assert_lt(comp.yield_cooldown_timer, 0.3, "Cooldown timer should decrement when check_and_yield is called")

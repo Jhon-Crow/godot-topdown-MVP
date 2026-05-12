@@ -64,8 +64,7 @@ func test_find_cover_returns_not_found_with_freed_enemy() -> void:
 	var comp := PursuitComp.new(mock_enemy)
 
 	# Free the enemy to simulate an invalid reference
-	mock_enemy.queue_free()
-	await wait_frames(2)
+	mock_enemy.free()
 
 	var result := comp.find_cover()
 	assert_false(result.found, "Should return found=false with freed enemy")

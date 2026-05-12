@@ -57,7 +57,7 @@ func test_enemy_ref_set_on_ready() -> void:
 	parent.add_child(comp)
 	add_child_autofree(parent)
 
-	await wait_frames(2)
+	comp._ready()
 
 	assert_eq(comp._enemy, parent,
 		"Enemy ref should be set to parent after _ready")
@@ -69,7 +69,7 @@ func test_muzzle_flash_detection_created_on_ready() -> void:
 	parent.add_child(comp)
 	add_child_autofree(parent)
 
-	await wait_frames(2)
+	comp._ready()
 
 	assert_not_null(comp._muzzle_flash_detection,
 		"Muzzle flash detection should be created in _ready")
