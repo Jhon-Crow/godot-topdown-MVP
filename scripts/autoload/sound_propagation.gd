@@ -177,6 +177,10 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		_listeners.size()
 	])
 
+	# Early exit when no listeners are registered — avoids filter, loop, and logging overhead
+	if _listeners.is_empty():
+		return
+
 	# Clean up invalid listeners (destroyed nodes)
 	var prev_count := _listeners.size()
 	_listeners = _listeners.filter(func(l): return is_instance_valid(l))
