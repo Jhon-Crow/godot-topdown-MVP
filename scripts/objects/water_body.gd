@@ -70,6 +70,7 @@ var _time_stopped: bool = false
 var _saved_wave_speed: float = 0.0
 var _saved_ripple_speed: float = 0.0
 var _saved_surf_speed: float = 0.0
+var _captured_water_time: float = 0.0
 
 ## Water pigment tint from blood diffusion events. Stored as world-space source
 ## positions so waves near the cloud can become redder without tinting the whole sea.
@@ -122,16 +123,21 @@ func _ready() -> void:
 		_blood_diffusion_script = load(BLOOD_DIFFUSION_SCRIPT_PATH)
 
 	var shader_ok: bool = _visual != null and _visual.material != null
-	_log("[WaterBody] Ready — visual=%s shader=%s collision=%s splash=%s blood=%s" % [
+	var mat_type: String = _visual.material.get_class() if shader_ok else "none"
+	_log("[WaterBody] Ready — visual=%s shader=%s(%s) collision=%s splash=%s blood=%s group=%s [fix#1608]" % [
 		str(_visual != null),
 		"OK" if shader_ok else "FALLBACK",
+		mat_type,
 		str(_collision != null),
 		"OK" if _splash_script != null else "MISSING",
-		"OK" if _blood_diffusion_script != null else "MISSING"
+		"OK" if _blood_diffusion_script != null else "MISSING",
+		str(is_in_group("precipitation_effects"))
 	])
 
 
 func _process(_delta: float) -> void:
+	_update_shader_time()
+
 	# Skip all per-body work when no bodies are in water — avoids unnecessary
 	# CPU iteration and GPU uploads that caused a stutter on first entry (Issue #1573).
 	if not _bodies_in_water.is_empty():
@@ -205,6 +211,16 @@ func _update_obstacle_shader_params() -> void:
 
 	mat.set_shader_parameter("obstacle_count", mini(uvs.size(), MAX_OBSTACLE_SHADER_SLOTS))
 	mat.set_shader_parameter("obstacle_uvs", uvs)
+
+
+func _update_shader_time() -> void:
+	if _time_stopped:
+		return
+	if _visual == null or not (_visual.material is ShaderMaterial):
+		return
+	var mat: ShaderMaterial = _visual.material as ShaderMaterial
+	_captured_water_time = Time.get_ticks_msec() / 1000.0
+	mat.set_shader_parameter("water_time", _captured_water_time)
 
 
 ## Apply the animated water shader to the WaterVisual ColorRect.
@@ -559,39 +575,68 @@ func _update_live_tint_shader_params() -> void:
 
 
 ## Pauses or resumes wave animation for time-stop effects (e.g. last chance).
-## When paused is true, all three shader speed parameters are set to zero so the
-## water surface appears frozen. When paused is false, the original speed values
-## are restored. The splash/physics detection is not affected.
+## Mirrors the RainEffect/SnowEffect pattern (Issue #1608):
+##   - Shader speed uniforms are zeroed so all TIME-dependent animation stops.
+##   - WaterVisual process mode is disabled so the canvas item stops updating,
+##     matching the PROCESS_MODE_DISABLED approach used for particle nodes in
+##     RainEffect._streaks and SnowEffect._flakes_large/_flakes_small.
+## When paused is false, both are restored.
+## The splash/physics detection is not affected.
 func set_time_stopped(paused: bool) -> void:
 	if _time_stopped == paused:
 		return
 	_time_stopped = paused
-	if _visual == null or not (_visual.material is ShaderMaterial):
-		return
-	var mat: ShaderMaterial = _visual.material as ShaderMaterial
 	if paused:
-		# Save current speed values then set to zero.
-		_saved_wave_speed = mat.get_shader_parameter("wave_speed")
-		_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
-		_saved_surf_speed = mat.get_shader_parameter("surf_speed")
-		mat.set_shader_parameter("wave_speed", 0.0)
-		mat.set_shader_parameter("ripple_speed", 0.0)
-		mat.set_shader_parameter("surf_speed", 0.0)
-		_log("[WaterBody] Wave animation paused (time stopped)")
+		# Disable WaterVisual processing — mirrors PROCESS_MODE_DISABLED used on
+		# particle nodes in RainEffect and SnowEffect (Issue #1608).
+		if _visual != null:
+			_visual.process_mode = Node.PROCESS_MODE_DISABLED
+		# Zero all shader speed uniforms so TIME-based animation freezes.
+		if _visual != null and _visual.material is ShaderMaterial:
+			var mat: ShaderMaterial = _visual.material as ShaderMaterial
+			_update_shader_time()
+			_saved_wave_speed = mat.get_shader_parameter("wave_speed")
+			_saved_ripple_speed = mat.get_shader_parameter("ripple_speed")
+			_saved_surf_speed = mat.get_shader_parameter("surf_speed")
+			mat.set_shader_parameter("time_stopped", true)
+			mat.set_shader_parameter("water_time", _captured_water_time)
+			mat.set_shader_parameter("wave_speed", 0.0)
+			mat.set_shader_parameter("ripple_speed", 0.0)
+			mat.set_shader_parameter("surf_speed", 0.0)
+			_log("[WaterBody] Wave animation paused: water_time=%s, wave_speed=%s→0, ripple_speed=%s→0, surf_speed=%s→0" % [
+				str(_captured_water_time), str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
+		else:
+			_log("[WaterBody] Wave animation paused (no shader material — visual=%s mat_type=%s)" % [
+				str(_visual != null),
+				str(_visual.material.get_class() if _visual != null and _visual.material != null else "null")])
 	else:
-		# Restore saved speed values.
-		mat.set_shader_parameter("wave_speed", _saved_wave_speed)
-		mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
-		mat.set_shader_parameter("surf_speed", _saved_surf_speed)
-		_log("[WaterBody] Wave animation resumed (time resumed)")
+		# Restore WaterVisual processing — mirrors PROCESS_MODE_INHERIT restore in
+		# RainEffect and SnowEffect (Issue #1608).
+		if _visual != null:
+			_visual.process_mode = Node.PROCESS_MODE_INHERIT
+		# Restore shader speed uniforms.
+		if _visual != null and _visual.material is ShaderMaterial:
+			var mat: ShaderMaterial = _visual.material as ShaderMaterial
+			mat.set_shader_parameter("wave_speed", _saved_wave_speed)
+			mat.set_shader_parameter("ripple_speed", _saved_ripple_speed)
+			mat.set_shader_parameter("surf_speed", _saved_surf_speed)
+			mat.set_shader_parameter("time_stopped", false)
+			_log("[WaterBody] Wave animation resumed: wave_speed=%s, ripple_speed=%s, surf_speed=%s" % [
+				str(_saved_wave_speed), str(_saved_ripple_speed), str(_saved_surf_speed)])
+		else:
+			_log("[WaterBody] Wave animation resumed (no shader material)")
 
 
-## Log a message via the FileLogger autoload (mirrors beach_level.gd pattern).
+## Log a message via the FileLogger autoload (mirrors SnowEffect/RainEffect pattern).
+## Uses Engine.get_singleton() as primary lookup so it works in exported builds.
 func _log(message: String) -> void:
-	print(message)
-	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	var file_logger: Node = Engine.get_singleton("FileLogger") if Engine.has_singleton("FileLogger") else null
+	if file_logger == null:
+		file_logger = get_node_or_null("/root/FileLogger")
 	if file_logger and file_logger.has_method("log_info"):
 		file_logger.log_info(message)
+	else:
+		print(message)
 
 
 ## Clean up references to freed grenades.
