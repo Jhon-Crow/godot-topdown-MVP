@@ -3,161 +3,226 @@
 ## Problem Statement
 
 The Docks level needed a weather precipitation system that:
-1. Adds atmospheric top-down rain visual effect
+1. Adds atmospheric top-down rain visual effect (HM2-style)
 2. Continuous rain — always active while outdoors
 3. Excludes rain from indoor areas (WarehouseA, WarehouseB)
 4. Is reusable for other maps and future precipitation types
 
+---
+
+## Timeline / Sequence of Events
+
+### 2026-03-24 — Iteration 1: Rain Not Visible
+
+**Evidence:** `game_log_20260324_075210.txt`
+- Log shows `[DocksLevel] Rain precipitation setup with 2 exclusion zones` but **no `[RainEffect]` log lines**
+- Session lasted only ~47 seconds (07:52:10 to ~07:53:00)
+
+**Root causes:**
+1. Rain start delay was 30–90 seconds — the session ended before rain ever triggered
+2. No `[RainEffect]` logging → impossible to verify if rain fired at all
+3. Particle opacity was 0.35 alpha with only 120 particles — too subtle to notice
+
+**Fix applied:** Reduced delay to 5s, increased particle count to 200, increased opacity to 0.5, added logging
+
+---
+
+### 2026-03-24 — Iteration 2: Rain Visible But Looks Wrong (Side-View)
+
+**Evidence:** `game_log_20260324_090934.txt`
+- `[RainEffect] Scheduled first rain episode in 5.0 seconds` — rain now starts
+- `[RainEffect] Rain episode STARTED (duration: 34.9 seconds, emitting: true)` — rain fires
+
+**User feedback:** Rain started too quickly for episodic play; looked like **side-view rain** (streaks falling straight down), not top-down
+
+**Root cause:** Fixed `direction = Vector3(0, 1, 0)` made every streak move straight downward — this looks like a side-scrolling game, not top-down
+
+**Fix applied:** Added diagonal direction (HM2 reference requested), added two-layer system (streaks + splashes)
+
+---
+
+### 2026-03-24 — Iterations 3–5: HM2-Style Two-Layer Rain — Splash Misalignment
+
+**Evidence:** `game_log_20260324_130348.txt`
+- Rain starts and stops properly (episodic mode): `Rain episode STARTED (duration: 23.9s)` → `Rain episode STOPPED`
+
+**User feedback:** Splash rings do not appear where streaks land — two disconnected particle areas visible
+
+**Root cause:** `RainSplashes` position was `Vector2(0, 180)` calculated for old diagonal trajectory. After trajectory changes, the offset was stale.
+
+**Fix applied:** Synchronized emission areas; matched splash position to streak travel distance
+
+---
+
+### 2026-03-24 — Iteration 6: Continuous Rain
+
+**Evidence:** `game_log_20260324_142031.txt`
+- `[RainEffect] Rain started (continuous mode)` — episodic system replaced
+
+**User feedback:** Rain should never stop — always continuous outdoors
+
+**Fix applied:** Removed episodic timer system entirely; rain emits from `_ready()` forever
+
+---
+
+### 2026-03-25 — Iteration 7: Fish-Eye Radial Perspective (radial_velocity)
+
+**Evidence:** `game_log_20260325_125244.txt`
+- `[RainEffect] Rain started (continuous mode)` — rain works
+
+**Context:** All previous iterations used fixed `direction` vectors (e.g., `Vector3(0.4, 1, 0)`). The user liked the appearance of the screen-filling rain but wanted a top-down perspective feel similar to HM2.
+
+**Approach:** Replaced `direction + initial_velocity` with `radial_velocity = 80–140 px/s`. Each particle spawns at a random point on the full screen and moves outward from the emitter center (`Vector2(640, 360)`). With `particle_flag_align_y = true`, each streak auto-rotates to face its velocity direction. Result: center streaks point nearly straight, edge streaks angle outward — a fish-eye perspective illusion.
+
+**User feedback (2026-03-25):** Liked the visual, but **streaks appear to be flying away/going upward** instead of falling. Also splashes still don't align with streak endpoints.
+
+---
+
+### 2026-03-25 — Iteration 8: Fix Direction (Wrong Approach)
+
+**Evidence:** `game_log_20260326_094619.txt` (tested on 2026-03-26)
+- `[RainEffect] Rain started (continuous mode)` — works
+
+**Approach:** Replaced `radial_velocity` with fixed `direction = Vector3(0.4, 0.9, 0)` at 180–240 px/s (diagonal down-right). Also moved `RainSplashes` to `position = Vector2(653, 388)` as a co-location attempt.
+
+**User feedback (2026-03-26):** "All wrong again. Revert to commit `123cde9a` (the radial_velocity version) but invert the direction of streaks."
+
+---
+
+### 2026-03-26 — Iteration 9: Inverted Radial Velocity (Current Fix)
+
+**Root cause identified:** In Godot 4, `radial_velocity > 0` pushes particles **away from the emitter center** (outward). This caused particles to appear to fly away from the camera in all directions. The user's description of streaks "going upward" (for particles above center) is exactly this behavior.
+
+**Fix:** Revert scene to commit `123cde9a` exactly, but set `radial_velocity` to **negative values** (`-140` to `-80`). Negative `radial_velocity` in Godot pulls particles **toward the emitter center** — inward convergence. Combined with `particle_flag_align_y = true` and `BOX` emission across the full screen:
+- Particles spawn at random screen positions
+- All converge toward `Vector2(640, 360)` (screen center)
+- Each streak auto-rotates to face its movement direction
+- Visual result: streaks fall "toward" the camera focal point — simulating top-down rain perspective
+
+Also restored splash emitter to `position = Vector2(640, 360)` (co-located with streaks, same as commit `123cde9a`).
+
+---
+
 ## Root Cause Analysis
 
-The project had no weather/precipitation system at all. The existing particle effects (`DustEffect`, `SparksEffect`, `BloodEffect`, etc.) were all one-shot effects triggered by gameplay events, not continuous environmental effects.
+### Why Every Fixed-Direction Attempt Failed
 
-### Initial Implementation Issues (2026-03-24)
+| Attempt | Direction | Problem |
+|---------|-----------|---------|
+| `Vector3(0, 1, 0)` | Straight down | Side-view appearance |
+| `Vector3(0.5, 1, 0)` | Diagonal | Still side-view (uniform direction everywhere) |
+| `Vector3(0.4, 0.9, 0)` | Diagonal | Still side-view (uniform direction everywhere) |
+| `radial_velocity = +80–140` | Outward from center | Rain "flies away" (upward for top particles) |
+| `radial_velocity = -80–140` | **Inward to center** | **Top-down perspective (current fix)** |
 
-The first implementation was reported as "not visible" by the project owner (game log: `game_log_20260324_075210.txt`). Root cause analysis of the game log revealed:
+### The Physics of Top-Down Rain
 
-1. **Rain started too late**: The initial delay was 30-90 seconds (`start_raining = false`, `min_interval = 30`). The user's game session lasted only ~47 seconds (07:52:23 to 07:53:10), so the first rain episode likely never triggered.
-2. **Rain was too subtle**: Particle opacity was only 0.35 alpha, with small 2x12px texture and only 120 particles — very hard to notice against the game's detailed background.
-3. **No logging**: The rain effect had zero log output, making it impossible to verify whether rain episodes started at all. The only log line was from `docks_level.gd` confirming setup: `"Rain precipitation setup with 2 exclusion zones"`.
-4. **z_index too low**: Rain was at z_index=10, which might not render above all game elements.
+In real top-down perspective:
+- Raindrops fall toward the camera (along the optical axis)
+- From the camera's view, they appear to converge toward the center of the lens
+- Near the edges of the frame, this convergence creates an inward-angling effect
 
-### Fix Applied (Iteration 1: Visibility)
+Negative `radial_velocity` in a screen-space particle system with `BOX` emission replicates this: particles at screen edges travel toward center, particles close to center move nearly straight (low radial distance → low velocity component).
 
-- Added `initial_delay` export (default 5s) — first rain episode starts much sooner
-- Reduced interval between episodes: 15-45s (was 30-90s)
-- Increased episode duration: 15-40s (was 10-30s)
-- Increased particle count: 200 (was 120)
-- Increased particle opacity: 0.5 alpha (was 0.35)
-- Increased gradient peak opacity: 0.7 (was 0.5)
-- Increased texture size: 3x16px (was 2x12px)
-- Increased z_index to 100 (was 10) for reliable rendering above all game elements
-- Added comprehensive logging to track rain episode lifecycle
+### External Research: What HM2-Style Rain Actually Is
 
-### Perspective Issue (2026-03-24, game log: `game_log_20260324_090934.txt`)
+Research into Hotline Miami 2's rain and top-down rain implementations reveals:
 
-After the visibility fix, the project owner reported two remaining issues:
-1. Rain should start **immediately** — even a 5s delay was too long
-2. Rain looked like **side-view** falling streaks, but the game is top-down — rain should appear as drops falling from above (onto the camera)
+**For a flat 2D top-down art style** (which is what this game uses), all published implementations use **uniform diagonal streaks** (all same direction), not radial/fish-eye streaks. The convergence effect would only be physically meaningful for a 3D perspective camera looking down.
 
-### Fix Applied (Iteration 2: Immediate Start + Top-Down Perspective)
+**However:** The user explicitly confirmed they liked the fish-eye radial look from commit `123cde9a` and only wanted the direction inverted — so negative `radial_velocity` is correct per user preference, regardless of physical accuracy.
 
-- Changed `start_raining = true` with `initial_delay = 0` for immediate rain on level load
-- Replaced side-view streak particles with top-down splash dots (circular ripples)
-- Removed gravity and downward velocity — splashes appear in-place across viewport
+Sources:
+- [Making rain in a top-down game (Unity forums)](https://forum.unity.com/threads/making-rain-in-a-top-down-game.532887/)
+- [Simple top-down rain (GameMaker forums)](https://forum.gamemaker.io/index.php?threads%2Fsimple-pretty-performant-top-down-rain.36059%2F=)
+- [Photorealistic Rendering of Rain Streaks — Garg & Nayar, Columbia CAVE](https://cave.cs.columbia.edu/old/publications/pdfs/Garg_TOG06.pdf)
+- [How developers make perfect rain in games — PC Gamer](https://www.pcgamer.com/how-developers-make-perfect-rain-in-games/)
 
-### Hotline Miami 2 Reference Request (2026-03-24)
+---
 
-The project owner provided a reference screenshot from **Hotline Miami 2** (`hm2-rain-reference.png`) showing the desired rain style. Analysis of the HM2 rain reveals a **two-layer particle system**:
+## Current Solution Architecture
 
-![HM2 Rain Reference](hm2-rain-reference.png)
+### Rain Effect Layers
 
-1. **Diagonal rain streaks**: Short white lines falling at ~30° angle (upper-left to lower-right). These represent raindrops in motion, rendered as thin elongated particles moving diagonally across the screen.
-2. **Circular splash ripples**: Small ring-shaped dots scattered across the ground. These represent raindrops hitting the ground surface, rendered as short-lived radial gradient circles.
+| Layer | Amount | Lifetime | Purpose |
+|-------|--------|----------|---------|
+| **RainStreaks** | 50 | 0.15s | Short radial dashes converging toward screen center |
+| **RainSplashes** | 50 | 0.4s | Circular rings scattered across full screen |
 
-The combination creates a convincing top-down rain effect: you see both the falling drops (streaks) and their impact on the ground (splashes).
+### Key Parameters (Current State)
 
-### Fix Applied (Iteration 3: Hotline Miami 2-Style Two-Layer Rain)
+```
+RainStreaks:
+  radial_velocity_min = -140.0   # negative = inward/converging
+  radial_velocity_max = -80.0
+  particle_flag_align_y = true   # auto-rotate streak to face velocity
+  emission_shape = BOX (640x360) # full screen coverage
+  lifetime = 0.15s               # short streaks
+  amount = 50
 
-Completely restructured the rain effect from a single GPUParticles2D to a **Node2D with two child GPUParticles2D** nodes:
+RainSplashes:
+  spread = 180.0                 # omnidirectional minimal drift
+  initial_velocity = 0–2 px/s   # nearly static rings
+  emission_shape = BOX (640x360) # same area as streaks
+  lifetime = 0.4s                # longer-lasting rings
+  amount = 50
+```
 
-| Layer | Particles | Texture | Movement | Purpose |
-|-------|-----------|---------|----------|---------|
-| RainStreaks | 180 | 2×12px vertical line | Diagonal (350-500 px/s, ~30°) | Falling raindrops |
-| RainSplashes | 100 | 6×6px radial circle | Near-zero (in-place) | Ground impact ripples |
+### Node Hierarchy
 
-Key parameters matching HM2 style:
-- Streaks use a thin gradient line texture with alpha fade at both ends
-- Streaks move diagonally (direction Vector3(0.5, 1.0, 0)) at high speed with tight spread (5°)
-- Splashes use a radial gradient creating a ring/dot effect
-- Splashes have very low velocity, appearing and fading in-place
-- Both layers use cool blue-white tint (Color ~0.85-0.95 RGB) matching HM2's palette
+Rain lives inside a **CanvasLayer** (`RainCanvas`, layer 5) — renders in screen/viewport space, no per-frame camera repositioning needed.
 
-### Splash Misalignment Issue (2026-03-24, Iteration 5)
+```
+RainEffect (Node2D)
+└── RainCanvas (CanvasLayer, layer=5)
+    ├── RainStreaks (GPUParticles2D)  position=(640,360)
+    └── RainSplashes (GPUParticles2D) position=(640,360)
+```
 
-After fixing rain to fall straight down (Iteration 4 changed direction from diagonal to vertical), the user reported that splashes still don't land where streaks fall. The screenshot showed two clearly separated particle areas — streaks in one region, splashes offset below.
+### Building Exclusion
 
-**Root cause:** The `RainSplashes` node had `position = Vector2(0, 180)`, which was calculated for the old diagonal trajectory. Even after making rain vertical, the splash emission box was displaced 180px below the streak emission box. Since both boxes covered a 700×450 area, the two layers were visually disconnected.
+WarehouseA and WarehouseB use Rect2 bounds checking in `rain_effect.gd`. Each frame the camera's world position is compared to registered exclusion zones; if inside, `emitting = false`.
 
-**Fix (Iteration 5):** Removed the position offset entirely — both `RainStreaks` and `RainSplashes` emit from the exact same area (centered on camera).
+---
 
-### Splash Still Misaligned + Rain Stops (2026-03-24, Iteration 6)
+## Collected Evidence
 
-The user reported two remaining issues:
-1. **Splash/streak misalignment persists**: The end point of falling rain drops still doesn't match where splashes appear. With both layers at offset=0, streaks travel ~180px downward (avg velocity 450 px/s × lifetime 0.4s) but splashes appear at the emission origin — not at the landing point.
-2. **Rain stops**: The episodic timer system causes rain to stop after each episode duration (15-40s) and wait for the next episode (15-45s). The user wants rain to be **continuous** — always active.
+### Game Logs
 
-**Root cause 1 (splash alignment):** With both layers emitting from the same origin, a streak starting at position Y emits downward ~180px, but its splash appears at position Y (the origin), not Y+180 (where the streak ends). The splash emission area needs to be offset downward by the streak travel distance.
+| File | Date | Key Evidence |
+|------|------|-------------|
+| `game_log_20260324_075210.txt` | 2026-03-24 | No RainEffect logs → rain never started (delay too long) |
+| `game_log_20260324_090934.txt` | 2026-03-24 | First successful rain start (episodic mode, 5s delay) |
+| `game_log_20260324_130348.txt` | 2026-03-24 | Episodic start/stop working |
+| `game_log_20260324_132947.txt` | 2026-03-24 | No rain log entries (version/scene mismatch) |
+| `game_log_20260324_142031.txt` | 2026-03-24 | First continuous mode confirmed |
+| `game_log_20260325_125244.txt` | 2026-03-25 | Radial velocity version (fish-eye, user liked visually) |
+| `game_log_20260326_094619.txt` | 2026-03-26 | Fixed-direction version (user rejected, asked to revert) |
 
-**Root cause 2 (rain stops):** The `_duration_timer` fires `_stop_rain_episode()` which sets `emitting = false` and schedules the next episode. This episodic design was from the original "rare rain" requirement, but the user wants continuous rain.
+### Screenshots
 
-**Fix:**
-- **Splash alignment**: Restored `position = Vector2(0, 180)` on `RainSplashes` — offset matches the average streak travel distance (450 px/s × 0.4s = 180px). Updated splash `visibility_rect` to `Rect2(-900, -780, 1800, 1380)` to account for the offset.
-- **Continuous rain**: Removed the entire episodic timer system (`_schedule_timer`, `_duration_timer`, episode scheduling). Rain starts immediately in `_ready()` and never stops. The only toggle is exclusion zone enter/exit.
+| File | Shows |
+|------|-------|
+| `hm2-rain-reference.png` | Target HM2 rain style |
+| `hm2-rain-reference-2.png` | Additional HM2 reference |
+| `feedback-screenshot-2.png` | User feedback — splash misalignment |
+| `feedback-screenshot-3.png` | User feedback — side-view appearance |
+| `feedback-screenshot-latest.png` | Radial velocity version (user approved look, rejected direction) |
+| `screenshot_diagonal_rain.png` | Diagonal streak attempt |
+| `screenshot_side_view_rain_latest.png` | Side-view appearance |
+| `screenshot_vertical_rain_feedback.png` | Vertical streak attempt |
 
-| Parameter | Before (Iteration 5) | After (Iteration 6) |
-|---|---|---|
-| Splash position | `Vector2(0, 0)` | `Vector2(0, 180)` — matches streak travel distance |
-| Rain mode | Episodic (15-40s on, 15-45s off) | Continuous (always on) |
-| Timer system | Schedule + duration timers | Removed entirely |
-| Export properties | 6 timing exports | None needed |
+---
 
-### Key Technical Challenges
-
-1. **Large map coverage**: The Docks map is ~5000x4000 pixels, much larger than the viewport (1280x720). Rain must follow the camera.
-2. **Building detection**: WarehouseA (500x600px at position 400,1800) and WarehouseB (700x840px at position 4400,2800) have roofs — rain should not appear when the camera is inside.
-3. **Performance**: Continuous particle effects must be lightweight. GPUParticles2D processes particles on the GPU, so even 200 particles have minimal CPU impact.
-4. **Continuous rain**: Rain is always active outdoors — originally designed as intermittent "rare rain" but changed to continuous per user feedback.
-5. **Visibility**: Rain must be visible enough to be noticed but not so opaque as to obstruct gameplay.
-
-## Solution
-
-### Architecture
-
-The solution consists of three parts:
-
-1. **`scripts/effects/rain_effect.gd`** — Reusable rain controller script (extends Node2D)
-   - Continuous rain — always emitting, no episodic timers
-   - Follows the active camera automatically
-   - Supports rectangular exclusion zones for indoor areas
-   - Toggles particle emission based on camera position relative to exclusion zones
-
-2. **`scenes/effects/RainEffect.tscn`** — Reusable rain scene (Node2D)
-   - Two-layer Hotline Miami 2-style rain:
-     - **RainStreaks**: 180 vertical falling raindrop particles (2×12px gradient line, 400-500 px/s)
-     - **RainSplashes**: 100 ground ripple particles (6×6px radial circle, near-zero velocity), offset 180px downward to align with streak landing points
-   - Splash emission area is offset to match where streaks end, creating a unified drop-and-splash effect
-
-3. **Level integration** — DocksLevel.tscn includes the RainEffect scene, and docks_level.gd configures exclusion zones
-
-### Exclusion Zone Approach
-
-Rather than using collision-based detection (which would require physics setup), the solution uses simple Rect2 bounds checking. This is:
-- **Fast**: A single `Rect2.has_point()` check per zone per frame
-- **Simple**: No physics layers or collision shapes needed
-- **Configurable**: Each level defines its own zones in its setup script
-
-### Continuous Rain
-
-Rain is always active while the player is outdoors. The episodic "rare rain" timer system was removed based on user feedback — rain should never stop. The only state change is when the player enters/exits exclusion zones (buildings).
-
-## Existing Solutions Considered
-
-| Approach | Pros | Cons | Decision |
-|----------|------|------|----------|
-| GPUParticles2D (chosen) | GPU-accelerated, follows existing effect patterns, simple | Limited collision options | **Selected** — best fit for project patterns |
-| CPUParticles2D | Can collide with physics bodies | CPU-bound, doesn't match existing codebase | Rejected |
-| Shader-based rain | Pixel-perfect coverage, zero overdraw | Complex implementation, hard to configure per-zone | Rejected |
-| Tilemap-based animation | Integrates with tile system | Project doesn't use tilemaps for weather | Rejected |
-
-## File Changes
+## File Changes Summary
 
 | File | Change Type | Description |
 |------|------------|-------------|
-| `scripts/effects/rain_effect.gd` | New | Rain controller with episodes and exclusion zones |
-| `scenes/effects/RainEffect.tscn` | New | Rain GPUParticles2D scene |
-| `scenes/levels/DocksLevel.tscn` | Modified | Added RainEffect instance to level |
+| `scripts/effects/rain_effect.gd` | New | Rain controller with exclusion zones, continuous mode |
+| `scenes/effects/RainEffect.tscn` | New | Two-layer GPUParticles2D rain scene |
+| `scenes/levels/DocksLevel.tscn` | Modified | Added RainEffect instance |
 | `scripts/levels/docks_level.gd` | Modified | Added `_setup_rain()` with WarehouseA/B exclusion zones |
-| `tests/unit/test_rain_effect.gd` | New | 24 unit tests for rain logic |
+| `tests/unit/test_rain_effect.gd` | New | Unit tests for exclusion zone logic and continuous rain |
 
 ## Testing
 
@@ -168,16 +233,19 @@ Unit tests cover:
 - Warehouse-specific zone coordinates
 - Edge cases (boundary points, multiple zones)
 
-## References
+## External References
 
 - [Godot GPUParticles2D documentation](https://docs.godotengine.org/en/4.3/classes/class_gpuparticles2d.html)
-- [Dynamic Weather Systems in Godot (Wayline)](https://www.wayline.io/blog/dynamic-weather-systems-godot)
-- [Particle Systems in Godot - Rain (Dante's Lab)](https://www.dlab.ninja/2024/12/particle-systems-in-godot-introduction.html)
-- [2D Particle Systems tutorial (Godot docs)](https://docs.godotengine.org/en/stable/tutorials/2d/particle_systems_2d.html)
+- [Godot ParticleProcessMaterial — radial_velocity](https://docs.godotengine.org/en/4.3/classes/class_particleprocessmaterial.html#class-particleprocessmaterial-property-radial-velocity-min)
+- [Making rain in a top-down game (Unity forums)](https://forum.unity.com/threads/making-rain-in-a-top-down-game.532887/)
+- [Simple top-down rain (GameMaker forums)](https://forum.gamemaker.io/index.php?threads%2Fsimple-pretty-performant-top-down-rain.36059%2F=)
+- [Hotline Miami 2 rain discussion (Steam Level Editor)](https://steamcommunity.com/app/274170/discussions/1/494632506578501542/)
+- [Photorealistic Rendering of Rain Streaks — Garg & Nayar, Columbia CAVE](https://cave.cs.columbia.edu/old/publications/pdfs/Garg_TOG06.pdf)
+- [Water drop 2a: Dynamic rain and its effects — Sébastien Lagarde](https://seblagarde.wordpress.com/2012/12/27/water-drop-2a-dynamic-rain-and-its-effects/)
+- [How developers make perfect rain in games — PC Gamer](https://www.pcgamer.com/how-developers-make-perfect-rain-in-games/)
 
 ## Future Extensibility
 
-The `RainEffect` scene and script are designed to be reusable:
 - Any level can instance `RainEffect.tscn` and configure exclusion zones
 - Different precipitation types (snow, hail) can be created by duplicating the scene with different particle materials
 - Rain starts automatically — no configuration needed for basic use
