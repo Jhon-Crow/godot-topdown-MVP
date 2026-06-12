@@ -470,6 +470,9 @@ func _start_new_run() -> void:
 	GameManager.roguelike_current_map_room = 0  # Start room
 	GameManager.roguelike_visited_rooms = [0]
 	GameManager.roguelike_room_map[0]["visited"] = true
+	# Issue #1616: Mark the start room as cleared so it is always treated as
+	# an enemy-free room — both on the first entry and on any revisit.
+	GameManager.roguelike_room_map[0]["cleared"] = true
 	GameManager.roguelike_target_room = -1
 
 	var names: Array = []
@@ -1937,27 +1940,52 @@ func _create_door_zone(direction: int, target_room_idx: int) -> void:
 	var door_color: Color = _get_door_color(target_room_idx)
 	var door_label_text: String = _get_door_label(target_room_idx)
 
+	# Issue #1616: Door transitions must be recessed into the wall so they are
+	# visually embedded in the doorway gap rather than floating at the room edge.
+	# Wall thickness = 24 px (matching _build_room_boundary_closed).
+	# The collision zone is centred on the room-side edge of the wall (y/x = t)
+	# so it triggers as soon as the player steps through the opening.
+	# The visual is sized to fill the wall thickness exactly (vis_depth = t).
+	var t_wall: float = 24.0          ## Must match _build_room_boundary_closed
+	var vis_depth: float = t_wall     ## Visual fits exactly inside the wall
+
 	# Calculate door position at the wall gap
 	var door_pos := Vector2.ZERO
-	var door_w: float = 80.0
-	var door_h: float = 80.0
+	## Horizontal span of the doorway gap (used for N/S doors)
+	var door_w: float = DOOR_GAP - 20.0
+	## Vertical span of the doorway gap (used for E/W doors)
+	var door_h: float = DOOR_GAP - 20.0
+	## Visual dimensions — recessed flush with the wall
+	var vis_w: float = door_w
+	var vis_h: float = door_h
 	match direction:
 		DIR_NORTH:
-			door_pos = Vector2(_room_w * 0.5, 12.0)
-			door_w = DOOR_GAP - 20.0
-			door_h = 40.0
+			# Place at the inner (room-side) edge of the top wall
+			door_pos = Vector2(_room_w * 0.5, t_wall)
+			vis_h = vis_depth
 		DIR_SOUTH:
-			door_pos = Vector2(_room_w * 0.5, _room_h - 12.0)
-			door_w = DOOR_GAP - 20.0
-			door_h = 40.0
+			# Place at the inner (room-side) edge of the bottom wall
+			door_pos = Vector2(_room_w * 0.5, _room_h - t_wall)
+			vis_h = vis_depth
 		DIR_EAST:
-			door_pos = Vector2(_room_w - 12.0, _room_h * 0.5)
-			door_w = 40.0
-			door_h = DOOR_GAP - 20.0
+			# Place at the inner (room-side) edge of the right wall
+			door_pos = Vector2(_room_w - t_wall, _room_h * 0.5)
+			vis_w = vis_depth
 		DIR_WEST:
-			door_pos = Vector2(12.0, _room_h * 0.5)
-			door_w = 40.0
-			door_h = DOOR_GAP - 20.0
+			# Place at the inner (room-side) edge of the left wall
+			door_pos = Vector2(t_wall, _room_h * 0.5)
+			vis_w = vis_depth
+
+	## Collision depth extends slightly into the room so the trigger fires
+	## as the player steps through the gap rather than requiring them to
+	## walk fully into the wall.
+	var coll_w: float = door_w
+	var coll_h: float = door_h
+	match direction:
+		DIR_NORTH, DIR_SOUTH:
+			coll_h = t_wall + 16.0
+		DIR_EAST, DIR_WEST:
+			coll_w = t_wall + 16.0
 
 	var door_zone := Area2D.new()
 	door_zone.name = "DoorZone_%d_%d" % [direction, target_room_idx]
@@ -1965,28 +1993,28 @@ func _create_door_zone(direction: int, target_room_idx: int) -> void:
 	door_zone.collision_layer = 0
 	door_zone.collision_mask = 1  # Detect player
 
-	# Collision shape
+	# Collision shape (slightly wider than the visual so it triggers early)
 	var coll := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(door_w, door_h)
+	shape.size = Vector2(coll_w, coll_h)
 	coll.shape = shape
 	door_zone.add_child(coll)
 
-	# Visual: colored glow rect
+	# Visual: colored glow rect — recessed inside the wall
 	var glow := ColorRect.new()
 	glow.color = Color(door_color.r, door_color.g, door_color.b, 0.3)
-	glow.size = Vector2(door_w + 12, door_h + 12)
-	glow.position = -Vector2(door_w * 0.5 + 6, door_h * 0.5 + 6)
+	glow.size = Vector2(vis_w + 8, vis_h + 8)
+	glow.position = -Vector2(vis_w * 0.5 + 4, vis_h * 0.5 + 4)
 	door_zone.add_child(glow)
 
-	# Visual: inner solid rect
+	# Visual: inner solid rect — fits flush inside the wall thickness
 	var inner := ColorRect.new()
 	inner.color = door_color
-	inner.size = Vector2(door_w, door_h)
-	inner.position = -Vector2(door_w * 0.5, door_h * 0.5)
+	inner.size = Vector2(vis_w, vis_h)
+	inner.position = -Vector2(vis_w * 0.5, vis_h * 0.5)
 	door_zone.add_child(inner)
 
-	# Door label
+	# Door label — placed just inside the room, adjacent to the door
 	var lbl := Label.new()
 	lbl.text = door_label_text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1996,17 +2024,16 @@ func _create_door_zone(direction: int, target_room_idx: int) -> void:
 	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	lbl.add_theme_constant_override("shadow_offset_x", 1)
 	lbl.add_theme_constant_override("shadow_offset_y", 1)
-	lbl.size = Vector2(door_w + 20, 24)
-	# Position label above/below/beside the door
+	lbl.size = Vector2(vis_w + 20, 24)
 	match direction:
 		DIR_NORTH:
-			lbl.position = Vector2(-door_w * 0.5 - 10, door_h * 0.5 + 4)
+			lbl.position = Vector2(-vis_w * 0.5 - 10, vis_h * 0.5 + 4)
 		DIR_SOUTH:
-			lbl.position = Vector2(-door_w * 0.5 - 10, -door_h * 0.5 - 28)
+			lbl.position = Vector2(-vis_w * 0.5 - 10, -vis_h * 0.5 - 28)
 		DIR_EAST:
-			lbl.position = Vector2(-door_w * 0.5 - 40, -12)
+			lbl.position = Vector2(-vis_w * 0.5 - 40, -12)
 		DIR_WEST:
-			lbl.position = Vector2(door_w * 0.5 - 10, -12)
+			lbl.position = Vector2(vis_w * 0.5 - 10, -12)
 	door_zone.add_child(lbl)
 
 	# Direction arrow
@@ -3089,6 +3116,8 @@ func _start_next_level() -> void:
 	GameManager.roguelike_current_map_room = 0
 	GameManager.roguelike_visited_rooms = [0]
 	GameManager.roguelike_room_map[0]["visited"] = true
+	# Issue #1616: Mark start room of the new level as cleared (no enemies).
+	GameManager.roguelike_room_map[0]["cleared"] = true
 	GameManager.roguelike_target_room = -1
 
 	print("[RoguelikeLevel] Starting Level %d — %d rooms, difficulty ×%d" % [
