@@ -120,7 +120,13 @@ const PM_RELOAD_ACTION_2: String = "res://assets/audio/второе действ
 ## Volume for PM shots.
 const VOLUME_PM_SHOT: float = -5.0
 ## Volume for PM reload actions.
-const VOLUME_PM_RELOAD: float = -3.0
+const VOLUME_PM_RELOAD_ACTION_1: float = -4.0
+const VOLUME_PM_RELOAD_ACTION_2: float = -1.5
+## Pitch for PM reload actions.
+const PITCH_PM_RELOAD_ACTION_1: float = 1.0
+const PITCH_PM_RELOAD_ACTION_2: float = 0.94
+## Legacy volume constant for compatibility with tests and older scripts.
+const VOLUME_PM_RELOAD: float = VOLUME_PM_RELOAD_ACTION_1
 
 ## Grenade sounds.
 ## Activation sound (pin pull) - played when grenade timer starts.
@@ -583,7 +589,7 @@ func play_sound(path: String, volume_db: float = 0.0) -> void:
 
 
 ## Plays a non-positional sound with specified priority.
-func play_sound_with_priority(path: String, volume_db: float, priority: SoundPriority) -> void:
+func play_sound_with_priority(path: String, volume_db: float, priority: SoundPriority, pitch_scale: float = 1.0) -> void:
 	var stream := _get_stream(path)
 	if stream == null:
 		push_warning("AudioManager: Could not load sound: " + path)
@@ -592,6 +598,7 @@ func play_sound_with_priority(path: String, volume_db: float, priority: SoundPri
 	var player := _get_available_player_with_priority(priority)
 	player.stream = stream
 	player.volume_db = volume_db
+	player.pitch_scale = pitch_scale
 	player.play()
 	_register_playing_sound(player, priority)
 
@@ -603,7 +610,7 @@ func play_sound_2d(path: String, position: Vector2, volume_db: float = 0.0) -> v
 
 ## Plays a positional 2D sound at the given position with specified priority.
 ## max_distance controls how far (in pixels) the sound is audible (default 2000.0).
-func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: float, priority: SoundPriority, max_distance: float = 2000.0) -> void:
+func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: float, priority: SoundPriority, max_distance: float = 2000.0, pitch_scale: float = 1.0) -> void:
 	var stream := _get_stream(path)
 	if stream == null:
 		push_warning("AudioManager: Could not load sound: " + path)
@@ -612,6 +619,7 @@ func play_sound_2d_with_priority(path: String, position: Vector2, volume_db: flo
 	var player := _get_available_player_2d_with_priority(priority)
 	player.stream = stream
 	player.volume_db = volume_db
+	player.pitch_scale = pitch_scale
 	player.max_distance = max_distance
 	player.global_position = position
 	player.play()
@@ -901,13 +909,13 @@ func play_pm_shot(position: Vector2) -> void:
 ## Plays the first PM reload action sound (eject magazine) at the given position.
 ## Uses CRITICAL priority for reload sounds.
 func play_pm_reload_action_1(position: Vector2) -> void:
-	play_sound_2d_with_priority(PM_RELOAD_ACTION_1, position, VOLUME_PM_RELOAD, SoundPriority.CRITICAL)
+	play_sound_2d_with_priority(PM_RELOAD_ACTION_1, position, VOLUME_PM_RELOAD_ACTION_1, SoundPriority.CRITICAL, 2000.0, PITCH_PM_RELOAD_ACTION_1)
 
 
 ## Plays the second PM reload action sound (insert magazine) at the given position.
 ## Uses CRITICAL priority for reload sounds.
 func play_pm_reload_action_2(position: Vector2) -> void:
-	play_sound_2d_with_priority(PM_RELOAD_ACTION_2, position, VOLUME_PM_RELOAD, SoundPriority.CRITICAL)
+	play_sound_2d_with_priority(PM_RELOAD_ACTION_2, position, VOLUME_PM_RELOAD_ACTION_2, SoundPriority.CRITICAL, 2000.0, PITCH_PM_RELOAD_ACTION_2)
 
 
 # ============================================================================
@@ -1016,10 +1024,10 @@ func play_ui_click() -> void:
 func play_weapon_reload_preview(weapon_id: String) -> void:
 	match weapon_id:
 		"makarov_pm":
-			play_sound_with_priority(PM_RELOAD_ACTION_1, VOLUME_PM_RELOAD, SoundPriority.LOW)
+			play_sound_with_priority(PM_RELOAD_ACTION_1, VOLUME_PM_RELOAD_ACTION_1, SoundPriority.LOW, PITCH_PM_RELOAD_ACTION_1)
 			await get_tree().create_timer(0.6).timeout
 			if not is_inside_tree(): return
-			play_sound_with_priority(PM_RELOAD_ACTION_2, VOLUME_PM_RELOAD, SoundPriority.LOW)
+			play_sound_with_priority(PM_RELOAD_ACTION_2, VOLUME_PM_RELOAD_ACTION_2, SoundPriority.LOW, PITCH_PM_RELOAD_ACTION_2)
 		"m16", "mini_uzi", "silenced_pistol", "ak_gl":
 			play_sound_with_priority(RELOAD_MAG_OUT, VOLUME_RELOAD, SoundPriority.LOW)
 			await get_tree().create_timer(0.8).timeout
